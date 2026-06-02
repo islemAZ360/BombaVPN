@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="header-actions">
+    <h2>{{ _('Welcome', user.email) }}</h2>
+    <button id="logout-btn" class="btn btn-danger btn-small">{{ _('Logout') }}</button>
+</div>
+
+<div class="card" style="max-width: 500px; margin: 0 auto;">
+    <h3 style="text-align: center; margin-bottom: 1.5rem;">{{ _('BuySubscription') }}</h3>
+    
+    <div class="alert alert-warning" style="text-align: center;">
+        <p>{{ _('PaymentInstructions') }}</p>
+        <p><strong>{{ _('ScanQR') }}</strong></p>
+    </div>
+    
+    <div style="text-align: center; margin: 2rem 0;">
+        <img src="{{ url_for('static', filename='images/qr.jpg') }}" alt="Sberbank QR Code" style="max-width: 250px; border-radius: var(--radius); box-shadow: var(--shadow);">
+    </div>
+    
+    <form method="POST" enctype="multipart/form-data">
+        <h4 style="margin-bottom: 1rem;">{{ _('SelectPlan') }}</h4>
+        <div class="form-group" style="display: flex; flex-direction: column; gap: 1rem;">
+            {% for server in servers %}
+            <label style="display: flex; align-items: center; gap: 0.5rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius); cursor: pointer; background: var(--input-bg);">
+                <input type="radio" name="server_id" value="{{ server.id }}" required style="width: 1.2rem; height: 1.2rem;">
+                <div style="flex: 1;">
+                    <div style="font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                        {% if server.country_code %}
+                        <img src="https://flagcdn.com/24x18/{{ server.country_code }}.png" alt="{{ server.country_code }}" style="border-radius: 2px;">
+                        {% endif %}
+                        {{ server.name }}
+                    </div>
+                    <div style="font-size: 0.9rem; color: var(--text-muted);">
+                        {{ _('Price') }}: {{ server.price }} ₽ | {{ _('Duration') }}: 
+                        {% if server.plan_days %}{{ server.plan_days }} {{ _('Days') }} {% endif %}
+                        {% if server.plan_hours %}{{ server.plan_hours }} {{ _('Hours') }} {% endif %}
+                        {% if server.plan_minutes %}{{ server.plan_minutes }} {{ _('Minutes') }}{% endif %}
+                        {% if not server.plan_days and not server.plan_hours and not server.plan_minutes %}0 {{ _('Days') }}{% endif %}
+                    </div>
+                </div>
+            </label>
+            {% else %}
+            <div class="alert alert-warning">{{ _('NoPlansAvailable') }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="form-group" style="margin-top: 2rem;">
+            <label>{{ _('UploadReceipt') }}</label>
+            <input type="file" name="receipt" accept="image/*" class="form-control" required>
+        </div>
+        
+        <button type="submit" class="btn btn-success" {% if not servers %}disabled{% endif %}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            {{ _('Submit') }}
+        </button>
+    </form>
+</div>
+{% endblock %}

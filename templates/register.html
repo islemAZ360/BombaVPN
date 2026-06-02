@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card" style="max-width: 420px; margin: 4rem auto;">
+    <h2 style="text-align: center; margin-bottom: 2rem;">{{ _('Register') }}</h2>
+    <form id="register-form">
+        <div class="form-group">
+            <label>{{ _('Email') }}</label>
+            <input type="email" id="email" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>{{ _('Password') }}</label>
+            <input type="password" id="password" class="form-control" minlength="6" required>
+        </div>
+        <button type="submit" class="btn btn-primary" id="submit-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+            {{ _('RegisterBtn') }}
+        </button>
+        <div class="auth-links">
+            <a href="{{ url_for('login') }}">{{ _('HasAccount') }}</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script type="module">
+    import { auth, createUserWithEmailAndPassword, sendEmailVerification } from "{{ url_for('static', filename='firebase_config.js') }}";
+    const form = document.getElementById('register-form');
+    const btn = document.getElementById('submit-btn');
+    const btnOriginal = btn.innerHTML;
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>';
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            await sendEmailVerification(userCredential.user);
+            showToast('success', '{{ _("RegSuccess") }}', '{{ _("RegSuccessMsg") }}', 6000);
+            setTimeout(() => { window.location.href = '/login'; }, 3000);
+        } catch (error) {
+            let msg = error.message;
+            if (error.code === 'auth/email-already-in-use') {
+                msg = '{{ _("EmailExists") }}';
+            } else if (error.code === 'auth/weak-password') {
+                msg = '{{ _("WeakPassword") }}';
+            }
+            showToast('error', '{{ _("Error") }}', msg);
+            btn.disabled = false;
+            btn.innerHTML = btnOriginal;
+        }
+    });
+</script>
+{% endblock %}

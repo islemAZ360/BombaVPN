@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="header-actions">
+    <h2>{{ _('Welcome', user.email) }}</h2>
+    <button id="logout-btn" class="btn btn-danger btn-small">{{ _('Logout') }}</button>
+</div>
+
+<div class="card">
+    <h3>{{ _('YourSubscription') }}</h3>
+    <p>
+        <strong>{{ _('Status') }}:</strong> 
+        {% if user.status == 'pending' %}
+            <span class="badge badge-danger">{{ _('StatusPending') }}</span>
+        {% elif user.status == 'review' %}
+            <span class="badge badge-warning">{{ _('StatusReview') }}</span>
+        {% elif user.status == 'active' %}
+            <span class="badge badge-success">{{ _('StatusActive') }}</span>
+        {% elif user.status == 'expired' %}
+            <span class="badge badge-danger">{{ _('StatusExpired') }}</span>
+        {% endif %}
+    </p>
+
+    {% if user.status in ['pending', 'expired'] or (user.status == 'active' and not user.has_pending_renewal) %}
+        <div style="margin-top: 1.5rem;">
+            <a href="{{ url_for('pay') }}" class="btn btn-primary" style="width: auto; padding-left: 2.5rem; padding-right: 2.5rem;">
+                {% if user.status == 'active' %}
+                    {{ _('Renew') }}
+                {% else %}
+                    {{ _('BuySubscription') }}
+                {% endif %}
+            </a>
+        </div>
+    {% elif user.status == 'review' or user.has_pending_renewal %}
+        <div class="alert alert-warning" style="margin-top: 1.5rem; text-align: center;">
+            {{ _('ReviewMsg') }}
+        </div>
+    {% endif %}
+    
+    
+    {% if user.status == 'active' %}
+        <p style="font-size: 1.1rem;">
+            <strong>{{ _('ExpiresAt') }}:</strong> 
+            <span id="countdown-timer" style="color: var(--primary); font-weight: bold; font-family: monospace; background: var(--input-bg); padding: 4px 8px; border-radius: 4px;" data-time="{{ user.subscription_expires_at.isoformat() }}Z">
+                {{ user.subscription_expires_at }}
+            </span>
+        </p>
+        
+        {% if server %}
+            <h3 style="margin-top: 2rem; display: flex; align-items: center; gap: 10px;">
+                {{ _('ConnectionDetails') }}
+                {% if server.country_code %}
+                    <img src="https://flagcdn.com/24x18/{{ server.country_code }}.png" alt="{{ server.country_code }}" style="border-radius: 2px;">
+                {% endif %}
+            </h3>
+            <div class="table-responsive">
+                <table>
+                    <tr>
+                        <th>{{ _('ServerName', 'Name') }}</th>
+                        <td style="font-weight: bold; color: var(--primary);">{{ server.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>{{ _('IP') }}</th>
+                        <td>{{ server.ip }}</td>
+                    </tr>
+                    <tr>
+                        <th>{{ _('Port') }}</th>
+                        <td>{{ server.port }}</td>
+                    </tr>
+                    <tr>
+                        <th>{{ _('UUID') }}</th>
+                        <td>{{ server.uuid }}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <h3 style="margin-top: 2rem;">{{ _('Instructions') }}</h3>
+            <ol style="padding-inline-start: 1.5rem; margin-top: 1rem;">
+                <li>{{ _('DownloadApp') }}</li>
+                <li>{{ _('CopyConfig') }}</li>
+            </ol>
+            <div class="config-box">
+                vless://{{ server.uuid }}@{{ server.ip }}:{{ server.port }}?security=none&encryption=none&type=tcp#BombaVPN
+            </div>
+        {% else %}
+            <div class="alert alert-danger" style="margin-top: 2rem;">
+                {{ _('NoServerAssigned') }}
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+
+<!-- Support Section -->
+<div class="card" style="margin-top: 2rem;">
+    <h3>{{ _('Support') }}</h3>
+    
+    <div style="margin-top: 1rem; margin-bottom: 2rem; max-height: 300px; overflow-y: auto; padding-right: 10px;">
+        {% for msg in messages %}
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 1rem; border-radius: var(--radius); margin-bottom: 1rem;">
+                <p style="margin: 0; font-size: 0.95rem;"><strong>{{ _('You') }}:</strong> {{ msg.message }}</p>
+                <small style="color: var(--text-muted);">{{ msg.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                
+                {% if msg.admin_reply %}
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                    <p style="margin: 0; font-size: 0.95rem; color: var(--primary);"><strong>{{ _('AdminReply') }}:</strong> {{ msg.admin_reply }}</p>
+                </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <p style="color: var(--text-muted); text-align: center; font-style: italic;">{{ _('NoMessages') }}</p>
+        {% endfor %}
+    </div>
+
+    <form action="{{ url_for('send_message') }}" method="POST">
+        <div class="form-group">
+            <label>{{ _('MessageAdmin') }}</label>
+            <textarea name="message" class="form-control" rows="3" placeholder="{{ _('TypeMessage') }}" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top: 1rem; width: auto; padding-left: 2rem; padding-right: 2rem;">
+            {{ _('Send') }}
+        </button>
+    </form>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const timerElement = document.getElementById("countdown-timer");
+        if (timerElement) {
+            const expireTime = new Date(timerElement.getAttribute("data-time")).getTime();
+            
+            function updateTimer() {
+                const now = new Date().getTime();
+                const distance = expireTime - now;
+                
+                if (distance < 0) {
+                    timerElement.innerHTML = "Expired";
+                    timerElement.style.color = "var(--danger)";
+                    return;
+                }
+                
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                
+                timerElement.innerHTML = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+            }
+            
+            updateTimer();
+            setInterval(updateTimer, 1000);
+        }
+    });
+</script>
+{% endblock %}

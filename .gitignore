@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Environment variables
+.env
+
+# Firebase private key (VERY IMPORTANT NOT TO UPLOAD)
+firebase-adminsdk.json
+
+# Database and uploads
+instance/
+static/uploads/*
+!static/uploads/.gitkeep

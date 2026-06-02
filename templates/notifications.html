@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="header-actions">
+    <h2>{{ _('NotificationsTitle') }}</h2>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">{{ _('BackToDashboard') }}</a>
+</div>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3>{{ _('SystemNotifications') }}</h3>
+        <form action="{{ url_for('mark_all_read') }}" method="POST">
+            <button type="submit" class="btn btn-primary btn-small">{{ _('MarkAllRead') }}</button>
+        </form>
+    </div>
+    
+    <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 15px;">
+        {% for n in notifications %}
+        <div style="background: rgba(255, 255, 255, 0.03); padding: 15px; border-radius: 8px; border-left: 4px solid {{ '#4a4a4a' if n.is_read else '#ff4757' }}; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h4 style="margin: 0 0 5px 0; color: {{ '#a0a0a0' if n.is_read else '#ff4757' }};">{{ n.title }}</h4>
+                <p style="margin: 0; font-size: 0.9em; color: #d0d0d0;">{{ n.message }}</p>
+                <small style="color: #666; display: block; margin-top: 8px;">{{ n.created_at.strftime('%Y-%m-%d %H:%M') if n.created_at else '' }}</small>
+            </div>
+            {% if not n.is_read %}
+            <form action="{{ url_for('mark_read', notif_id=n.id) }}" method="POST">
+                <button type="submit" class="btn btn-secondary btn-small" style="font-size: 12px; padding: 5px 10px;">{{ _('Read') }}</button>
+            </form>
+            {% endif %}
+        </div>
+        {% else %}
+        <p style="text-align: center; color: #666; padding: 20px;">{{ _('NoNotificationsMsg') }}</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
