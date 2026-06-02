@@ -40,12 +40,16 @@
                 </td>
                 <td><a href="{{ url_for('static', filename='uploads/' + u.receipt_image) }}" target="_blank">{{ _('ViewReceipt') }}</a></td>
                 <td>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <form method="POST" action="{{ url_for('approve_user', user_id=u.id) }}">
-                            <button type="submit" class="btn btn-success btn-small">{{ _('Activate') }}</button>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <form method="POST" action="{{ url_for('approve_user', user_id=u.id) }}" style="margin:0;">
+                            <button type="submit" class="action-icon-btn save-btn" title="{{ _('Activate') }}">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </button>
                         </form>
-                        <form method="POST" action="{{ url_for('reject_user', user_id=u.id) }}">
-                            <button type="submit" class="btn btn-danger btn-small">{{ _('Reject') }}</button>
+                        <form method="POST" action="{{ url_for('reject_user', user_id=u.id) }}" style="margin:0;">
+                            <button type="submit" class="action-icon-btn delete-btn" title="{{ _('Reject') }}">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
                         </form>
                     </div>
                 </td>
@@ -98,18 +102,18 @@
             </div>
         </div>
         
-        <div style="display: flex; gap: 2rem; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
+        <div style="display: flex; gap: 2rem; background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px;">
             <div style="flex: 1;">
-                <label style="font-size: 0.85rem; color: #2ed573; font-weight: bold; margin-bottom: 8px; display: block;">{{ _('PlanDurationLabel') }}</label>
+                <label style="font-size: 0.85rem; color: var(--primary); font-weight: bold; margin-bottom: 8px; display: block;">{{ _('PlanDurationLabel') }}</label>
                 <div style="display: flex; gap: 10px;">
                     <input type="number" name="plan_days" class="form-control" placeholder="{{ _('Days') }}" style="flex: 1;">
                     <input type="number" name="plan_hours" class="form-control" placeholder="{{ _('Hours') }}" style="flex: 1;">
                     <input type="number" name="plan_minutes" class="form-control" placeholder="{{ _('Minutes') }}" style="flex: 1;">
                 </div>
             </div>
-            <div style="width: 2px; background: rgba(255,255,255,0.1);"></div>
+            <div style="width: 2px; background: rgba(255,255,255,0.05);"></div>
             <div style="flex: 1;">
-                <label style="font-size: 0.85rem; color: #ff4757; font-weight: bold; margin-bottom: 8px; display: block;">{{ _('RealDurationLabel') }}</label>
+                <label style="font-size: 0.85rem; color: #ff003c; font-weight: bold; margin-bottom: 8px; display: block;">{{ _('RealDurationLabel') }}</label>
                 <div style="display: flex; gap: 10px;">
                     <input type="number" name="real_days" class="form-control" placeholder="{{ _('Days') }}" style="flex: 1;">
                     <input type="number" name="real_hours" class="form-control" placeholder="{{ _('Hours') }}" style="flex: 1;">
@@ -135,18 +139,18 @@
             <textarea name="subscription_text" class="form-control" rows="5" placeholder="{{ _('PasteLink') }}" required style="resize: vertical; font-family: monospace;"></textarea>
         </div>
 
-        <div style="display: flex; gap: 20px; align-items: stretch;">
+        <div style="display: flex; gap: 20px; align-items: stretch; background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px;">
             <div style="flex: 1;">
-                <label style="font-size: 0.85rem; color: #a0a0a0; margin-bottom: 8px; display: block;">{{ _('DurationTitle') }}</label>
+                <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: bold; margin-bottom: 8px; display: block;">{{ _('DurationTitle') }}</label>
                 <div style="display: flex; gap: 10px;">
                     <input type="number" name="plan_days" class="form-control" placeholder="{{ _('Days') }}" style="flex: 1;" required>
                     <input type="number" name="plan_hours" class="form-control" placeholder="{{ _('Hours') }}" style="flex: 1;">
                     <input type="number" name="plan_minutes" class="form-control" placeholder="{{ _('Minutes') }}" style="flex: 1;">
                 </div>
             </div>
-            <div style="width: 2px; background: rgba(255,255,255,0.1);"></div>
+            <div style="width: 2px; background: rgba(255,255,255,0.05);"></div>
             <div style="flex: 1;">
-                <label style="font-size: 0.85rem; color: #ff4757; font-weight: bold; margin-bottom: 8px; display: block;">{{ _('RealDurationLabel') }}</label>
+                <label style="font-size: 0.85rem; color: #ff003c; font-weight: bold; margin-bottom: 8px; display: block;">{{ _('RealDurationLabel') }}</label>
                 <div style="display: flex; gap: 10px;">
                     <input type="number" name="real_days" class="form-control" placeholder="{{ _('Days') }}" style="flex: 1;" required>
                     <input type="number" name="real_hours" class="form-control" placeholder="{{ _('Hours') }}" style="flex: 1;">
@@ -172,24 +176,24 @@
     </form>
 </div>
 
-<div class="card" style="margin-bottom: 20px; background: rgba(0, 255, 204, 0.05); border-color: var(--primary);">
+<div class="card">
     <h4 style="margin-bottom: 1rem; color: var(--primary);">Server Statistics</h4>
-    <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: space-between;">
-        <div style="text-align: center; flex: 1;">
-            <div style="font-size: 2rem; font-weight: bold;">{{ server_stats.total }}</div>
-            <div style="font-size: 0.85rem; color: var(--text-muted);">Total Servers</div>
+    <div class="hud-stats-container">
+        <div class="hud-stat-box">
+            <div class="hud-stat-number">{{ server_stats.total }}</div>
+            <div class="hud-stat-label">Total Servers</div>
         </div>
-        <div style="text-align: center; flex: 1;">
-            <div style="font-size: 2rem; font-weight: bold;">{{ server_stats.gemini }}</div>
-            <div style="font-size: 0.85rem; color: var(--text-muted);">Gemini Tags</div>
+        <div class="hud-stat-box">
+            <div class="hud-stat-number">{{ server_stats.gemini }}</div>
+            <div class="hud-stat-label">Gemini Tags</div>
         </div>
-        <div style="text-align: center; flex: 1;">
-            <div style="font-size: 2rem; font-weight: bold;">{{ server_stats.yt }}</div>
-            <div style="font-size: 0.85rem; color: var(--text-muted);">YT Tags</div>
+        <div class="hud-stat-box">
+            <div class="hud-stat-number">{{ server_stats.yt }}</div>
+            <div class="hud-stat-label">YT Tags</div>
         </div>
-        <div style="text-align: center; flex: 1;">
-            <div style="font-size: 2rem; font-weight: bold;">{{ server_stats.lte }}</div>
-            <div style="font-size: 0.85rem; color: var(--text-muted);">LTE Tags</div>
+        <div class="hud-stat-box">
+            <div class="hud-stat-number">{{ server_stats.lte }}</div>
+            <div class="hud-stat-label">LTE Tags</div>
         </div>
     </div>
 </div>
@@ -198,8 +202,8 @@
     <h3 style="display: flex; align-items: center; justify-content: space-between;">
         <span>{{ _('Servers') }}</span>
         <div style="display: flex; gap: 10px;">
-            <button id="save-all-btn" class="btn btn-primary btn-small" onclick="saveAllServers()">{{ _('SaveAll') }}</button>
-            <button id="delete-all-btn" class="btn btn-danger btn-small" onclick="deleteAllServers()">{{ _('DeleteAll') }}</button>
+            <button id="save-all-btn" class="btn btn-hollow-primary btn-small" onclick="saveAllServers()">{{ _('SaveAll') }}</button>
+            <button id="delete-all-btn" class="btn btn-hollow-danger btn-small" onclick="deleteAllServers()">{{ _('DeleteAll') }}</button>
         </div>
     </h3>
     <div class="table-responsive">
@@ -230,10 +234,14 @@
                     <div class="countdown-timer" data-expires="{{ s.expires_at.isoformat() }}" style="font-size: 0.8rem; color: var(--warning); margin-top: 4px;"></div>
                     {% endif %}
                 </td>
-                <td>
-                        <button type="submit" class="btn btn-primary btn-small">{{ _('Save') }}</button>
+                <td style="white-space: nowrap;">
+                        <button type="submit" class="action-icon-btn save-btn" title="{{ _('Save') }}">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        </button>
                     </form>
-                    <button class="btn btn-danger btn-small" onclick="deleteServer('{{ s.id }}')">{{ _('Delete') }}</button>
+                    <button type="button" class="action-icon-btn delete-btn" title="{{ _('Delete') }}" onclick="deleteServer('{{ s.id }}')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
                 </td>
             </tr>
             {% else %}

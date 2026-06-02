@@ -1148,8 +1148,36 @@ def get_subscription(token):
         current_server = best_server
         user_doc['allocated_subdomain'] = subdomain
 
-    modified_json = modify_json_address(current_server['json_config'], user_doc['allocated_subdomain'])
-    return modified_json, 200, {'Content-Type': 'application/json'}
+    import socket
+    active_address = current_server['original_ip']
+    subdomain_to_check = user_doc.get('allocated_subdomain')
+    
+    if subdomain_to_check:
+        try:
+            # Fallback to direct IP if the Dynv6 subdomain hasn't propagated yet or mock failed
+            socket.gethostbyname(subdomain_to_check)
+            active_address = subdomain_to_check
+        except Exception:
+            pass
+
+    from utils import generate_vless_uri
+    import base64
+    import re
+    
+    vless_uri = None
+    if current_server.get('vless_link'):
+        vless_uri = re.sub(r'(@)([^:?#]+)', r'\g<1>' + active_address, current_server['vless_link'], count=1)
+    else:
+        vless_uri = generate_vless_uri(current_server['json_config'], active_address)
+    
+    if vless_uri:
+        # Standard subscription format: Base64 encoded list of links
+        b64_content = base64.b64encode(vless_uri.encode('utf-8')).decode('utf-8')
+        return b64_content, 200, {'Content-Type': 'text/plain; charset=utf-8'}
+    else:
+        # Fallback to JSON if it's not a standard vless config
+        modified_json = modify_json_address(current_server['json_config'], active_address)
+        return modified_json, 200, {'Content-Type': 'application/json'}
 
 
 def background_expiry_checker():
