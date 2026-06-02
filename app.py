@@ -987,6 +987,19 @@ def send_message():
         flash('تم إرسال رسالتك بنجاح', 'success')
     return redirect(url_for('user_dashboard'))
 
+@app.route('/api/user_status')
+@login_required
+def api_user_status():
+    user_id = request.user['uid']
+    doc = db.collection('users').document(user_id).get()
+    if doc.exists:
+        data = doc.to_dict()
+        return jsonify({
+            'status': data.get('status'),
+            'has_pending_renewal': data.get('has_pending_renewal', False)
+        })
+    return jsonify({'status': 'unknown', 'has_pending_renewal': False}), 404
+
 @app.route('/sub/<token>')
 def get_subscription(token):
     user_id = token

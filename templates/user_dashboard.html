@@ -150,4 +150,28 @@
         }
     });
 </script>
+
+<script>
+    // Live re-render/refresh mechanism
+    const currentStatus = "{{ user.status }}";
+    const currentPendingRenewal = "{{ 'true' if user.has_pending_renewal else 'false' }}";
+
+    // Poll every 5 seconds if status is review, pending, or has a pending renewal
+    if (currentStatus === 'review' || currentStatus === 'pending' || currentPendingRenewal === 'true') {
+        setInterval(async () => {
+            try {
+                const response = await fetch('/api/user_status');
+                if (response.ok) {
+                    const data = await response.json();
+                    // If server updated the status or renewal state, reload page to re-render
+                    if (data.status !== currentStatus || data.has_pending_renewal.toString() !== currentPendingRenewal) {
+                        window.location.reload();
+                    }
+                }
+            } catch (err) {
+                console.error("Error polling user status:", err);
+            }
+        }, 5000);
+    }
+</script>
 {% endblock %}
