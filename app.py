@@ -942,9 +942,10 @@ def manage_user_sub(user_id):
         flash('تم إلغاء الاشتراك بنجاح / Subscription cancelled', 'success')
         
     elif action == 'modify':
-        days = int(request.form.get('days', 0))
-        hours = int(request.form.get('hours', 0))
-        delta = timedelta(days=days, hours=hours)
+        days = int(request.form.get('days') or 0)
+        hours = int(request.form.get('hours') or 0)
+        minutes = int(request.form.get('minutes') or 0)
+        delta = timedelta(days=days, hours=hours, minutes=minutes)
         
         current_expires = data.get('subscription_expires_at')
         if current_expires:

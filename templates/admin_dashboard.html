@@ -297,7 +297,7 @@
                 <td><span class="badge" style="background: var(--primary); color: white;">{{ u.purchases_count | default(0) }}</span></td>
                 <td>
                     <div style="display: flex; gap: 0.5rem;">
-                        <button type="button" class="btn btn-primary btn-small" onclick="openModifyModal('{{ u.id }}')" title="Modify Duration">⏱️</button>
+                        <button type="button" class="btn btn-primary btn-small" onclick="openModifyModal('{{ u.id }}', '{{ u.subscription_expires_at.isoformat() + 'Z' if u.subscription_expires_at else '' }}')" title="Modify Duration">⏱️</button>
                         <button type="button" class="btn btn-secondary btn-small" onclick="openAssignModal('{{ u.id }}')" title="Assign Server">🔌</button>
                         <button type="button" class="btn btn-success btn-small" onclick="openMessageModal('{{ u.id }}', '{{ u.email }}')" title="Send Message">✉️</button>
                         
@@ -323,11 +323,18 @@
 <div id="modify-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:9999; align-items:center; justify-content:center;">
     <div style="background:var(--card-bg, #1a1a2e); border:1px solid var(--border-color, #333); border-radius:16px; padding:2rem; max-width:400px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.5);">
         <h3 style="margin-bottom:1rem; color:var(--text-primary, #fff);">Modify Duration</h3>
+        
+        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; border: 1px solid rgba(0,255,204,0.2);">
+            <p style="margin:0; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Remaining Time</p>
+            <div id="modify-remaining-time" style="font-size: 1.2rem; font-weight: bold; color: #00ffcc; font-family: monospace; margin-top: 5px;">-</div>
+        </div>
+
         <form id="modify-form" method="POST" action="">
             <input type="hidden" name="action" value="modify">
             <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
-                <input type="number" name="days" class="form-control" placeholder="Add/Sub Days (e.g. 30 or -5)" style="flex: 1;" required>
+                <input type="number" name="days" class="form-control" placeholder="Days" style="flex: 1;">
                 <input type="number" name="hours" class="form-control" placeholder="Hours" style="flex: 1;" value="0">
+                <input type="number" name="minutes" class="form-control" placeholder="Mins" style="flex: 1;" value="0">
             </div>
             <div style="display:flex; gap:0.8rem; justify-content:flex-end;">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('modify-modal')">Cancel</button>
@@ -393,11 +400,46 @@
 <script>
     function closeModal(modalId) {
         document.getElementById(modalId).style.display = 'none';
+        if (window.modifyTimerInterval) clearInterval(window.modifyTimerInterval);
     }
 
-    function openModifyModal(userId) {
+    function openModifyModal(userId, expiresAtISO) {
         const form = document.getElementById('modify-form');
         form.action = "{{ url_for('manage_user_sub', user_id='PLACEHOLDER') }}".replace('PLACEHOLDER', userId);
+        
+        const remainingEl = document.getElementById('modify-remaining-time');
+        if (window.modifyTimerInterval) clearInterval(window.modifyTimerInterval);
+
+        if (!expiresAtISO) {
+            remainingEl.textContent = "N/A or Expired";
+            remainingEl.style.color = "var(--danger)";
+        } else {
+            const expireTime = new Date(expiresAtISO).getTime();
+            
+            function updateModifyTimer() {
+                const now = new Date().getTime();
+                const distance = expireTime - now;
+                
+                if (distance < 0) {
+                    remainingEl.textContent = "Expired";
+                    remainingEl.style.color = "var(--danger)";
+                    clearInterval(window.modifyTimerInterval);
+                    return;
+                }
+                
+                remainingEl.style.color = "#00ffcc";
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                
+                remainingEl.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+            }
+            
+            updateModifyTimer();
+            window.modifyTimerInterval = setInterval(updateModifyTimer, 1000);
+        }
+
         document.getElementById('modify-modal').style.display = 'flex';
     }
 

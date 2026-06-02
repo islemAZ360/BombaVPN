@@ -25,96 +25,146 @@
 </div>
 {% endif %}
 
-<div class="card">
-    <h3>{{ _('YourSubscription') }}</h3>
-    <p>
-        <strong>{{ _('Status') }}:</strong> 
-        {% if user.status == 'pending' %}
-            <span class="badge badge-danger">{{ _('StatusPending') }}</span>
-        {% elif user.status == 'review' %}
-            <span class="badge badge-warning">{{ _('StatusReview') }}</span>
-        {% elif user.status == 'active' %}
-            <span class="badge badge-success">{{ _('StatusActive') }}</span>
-        {% elif user.status == 'expired' %}
-            <span class="badge badge-danger">{{ _('StatusExpired') }}</span>
-        {% endif %}
-    </p>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+    
+    .app-btn {
+        display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255, 255, 255, 0.1); 
+        color: #fff; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 0.95rem; transition: all 0.3s ease;
+    }
+    .app-btn:hover { background: rgba(255,255,255,0.1); box-shadow: 0 0 15px rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.3); }
+    
+    .support-textarea {
+        width: 100%; background: rgba(0, 0, 0, 0.4); border: none; border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        color: #fff; padding: 12px; border-radius: 8px 8px 0 0; font-family: inherit; resize: vertical; transition: all 0.3s ease;
+    }
+    .support-textarea:focus {
+        outline: none; background: rgba(0, 0, 0, 0.6); border-bottom-color: #00ffcc; box-shadow: 0 5px 15px rgba(0, 255, 204, 0.1);
+    }
+</style>
 
-    {% if user.status in ['pending', 'expired'] or (user.status == 'active' and not user.has_pending_renewal) %}
-        <div style="margin-top: 1.5rem;">
-            <a href="{{ url_for('pay') }}" class="btn btn-primary" style="width: auto; padding-left: 2.5rem; padding-right: 2.5rem;">
-                {% if user.status == 'active' %}
-                    {{ _('Renew') }}
-                {% else %}
-                    {{ _('BuySubscription') }}
-                {% endif %}
-            </a>
+<div class="card" style="position: relative;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h3 style="margin-bottom: 0.8rem; font-size: 1.4rem;">{{ _('YourSubscription') }}</h3>
+            {% if user.status == 'pending' %}
+                <span class="badge" style="background: rgba(255, 193, 7, 0.1); border: 1px solid #ffc107; color: #ffc107; padding: 6px 16px; border-radius: 50px; font-weight: bold; letter-spacing: 1px;">{{ _('StatusPending') }}</span>
+            {% elif user.status == 'review' %}
+                <span class="badge" style="background: rgba(255, 152, 0, 0.1); border: 1px solid #ff9800; color: #ff9800; padding: 6px 16px; border-radius: 50px; font-weight: bold; letter-spacing: 1px;">{{ _('StatusReview') }}</span>
+            {% elif user.status == 'active' %}
+                <span class="badge" style="background: rgba(0, 255, 204, 0.1); border: 1px solid #00ffcc; color: #00ffcc; padding: 6px 16px; border-radius: 50px; font-weight: bold; letter-spacing: 1px; box-shadow: 0 0 10px rgba(0,255,204,0.2);">{{ _('StatusActive') }}</span>
+            {% elif user.status == 'expired' %}
+                <span class="badge" style="background: rgba(255, 71, 87, 0.1); border: 1px solid #ff4757; color: #ff4757; padding: 6px 16px; border-radius: 50px; font-weight: bold; letter-spacing: 1px;">{{ _('StatusExpired') }}</span>
+            {% endif %}
         </div>
-    {% elif user.status == 'review' or user.has_pending_renewal %}
+        
+        {% if user.status in ['pending', 'expired'] or (user.status == 'active' and not user.has_pending_renewal) %}
+            <a href="{{ url_for('pay') }}" class="btn" style="background: transparent; border: 2px solid #00ffcc; color: #00ffcc; padding: 0.6rem 1.8rem; border-radius: 8px; transition: all 0.3s ease; text-decoration: none; font-weight: bold; box-shadow: 0 0 15px rgba(0,255,204,0.1); white-space: nowrap;" onmouseover="this.style.background='#00ffcc'; this.style.color='#000'; this.style.boxShadow='0 0 20px rgba(0,255,204,0.5)';" onmouseout="this.style.background='transparent'; this.style.color='#00ffcc'; this.style.boxShadow='0 0 15px rgba(0,255,204,0.1)';">
+                {% if user.status == 'active' %}{{ _('Renew') }}{% else %}{{ _('BuySubscription') }}{% endif %}
+            </a>
+        {% endif %}
+    </div>
+
+    {% if user.status == 'review' or user.has_pending_renewal %}
         <div class="alert alert-warning" style="margin-top: 1.5rem; text-align: center;">
             {{ _('ReviewMsg') }}
         </div>
     {% endif %}
-    
-    
+
     {% if user.status == 'active' %}
-        <p style="font-size: 1.1rem;">
-            <strong>{{ _('ExpiresAt') }}:</strong> 
-            <span id="countdown-timer" style="color: var(--primary); font-weight: bold; font-family: monospace; background: var(--input-bg); padding: 4px 8px; border-radius: 4px;" data-time="{{ user.subscription_expires_at.isoformat() }}Z">
-                {{ user.subscription_expires_at }}
-            </span>
-        </p>
+        <div style="margin-top: 2rem;">
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">{{ _('ExpiresAt') }}</p>
+            <div id="countdown-timer-widget" style="display: flex; gap: 12px; font-family: 'Space Mono', monospace; margin-bottom: 2.5rem; flex-wrap: wrap;" data-time="{{ user.subscription_expires_at.isoformat() }}Z">
+                <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px 20px; border-radius: 12px; text-align: center; min-width: 80px; backdrop-filter: blur(5px);">
+                    <div id="cd-days" style="font-size: 2rem; font-weight: bold; color: #fff; line-height: 1;">00</div>
+                    <div style="font-size: 0.75rem; color: var(--primary); text-transform: uppercase; margin-top: 5px;">Days</div>
+                </div>
+                <div style="font-size: 2rem; font-weight: bold; color: rgba(255,255,255,0.2); align-self: center; padding-bottom: 20px;">:</div>
+                <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px 20px; border-radius: 12px; text-align: center; min-width: 80px; backdrop-filter: blur(5px);">
+                    <div id="cd-hours" style="font-size: 2rem; font-weight: bold; color: #fff; line-height: 1;">00</div>
+                    <div style="font-size: 0.75rem; color: var(--primary); text-transform: uppercase; margin-top: 5px;">Hours</div>
+                </div>
+                <div style="font-size: 2rem; font-weight: bold; color: rgba(255,255,255,0.2); align-self: center; padding-bottom: 20px;">:</div>
+                <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px 20px; border-radius: 12px; text-align: center; min-width: 80px; backdrop-filter: blur(5px);">
+                    <div id="cd-mins" style="font-size: 2rem; font-weight: bold; color: #fff; line-height: 1;">00</div>
+                    <div style="font-size: 0.75rem; color: var(--primary); text-transform: uppercase; margin-top: 5px;">Mins</div>
+                </div>
+                <div style="font-size: 2rem; font-weight: bold; color: rgba(255,255,255,0.2); align-self: center; padding-bottom: 20px;">:</div>
+                <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px 20px; border-radius: 12px; text-align: center; min-width: 80px; backdrop-filter: blur(5px);">
+                    <div id="cd-secs" style="font-size: 2rem; font-weight: bold; color: #fff; line-height: 1;">00</div>
+                    <div style="font-size: 0.75rem; color: var(--primary); text-transform: uppercase; margin-top: 5px;">Secs</div>
+                </div>
+            </div>
+        </div>
         
         {% if server %}
-            <h3 style="margin-top: 2rem; display: flex; align-items: center; gap: 10px;">
-                {{ _('ConnectionDetails') }}
+            <div style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 1.2rem 1.5rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 2.5rem; box-shadow: inset 0 2px 10px rgba(0,0,0,0.2);">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+                    </div>
+                    <div>
+                        <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">{{ _('ConnectionDetails') }}</p>
+                        <p style="margin: 0; font-size: 1.2rem; font-weight: bold; color: #fff; letter-spacing: 0.5px;">{{ server.name }}</p>
+                    </div>
+                </div>
                 {% if server.country_code %}
-                    <img src="https://flagcdn.com/24x18/{{ server.country_code }}.png" alt="{{ server.country_code }}" style="border-radius: 2px;">
+                    <img src="https://flagcdn.com/32x24/{{ server.country_code }}.png" alt="{{ server.country_code }}" style="border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">
                 {% endif %}
-            </h3>
-            <div class="table-responsive" style="margin-top: 1rem;">
-                <table style="text-align: left; width: 100%;">
-                    <tr>
-                        <th style="width: 30%; text-align: left; padding-left: 1rem;">{{ _('ServerName', 'Name') }}</th>
-                        <td style="font-weight: bold; color: var(--primary); text-align: left;">{{ server.name }}</td>
-                    </tr>
-                </table>
             </div>
             
-            <h3 style="margin-top: 2.5rem;">{{ _('Instructions') }}</h3>
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem; font-size: 1.3rem;">{{ _('Instructions') }}</h3>
             
-            <div style="background: rgba(255, 255, 255, 0.02); padding: 1.5rem; border-radius: var(--radius); border: 1px solid var(--border-color); margin-top: 1rem; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); backdrop-filter: blur(12px);">
+            <div style="background: rgba(255, 255, 255, 0.02); padding: 2rem; border-radius: var(--radius); border: 1px solid rgba(255,255,255,0.05); margin-top: 1rem; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2); backdrop-filter: blur(12px);">
                 
-                <p style="margin-bottom: 0.8rem; font-weight: bold; color: var(--primary);">1. {{ _('DownloadApp') }}</p>
-                <div style="display: flex; gap: 10px; margin-bottom: 2rem; flex-wrap: wrap;">
-                    <a href="https://github.com/Happ-proxy/happ-desktop/releases/download/2.16.2/setup-Happ.x64.exe" target="_blank" class="btn" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-light); text-decoration: none; width: auto; font-size: 0.9rem;">
-                        <svg style="width: 16px; height: 16px; margin-right: 5px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="currentColor"><path d="M0,3.449L9.75,2.101V11.453L0,11.453V3.449ZM23.999,0L10.875,1.809V11.453L23.999,11.453V0ZM10.875,12.551V22.193L23.999,24V12.551H10.875ZM0,12.551V20.551L9.75,19.203V12.551H0Z"/></svg>
+                <!-- Step 1 -->
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 1.2rem;">
+                    <div style="width: 32px; height: 32px; background: rgba(0,255,204,0.1); border: 1px solid #00ffcc; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #00ffcc; font-weight: bold; font-size: 1rem; box-shadow: 0 0 10px rgba(0,255,204,0.2);">1</div>
+                    <p style="margin: 0; font-weight: bold; color: #fff; font-size: 1.15rem;">{{ _('DownloadApp') }}</p>
+                </div>
+                
+                <div style="display: flex; gap: 15px; margin-bottom: 2.5rem; flex-wrap: wrap; padding-left: 44px;">
+                    <a href="https://github.com/Happ-proxy/happ-desktop/releases/download/2.16.2/setup-Happ.x64.exe" target="_blank" class="app-btn">
+                        <svg style="width: 20px; height: 20px; color: #00a4ef;" viewBox="0 0 24 24" fill="currentColor"><path d="M0,3.449L9.75,2.101V11.453L0,11.453V3.449ZM23.999,0L10.875,1.809V11.453L23.999,11.453V0ZM10.875,12.551V22.193L23.999,24V12.551H10.875ZM0,12.551V20.551L9.75,19.203V12.551H0Z"/></svg>
                         {{ _('DownloadAppWin') }}
                     </a>
-                    <a href="https://github.com/Happ-proxy/happ-android/releases/download/3.22.1/Happ.apk" target="_blank" class="btn" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-light); text-decoration: none; width: auto; font-size: 0.9rem;">
-                        <svg style="width: 16px; height: 16px; margin-right: 5px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414C17.523 15.3414 17.0652 16.5959 15.8236 17.5544C14.5819 18.5131 12.8711 19.006 12 19.006C11.129 19.006 9.4182 18.5131 8.1765 17.5544C6.9349 16.5959 6.477 15.3414 6.477 15.3414L3 17.5029C3 17.5029 4.3068 20.3756 7.2472 21.8488C10.1876 23.3218 12 23.3218 12 23.3218C12 23.3218 13.8124 23.3218 16.7528 21.8488C19.6932 20.3756 21 17.5029 21 17.5029L17.523 15.3414ZM12 4.4172C13.2359 4.4172 14.4719 4.8778 15.4144 5.7984C16.3571 6.7189 16.8283 7.9427 16.8283 9.1666H7.1718C7.1718 7.9427 7.6431 6.7189 8.5857 5.7984C9.5283 4.8778 10.7643 4.4172 12 4.4172ZM12 0C7.5818 0 4 3.4975 4 7.8184C4 11.2332 6.1362 14.1206 9.1718 15.1788V18.1738C5.0396 16.7607 2 12.637 2 7.8184C2 2.3789 6.477 0 12 0C17.523 0 22 2.3789 22 7.8184C22 12.637 18.9604 16.7607 14.8283 18.1738V15.1788C17.8638 14.1206 20 11.2332 20 7.8184C20 3.4975 16.4182 0 12 0Z"/></svg>
+                    <a href="https://github.com/Happ-proxy/happ-android/releases/download/3.22.1/Happ.apk" target="_blank" class="app-btn">
+                        <svg style="width: 20px; height: 20px; color: #3ddc84;" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414C17.523 15.3414 17.0652 16.5959 15.8236 17.5544C14.5819 18.5131 12.8711 19.006 12 19.006C11.129 19.006 9.4182 18.5131 8.1765 17.5544C6.9349 16.5959 6.477 15.3414 6.477 15.3414L3 17.5029C3 17.5029 4.3068 20.3756 7.2472 21.8488C10.1876 23.3218 12 23.3218 12 23.3218C12 23.3218 13.8124 23.3218 16.7528 21.8488C19.6932 20.3756 21 17.5029 21 17.5029L17.523 15.3414ZM12 4.4172C13.2359 4.4172 14.4719 4.8778 15.4144 5.7984C16.3571 6.7189 16.8283 7.9427 16.8283 9.1666H7.1718C7.1718 7.9427 7.6431 6.7189 8.5857 5.7984C9.5283 4.8778 10.7643 4.4172 12 4.4172ZM12 0C7.5818 0 4 3.4975 4 7.8184C4 11.2332 6.1362 14.1206 9.1718 15.1788V18.1738C5.0396 16.7607 2 12.637 2 7.8184C2 2.3789 6.477 0 12 0C17.523 0 22 2.3789 22 7.8184C22 12.637 18.9604 16.7607 14.8283 18.1738V15.1788C17.8638 14.1206 20 11.2332 20 7.8184C20 3.4975 16.4182 0 12 0Z"/></svg>
                         {{ _('DownloadAppAnd') }}
                     </a>
                 </div>
 
-                <p style="margin-bottom: 0.8rem; font-weight: bold; color: var(--primary);">2. {{ _('CopyConfig') }}</p>
-                <div class="config-box" style="display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-top: 0.5rem; margin-bottom: 2rem;">
-                    <div id="vless-link-text" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1; font-family: monospace; opacity: 0.8;">
-                        {{ sub_link }}
+                <!-- Step 2 -->
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 1.2rem;">
+                    <div style="width: 32px; height: 32px; background: rgba(0,255,204,0.1); border: 1px solid #00ffcc; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #00ffcc; font-weight: bold; font-size: 1rem; box-shadow: 0 0 10px rgba(0,255,204,0.2);">2</div>
+                    <p style="margin: 0; font-weight: bold; color: #fff; font-size: 1.15rem;">{{ _('CopyConfig') }}</p>
+                </div>
+                
+                <div style="margin-bottom: 2.5rem; padding-left: 44px;">
+                    <div style="display: flex; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);">
+                        <div id="vless-link-text" style="padding: 14px 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1; font-family: 'Space Mono', monospace; color: #a0a0a0; font-size: 0.95rem;">
+                            {{ sub_link }}
+                        </div>
+                        <button type="button" id="copyBtn" style="background: rgba(255,255,255,0.05); border: none; border-left: 1px solid rgba(255,255,255,0.1); color: var(--primary); padding: 0 24px; cursor: pointer; font-weight: bold; transition: all 0.2s; display: flex; align-items: center; gap: 8px;" onclick="copyVlessLink()" onmouseover="this.style.background='rgba(0,255,204,0.1)';" onmouseout="this.style.background='rgba(255,255,255,0.05)';">
+                            <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            <span id="copyBtnText">{{ _('CopyBtn') }}</span>
+                        </button>
                     </div>
-                    <button type="button" class="btn btn-primary" id="copyBtn" style="padding: 0.6rem 1.2rem; width: auto; flex-shrink: 0; box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);" onclick="copyVlessLink()">
-                        <svg style="width: 16px; height: 16px; margin-right: 5px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                        <span id="copyBtnText">{{ _('CopyBtn') }}</span>
-                    </button>
                 </div>
 
-                <p style="margin-bottom: 0.8rem; font-weight: bold; color: var(--primary);">3. {{ _('HowToUse') }}</p>
-                <ol style="padding-inline-start: 1.5rem; margin-top: 0.5rem; margin-bottom: 0; color: var(--text-light); line-height: 1.6;">
-                    <li>{{ _('HowToUseStep1') }}</li>
-                    <li>{{ _('HowToUseStep2') }}</li>
-                    <li>{{ _('HowToUseStep3') }}</li>
-                    <li>{{ _('HowToUseStep4') }}</li>
-                </ol>
+                <!-- Step 3 -->
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 1.2rem;">
+                    <div style="width: 32px; height: 32px; background: rgba(0,255,204,0.1); border: 1px solid #00ffcc; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #00ffcc; font-weight: bold; font-size: 1rem; box-shadow: 0 0 10px rgba(0,255,204,0.2);">3</div>
+                    <p style="margin: 0; font-weight: bold; color: #fff; font-size: 1.15rem;">{{ _('HowToUse') }}</p>
+                </div>
+                <div style="padding-left: 44px;">
+                    <ul style="list-style-type: none; padding: 0; margin: 0; color: #a0a0a0; line-height: 1.8; font-size: 0.95rem;">
+                        <li style="position: relative; padding-left: 24px; margin-bottom: 10px;"><span style="position: absolute; left: 0; top: 0; color: #00ffcc;">▹</span> {{ _('HowToUseStep1') }}</li>
+                        <li style="position: relative; padding-left: 24px; margin-bottom: 10px;"><span style="position: absolute; left: 0; top: 0; color: #00ffcc;">▹</span> {{ _('HowToUseStep2') }}</li>
+                        <li style="position: relative; padding-left: 24px; margin-bottom: 10px;"><span style="position: absolute; left: 0; top: 0; color: #00ffcc;">▹</span> {{ _('HowToUseStep3') }}</li>
+                        <li style="position: relative; padding-left: 24px;"><span style="position: absolute; left: 0; top: 0; color: #00ffcc;">▹</span> {{ _('HowToUseStep4') }}</li>
+                    </ul>
+                </div>
 
             </div>
         {% else %}
@@ -147,29 +197,29 @@
     </div>
 
     <form action="{{ url_for('send_message') }}" method="POST">
-        <div class="form-group">
-            <label>{{ _('MessageAdmin') }}</label>
-            <textarea name="message" class="form-control" rows="3" placeholder="{{ _('TypeMessage') }}" required></textarea>
+        <div class="form-group" style="margin-bottom: 0;">
+            <textarea name="message" class="support-textarea" rows="4" placeholder="{{ _('TypeMessage') }}" required></textarea>
         </div>
-        <button type="submit" class="btn btn-primary" style="margin-top: 1rem; width: auto; padding-left: 2rem; padding-right: 2rem;">
-            {{ _('Send') }}
-        </button>
+        <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+            <button type="submit" class="btn" style="background: rgba(0, 255, 204, 0.1); border: 1px solid #00ffcc; color: #00ffcc; padding: 0.6rem 2rem; border-radius: 8px; font-weight: bold; transition: all 0.3s; width: auto;" onmouseover="this.style.background='#00ffcc'; this.style.color='#000'; this.style.boxShadow='0 0 15px rgba(0,255,204,0.4)';" onmouseout="this.style.background='rgba(0, 255, 204, 0.1)'; this.style.color='#00ffcc'; this.style.boxShadow='none';">
+                {{ _('Send') }}
+            </button>
+        </div>
     </form>
 </div>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const timerElement = document.getElementById("countdown-timer");
-        if (timerElement) {
-            const expireTime = new Date(timerElement.getAttribute("data-time")).getTime();
+        const timerWidget = document.getElementById("countdown-timer-widget");
+        if (timerWidget) {
+            const expireTime = new Date(timerWidget.getAttribute("data-time")).getTime();
             
             function updateTimer() {
                 const now = new Date().getTime();
                 const distance = expireTime - now;
                 
                 if (distance < 0) {
-                    timerElement.innerHTML = "Expired";
-                    timerElement.style.color = "var(--danger)";
+                    timerWidget.innerHTML = "<div style='color: var(--danger); font-size: 1.5rem; font-weight: bold; padding: 15px 20px;'>Expired</div>";
                     return;
                 }
                 
@@ -178,7 +228,10 @@
                 const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
                 const seconds = Math.floor((distance % (1000 * 60)) / 1000);
                 
-                timerElement.innerHTML = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+                document.getElementById("cd-days").innerText = days.toString().padStart(2, '0');
+                document.getElementById("cd-hours").innerText = hours.toString().padStart(2, '0');
+                document.getElementById("cd-mins").innerText = minutes.toString().padStart(2, '0');
+                document.getElementById("cd-secs").innerText = seconds.toString().padStart(2, '0');
             }
             
             updateTimer();
