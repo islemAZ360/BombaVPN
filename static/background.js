@@ -358,14 +358,23 @@ document.addEventListener('DOMContentLoaded', () => {
         constructor() { this.reset(); }
         reset() {
             this.active = false;
-            if (Math.random() < 0.01) { 
+            if (Math.random() < 0.005) { 
                 this.active = true;
                 this.x = Math.random() * width * 1.5;
                 this.y = -100;
-                this.length = Math.random() * 200 + 100;
-                this.speed = Math.random() * 15 + 10;
+                this.length = Math.random() * 300 + 150; 
+                this.speed = Math.random() * 25 + 15; 
                 this.angle = Math.PI / 4 + (Math.random() - 0.5) * 0.2; 
-                this.opacity = Math.random() * 0.8 + 0.2;
+                this.opacity = Math.random() * 0.5 + 0.5;
+                
+                const colorsArr = [
+                    {head: '255, 255, 255', core: '0, 255, 204', tail: '0, 150, 255'}, // Cyan/Blue
+                    {head: '255, 255, 255', core: '100, 255, 100', tail: '0, 200, 50'}, // Green (Magnesium)
+                    {head: '255, 255, 255', core: '255, 200, 50', tail: '255, 50, 0'},  // Fire (Iron)
+                    {head: '255, 255, 255', core: '200, 100, 255', tail: '100, 0, 255'} // Purple/Magenta
+                ];
+                this.colorTheme = colorsArr[Math.floor(Math.random() * colorsArr.length)];
+                this.flicker = 0;
             }
         }
         update() {
@@ -379,21 +388,53 @@ document.addEventListener('DOMContentLoaded', () => {
             const drawX = this.x + px * 0.2;
             const drawY = this.y + py * 0.2;
             
+            this.flicker = Math.random() * 0.3 - 0.15;
+            let currentOpacity = Math.max(0, Math.min(1, this.opacity + this.flicker));
+            
+            const tailX = drawX + Math.cos(this.angle) * this.length;
+            const tailY = drawY - Math.sin(this.angle) * this.length;
+            
             ctx.save();
             ctx.globalCompositeOperation = 'screen';
             
-            let grad = ctx.createLinearGradient(drawX, drawY, drawX + Math.cos(this.angle) * this.length, drawY - Math.sin(this.angle) * this.length);
-            grad.addColorStop(0, `rgba(255, 255, 255, ${this.opacity})`);
-            grad.addColorStop(0.1, `rgba(0, 255, 204, ${this.opacity * 0.8})`);
-            grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            // 1. Outer wide faint trail (Atmospheric burn)
+            let gradOuter = ctx.createLinearGradient(drawX, drawY, tailX, tailY);
+            gradOuter.addColorStop(0, `rgba(${this.colorTheme.core}, ${currentOpacity * 0.4})`);
+            gradOuter.addColorStop(0.3, `rgba(${this.colorTheme.tail}, ${currentOpacity * 0.1})`);
+            gradOuter.addColorStop(1, 'rgba(0, 0, 0, 0)');
             
-            ctx.strokeStyle = grad;
+            ctx.strokeStyle = gradOuter;
+            ctx.lineWidth = 15;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(drawX, drawY);
+            ctx.lineTo(tailX, tailY);
+            ctx.stroke();
+
+            // 2. Inner bright core trail
+            let gradInner = ctx.createLinearGradient(drawX, drawY, tailX, tailY);
+            gradInner.addColorStop(0, `rgba(${this.colorTheme.head}, ${currentOpacity})`);
+            gradInner.addColorStop(0.1, `rgba(${this.colorTheme.core}, ${currentOpacity * 0.8})`);
+            gradInner.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            
+            ctx.strokeStyle = gradInner;
             ctx.lineWidth = 3;
             ctx.lineCap = 'round';
             ctx.beginPath();
             ctx.moveTo(drawX, drawY);
-            ctx.lineTo(drawX + Math.cos(this.angle) * this.length, drawY - Math.sin(this.angle) * this.length);
+            ctx.lineTo(tailX, tailY);
             ctx.stroke();
+            
+            // 3. Nucleus (Glowing Head)
+            let headGrad = ctx.createRadialGradient(drawX, drawY, 0, drawX, drawY, 20);
+            headGrad.addColorStop(0, `rgba(255, 255, 255, ${currentOpacity})`);
+            headGrad.addColorStop(0.2, `rgba(${this.colorTheme.head}, ${currentOpacity * 0.9})`);
+            headGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            
+            ctx.fillStyle = headGrad;
+            ctx.beginPath();
+            ctx.arc(drawX, drawY, 20, 0, Math.PI * 2);
+            ctx.fill();
             
             ctx.restore();
         }
