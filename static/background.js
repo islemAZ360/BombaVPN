@@ -522,8 +522,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fillStyle = colors.bg;
         ctx.fillRect(0, 0, width, height);
 
-        // Lightning flash effect
-        if (Math.random() < 0.003) {
+        // Lightning flash effect (Rarely, approx once per minute)
+        if (Math.random() < 0.0003) {
             lightningFlash = 1.0;
             activeLightnings.push(new LightningBolt(Math.random() * width, 0));
         }
