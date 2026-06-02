@@ -260,7 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.x = width * 0.9;
             this.y = height * 0.1;
             this.radius = Math.min(width, height) * 0.12;
-            this.z = 25; // Extremely far to give massive scale
+            this.z = 5; // Reduced z for stronger parallax
         }
         update() {}
         draw(px, py) {
@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.x = width * 0.1;
             this.y = height * 0.9;
             this.radius = Math.min(width, height) * 0.15;
-            this.z = 20; // Very far
+            this.z = 4; // Reduced z for stronger parallax
             this.rotation = 0;
         }
         update() {
@@ -323,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.x = width * 0.7;
             this.y = height * 0.8;
             this.radius = Math.min(width, height) * 0.35; // Massive
-            this.z = 35; // Furthest object
+            this.z = 6; // Reduced z for stronger parallax
             this.rotation = Math.PI / 4;
         }
         update() {
