@@ -1164,7 +1164,7 @@ def get_subscription(token):
         b64_content = base64.b64encode(poisoned_link.encode('utf-8')).decode('utf-8')
         return b64_content, 200, {
             'Content-Type': 'text/plain; charset=utf-8',
-            'profile-update-interval': '1',
+            'profile-update-interval': '0.25',
             'profile-web-page-url': 'https://bombavpn.onrender.com'
         }
         
@@ -1186,7 +1186,7 @@ def get_subscription(token):
         b64_content = base64.b64encode(poisoned_link.encode('utf-8')).decode('utf-8')
         return b64_content, 200, {
             'Content-Type': 'text/plain; charset=utf-8',
-            'profile-update-interval': '1',
+            'profile-update-interval': '0.25',
             'profile-web-page-url': 'https://bombavpn.onrender.com'
         }
         
@@ -1322,7 +1322,7 @@ def get_subscription(token):
         b64_content = base64.b64encode(vless_uri.encode('utf-8')).decode('utf-8')
         return b64_content, 200, {
             'Content-Type': 'text/plain; charset=utf-8',
-            'profile-update-interval': '1',
+            'profile-update-interval': '0.25',
             'profile-web-page-url': 'https://bombavpn.onrender.com'
         }
     else:
@@ -1330,7 +1330,7 @@ def get_subscription(token):
         modified_json = modify_json_address(current_server['json_config'], active_address)
         return modified_json, 200, {
             'Content-Type': 'application/json',
-            'profile-update-interval': '1',
+            'profile-update-interval': '0.25',
             'profile-web-page-url': 'https://bombavpn.onrender.com'
         }
 
