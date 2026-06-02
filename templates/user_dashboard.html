@@ -52,38 +52,50 @@
                     <img src="https://flagcdn.com/24x18/{{ server.country_code }}.png" alt="{{ server.country_code }}" style="border-radius: 2px;">
                 {% endif %}
             </h3>
-            <div class="table-responsive">
-                <table>
+            <div class="table-responsive" style="margin-top: 1rem;">
+                <table style="text-align: left; width: 100%;">
                     <tr>
-                        <th>{{ _('ServerName', 'Name') }}</th>
-                        <td style="font-weight: bold; color: var(--primary);">{{ server.name }}</td>
-                    </tr>
-                    <tr>
-                        <th>{{ _('IP') }}</th>
-                        <td>{{ server.ip }}</td>
-                    </tr>
-                    <tr>
-                        <th>{{ _('Port') }}</th>
-                        <td>{{ server.port }}</td>
-                    </tr>
-                    <tr>
-                        <th>{{ _('UUID') }}</th>
-                        <td>{{ server.uuid }}</td>
+                        <th style="width: 30%; text-align: left; padding-left: 1rem;">{{ _('ServerName', 'Name') }}</th>
+                        <td style="font-weight: bold; color: var(--primary); text-align: left;">{{ server.name }}</td>
                     </tr>
                 </table>
             </div>
             
-            <h3 style="margin-top: 2rem;">{{ _('Instructions') }}</h3>
-            <ol style="padding-inline-start: 1.5rem; margin-top: 1rem;">
-                <li>{{ _('DownloadApp') }}</li>
-                <li>{{ _('CopyConfig') }}</li>
-            </ol>
-            <div class="config-box">
-                {% if server.vless_link %}
-                    {{ server.vless_link }}
-                {% else %}
-                    vless://{{ server.uuid }}@{{ server.ip }}:{{ server.port }}?security=none&encryption=none&type=tcp#BombaVPN
-                {% endif %}
+            <h3 style="margin-top: 2.5rem;">{{ _('Instructions') }}</h3>
+            
+            <div style="background: rgba(255, 255, 255, 0.02); padding: 1.5rem; border-radius: var(--radius); border: 1px solid var(--border-color); margin-top: 1rem; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); backdrop-filter: blur(12px);">
+                
+                <p style="margin-bottom: 0.8rem; font-weight: bold; color: var(--primary);">1. {{ _('DownloadApp') }}</p>
+                <div style="display: flex; gap: 10px; margin-bottom: 2rem; flex-wrap: wrap;">
+                    <a href="https://github.com/Happ-proxy/happ-desktop/releases/download/2.16.2/setup-Happ.x64.exe" target="_blank" class="btn" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-light); text-decoration: none; width: auto; font-size: 0.9rem;">
+                        <svg style="width: 16px; height: 16px; margin-right: 5px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="currentColor"><path d="M0,3.449L9.75,2.101V11.453L0,11.453V3.449ZM23.999,0L10.875,1.809V11.453L23.999,11.453V0ZM10.875,12.551V22.193L23.999,24V12.551H10.875ZM0,12.551V20.551L9.75,19.203V12.551H0Z"/></svg>
+                        {{ _('DownloadAppWin') }}
+                    </a>
+                    <a href="https://github.com/Happ-proxy/happ-android/releases/download/3.22.1/Happ.apk" target="_blank" class="btn" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-light); text-decoration: none; width: auto; font-size: 0.9rem;">
+                        <svg style="width: 16px; height: 16px; margin-right: 5px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414C17.523 15.3414 17.0652 16.5959 15.8236 17.5544C14.5819 18.5131 12.8711 19.006 12 19.006C11.129 19.006 9.4182 18.5131 8.1765 17.5544C6.9349 16.5959 6.477 15.3414 6.477 15.3414L3 17.5029C3 17.5029 4.3068 20.3756 7.2472 21.8488C10.1876 23.3218 12 23.3218 12 23.3218C12 23.3218 13.8124 23.3218 16.7528 21.8488C19.6932 20.3756 21 17.5029 21 17.5029L17.523 15.3414ZM12 4.4172C13.2359 4.4172 14.4719 4.8778 15.4144 5.7984C16.3571 6.7189 16.8283 7.9427 16.8283 9.1666H7.1718C7.1718 7.9427 7.6431 6.7189 8.5857 5.7984C9.5283 4.8778 10.7643 4.4172 12 4.4172ZM12 0C7.5818 0 4 3.4975 4 7.8184C4 11.2332 6.1362 14.1206 9.1718 15.1788V18.1738C5.0396 16.7607 2 12.637 2 7.8184C2 2.3789 6.477 0 12 0C17.523 0 22 2.3789 22 7.8184C22 12.637 18.9604 16.7607 14.8283 18.1738V15.1788C17.8638 14.1206 20 11.2332 20 7.8184C20 3.4975 16.4182 0 12 0Z"/></svg>
+                        {{ _('DownloadAppAnd') }}
+                    </a>
+                </div>
+
+                <p style="margin-bottom: 0.8rem; font-weight: bold; color: var(--primary);">2. {{ _('CopyConfig') }}</p>
+                <div class="config-box" style="display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-top: 0.5rem; margin-bottom: 2rem;">
+                    <div id="vless-link-text" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1; font-family: monospace; opacity: 0.8;">
+                        {{ sub_link }}
+                    </div>
+                    <button type="button" class="btn btn-primary" id="copyBtn" style="padding: 0.6rem 1.2rem; width: auto; flex-shrink: 0; box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);" onclick="copyVlessLink()">
+                        <svg style="width: 16px; height: 16px; margin-right: 5px; vertical-align: text-bottom;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        <span id="copyBtnText">{{ _('CopyBtn') }}</span>
+                    </button>
+                </div>
+
+                <p style="margin-bottom: 0.8rem; font-weight: bold; color: var(--primary);">3. {{ _('HowToUse') }}</p>
+                <ol style="padding-inline-start: 1.5rem; margin-top: 0.5rem; margin-bottom: 0; color: var(--text-light); line-height: 1.6;">
+                    <li>{{ _('HowToUseStep1') }}</li>
+                    <li>{{ _('HowToUseStep2') }}</li>
+                    <li>{{ _('HowToUseStep3') }}</li>
+                    <li>{{ _('HowToUseStep4') }}</li>
+                </ol>
+
             </div>
         {% else %}
             <div class="alert alert-danger" style="margin-top: 2rem;">
@@ -176,6 +188,20 @@
                 console.error("Error polling user status:", err);
             }
         }, 5000);
+    }
+
+    function copyVlessLink() {
+        const text = document.getElementById("vless-link-text").innerText.trim();
+        navigator.clipboard.writeText(text).then(() => {
+            const btnText = document.getElementById("copyBtnText");
+            const originalText = btnText.innerText;
+            btnText.innerText = "{{ _('Copied') }}";
+            setTimeout(() => {
+                btnText.innerText = originalText;
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+        });
     }
 </script>
 {% endblock %}
