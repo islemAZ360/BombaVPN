@@ -44,29 +44,56 @@
     <div class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
-                {% endfor %}
+                <script>
+                    document.addEventListener('DOMContentLoaded', () => {
+                        {% for category, message in messages %}
+                            showToast('{{ category }}', 'Notification', '{{ message }}', 5000);
+                        {% endfor %}
+                    });
+                </script>
             {% endif %}
         {% endwith %}
         
         {% block content %}{% endblock %}
     </div>
 
-    <!-- Toast Notification JS -->
+    <!-- Toast Notification JS & Styles -->
+    <style>
+        #toast-container {
+            position: fixed; top: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; pointer-events: none;
+        }
+        .toast {
+            pointer-events: auto; padding: 16px 24px; border-radius: 8px; background: rgba(10, 30, 20, 0.85); backdrop-filter: blur(12px); border-left: 4px solid #00ffcc; border-top: 1px solid rgba(255,255,255,0.1); border-right: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1); color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 16px; transform: translateX(120%); animation: slideIn 0.4s forwards cubic-bezier(0.2, 0.8, 0.2, 1); min-width: 300px; position: relative; overflow: hidden;
+        }
+        .toast-out { animation: slideOut 0.4s forwards cubic-bezier(0.2, 0.8, 0.2, 1); }
+        @keyframes slideIn { to { transform: translateX(0); } }
+        @keyframes slideOut { to { transform: translateX(120%); opacity: 0; } }
+        .toast-icon { font-size: 1.5rem; color: #00ffcc; }
+        .toast-body { flex: 1; }
+        .toast-title { font-weight: bold; margin-bottom: 4px; font-size: 0.95rem; }
+        .toast-message { font-size: 0.85rem; color: rgba(255,255,255,0.8); }
+        .toast-close { background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 1.2rem; padding: 0; line-height: 1; transition: color 0.2s; }
+        .toast-close:hover { color: #fff; }
+        .toast-progress { position: absolute; bottom: 0; left: 0; height: 3px; background: #00ffcc; width: 100%; animation: progress linear forwards; }
+        @keyframes progress { to { width: 0; } }
+        
+        .toast-danger, .toast-error { border-left-color: #ff4757; }
+        .toast-danger .toast-icon, .toast-error .toast-icon { color: #ff4757; }
+        .toast-danger .toast-progress, .toast-error .toast-progress { background: #ff4757; }
+        
+        .toast-warning { border-left-color: #ffc107; }
+        .toast-warning .toast-icon { color: #ffc107; }
+        .toast-warning .toast-progress { background: #ffc107; }
+    </style>
     <script>
         function showToast(type, title, message, duration = 4000) {
             const container = document.getElementById('toast-container');
-            const icons = {
-                success: '✓',
-                error: '✕',
-                warning: '⚠',
-                info: 'ℹ'
-            };
+            const icons = { success: '✓', error: '✕', danger: '✕', warning: '⚠', info: 'ℹ' };
+            const toastType = type === 'message' ? 'info' : type;
             const toast = document.createElement('div');
-            toast.className = `toast toast-${type}`;
+            toast.className = `toast toast-${toastType}`;
             toast.innerHTML = `
-                <div class="toast-icon">${icons[type] || 'ℹ'}</div>
+                <div class="toast-icon">${icons[toastType] || 'ℹ'}</div>
                 <div class="toast-body">
                     <div class="toast-title">${title}</div>
                     <div class="toast-message">${message}</div>
