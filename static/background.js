@@ -1,296 +1,297 @@
-const canvas = document.getElementById('stars-canvas');
-const ctx = canvas.getContext('2d', { alpha: false }); // Disable alpha for better performance
-let width, height, cx, cy;
+document.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById('stars-canvas');
+    if (!canvas) return;
+    
+    // Performance optimization: alpha: false makes the canvas opaque, 
+    // we handle the dark background manually inside the animate loop.
+    const ctx = canvas.getContext('2d', { alpha: false }); 
 
-function resize() {
-    width = window.innerWidth;
-    height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
-    cx = width / 2;
-    cy = height / 2;
-}
-window.addEventListener('resize', resize);
-resize();
+    let width, height, centerX, centerY;
+    let nodes = [];
+    let planets = [];
+    let nebulas = [];
+    
+    // Smooth Parallax tracking
+    let mouse = { x: null, y: null, targetX: 0, targetY: 0, currentX: 0, currentY: 0 };
+    
+    const colors = {
+        bg: '#0a0e1a',
+        neonGreen: 'rgba(0, 255, 204, 1)',
+        cyan: 'rgba(0, 204, 255, 0.3)',
+        nebula1: 'rgba(0, 60, 80, 0.15)', // Deep subtle cyan
+        nebula2: 'rgba(0, 255, 204, 0.05)' // Ultra faint neon green
+    };
 
-// ---------------------------------------------------
-// CONFIGURATION & THEME
-// ---------------------------------------------------
-const NEON_GREEN = '#00ffcc';
-const NEON_GREEN_RGB = '0, 255, 204';
-const BG_COLOR = '#050a10'; // Deep cyber-space black/blue
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        centerX = width / 2;
+        centerY = height / 2;
+        initElements();
+    }
 
-// ---------------------------------------------------
-// 1. WARP SPEED STARS (Hyperdrive)
-// ---------------------------------------------------
-let stars = [];
-const STAR_COUNT = 800;
-let isWarping = false;
-let warpFactor = 0; // Smooth transition 0 to 1
-
-for (let i = 0; i < STAR_COUNT; i++) {
-    stars.push({
-        x: (Math.random() - 0.5) * 2000,
-        y: (Math.random() - 0.5) * 2000,
-        z: Math.random() * 2000,
-        pz: Math.random() * 2000
+    window.addEventListener('resize', resize);
+    
+    window.addEventListener('mousemove', (e) => {
+        // Calculate offset from center of screen
+        mouse.targetX = (e.clientX - centerX) * 0.5; // The 0.5 is a sensitivity multiplier
+        mouse.targetY = (e.clientY - centerY) * 0.5;
     });
-}
 
-function updateAndDrawStars() {
-    // Smooth easing for warp transition
-    const targetWarp = isWarping ? 1 : 0;
-    warpFactor += (targetWarp - warpFactor) * 0.05;
-    
-    const baseSpeed = 0.5;
-    const warpSpeed = 40;
-    const speed = baseSpeed + warpFactor * warpSpeed;
+    window.addEventListener('mouseout', () => {
+        // Return to center slowly
+        mouse.targetX = 0;
+        mouse.targetY = 0;
+    });
 
-    ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + warpFactor * 0.5})`;
-    ctx.strokeStyle = `rgba(255, 255, 255, ${0.4 + warpFactor * 0.6})`;
-    
-    const fov = width;
-    
-    for (let star of stars) {
-        star.pz = star.z;
-        star.z -= speed;
-        
-        if (star.z <= 0) {
-            star.z = 2000;
-            star.pz = 2000;
-            star.x = (Math.random() - 0.5) * 2000;
-            star.y = (Math.random() - 0.5) * 2000;
+    // Touch support for parallax
+    window.addEventListener('touchmove', (e) => {
+        if(e.touches.length > 0) {
+            mouse.targetX = (e.touches[0].clientX - centerX) * 0.5;
+            mouse.targetY = (e.touches[0].clientY - centerY) * 0.5;
         }
-        
-        let x = (star.x / star.z) * fov + cx;
-        let y = (star.y / star.z) * fov + cy;
-        let px = (star.x / star.pz) * fov + cx;
-        let py = (star.y / star.pz) * fov + cy;
-        
-        let size = Math.max(0.1, (2000 - star.z) / 1000);
-        
-        if (warpFactor > 0.01) {
-            // Draw lines for warp speed
-            ctx.lineWidth = size * (1 + warpFactor);
+    }, { passive: true });
+
+    window.addEventListener('touchend', () => {
+        mouse.targetX = 0;
+        mouse.targetY = 0;
+    });
+
+    class Node {
+        constructor() {
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            // z determines depth. Higher z = further away = moves slower in parallax
+            this.z = Math.random() * 2 + 0.8; 
+            
+            // Base drift speed
+            this.vx = (Math.random() - 0.5) * 0.2 / this.z;
+            this.vy = (Math.random() - 0.5) * 0.2 / this.z;
+            
+            this.radius = (Math.random() * 1.5 + 0.5) / this.z;
+            this.baseAlpha = Math.random() * 0.5 + 0.2;
+        }
+
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+
+            // Wrap around screen edges with a margin
+            if (this.x < -100) this.x = width + 100;
+            if (this.x > width + 100) this.x = -100;
+            if (this.y < -100) this.y = height + 100;
+            if (this.y > height + 100) this.y = -100;
+        }
+
+        draw(px, py) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${this.baseAlpha})`;
             ctx.beginPath();
-            ctx.moveTo(px, py);
-            ctx.lineTo(x, y);
-            ctx.stroke();
-        } else {
-            // Draw dots for normal drift
-            ctx.fillRect(x, y, size * 1.5, size * 1.5);
+            ctx.arc(this.x + px / this.z, this.y + py / this.z, this.radius, 0, Math.PI * 2);
+            ctx.fill();
         }
     }
-}
 
-// ---------------------------------------------------
-// 2. MATRIX METEOR SHOWERS (Data Streams)
-// ---------------------------------------------------
-let meteors = [];
-function updateAndDrawMeteors() {
-    if (Math.random() < 0.08) {
-        meteors.push({
-            x: Math.random() * width,
-            y: -200,
-            length: 80 + Math.random() * 200,
-            speed: 15 + Math.random() * 25,
-            thickness: 1 + Math.random() * 2,
-            opacity: 0.2 + Math.random() * 0.8
-        });
+    class Nebula {
+        constructor() {
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            this.radius = Math.random() * 600 + 300;
+            this.vx = (Math.random() - 0.5) * 0.05;
+            this.vy = (Math.random() - 0.5) * 0.05;
+            this.z = 5; // Very deep in background
+            this.color = Math.random() > 0.5 ? colors.nebula1 : colors.nebula2;
+        }
+
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            if (this.x < -this.radius) this.x = width + this.radius;
+            if (this.x > width + this.radius) this.x = -this.radius;
+            if (this.y < -this.radius) this.y = height + this.radius;
+            if (this.y > height + this.radius) this.y = -this.radius;
+        }
+
+        draw(px, py) {
+            const drawX = this.x + px / this.z;
+            const drawY = this.y + py / this.z;
+            
+            let grad = ctx.createRadialGradient(drawX, drawY, 0, drawX, drawY, this.radius);
+            grad.addColorStop(0, this.color);
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(drawX, drawY, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
-    
-    for (let i = meteors.length - 1; i >= 0; i--) {
-        let m = meteors[i];
-        m.y += m.speed + (warpFactor * 20); // Faster during warp
-        
-        if (m.y - m.length > height) {
-            meteors.splice(i, 1);
-            continue;
-        }
-        
-        let grad = ctx.createLinearGradient(m.x, m.y - m.length, m.x, m.y);
-        grad.addColorStop(0, `rgba(${NEON_GREEN_RGB}, 0)`);
-        grad.addColorStop(1, `rgba(${NEON_GREEN_RGB}, ${m.opacity})`);
-        
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = m.thickness;
-        ctx.beginPath();
-        ctx.moveTo(m.x, m.y - m.length);
-        ctx.lineTo(m.x, m.y);
-        ctx.stroke();
-        
-        // Data packet head
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(m.x - m.thickness/2, m.y - 2, m.thickness, 4);
+
+    const planetImages = [];
+    const planetGlows = [
+        'rgba(0, 255, 204, 0.5)',  // Neon Green
+        'rgba(0, 204, 255, 0.5)',  // Cyan
+        'rgba(255, 100, 200, 0.3)', // Pinkish
+        'rgba(100, 150, 255, 0.3)'  // Blue
+    ];
+
+    // Preload planet images safely
+    for (let i = 0; i < 4; i++) {
+        const img = new Image();
+        img.src = `/static/images/planets/planet_${i}.png`;
+        planetImages.push(img);
     }
-}
 
-// ---------------------------------------------------
-// 3. NETWORK RADAR SWEEPS
-// ---------------------------------------------------
-let radarRadius = 0;
-function drawRadar() {
-    let radarMax = Math.max(width, height) * 1.2;
-    radarRadius += 2 + (warpFactor * 5); // Sweeps faster during warp
-    if (radarRadius > radarMax) radarRadius = 0;
-    
-    let opacity = Math.max(0, 1 - (radarRadius / radarMax));
-    
-    ctx.beginPath();
-    ctx.arc(cx, cy, radarRadius, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(${NEON_GREEN_RGB}, ${opacity * 0.15})`;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    
-    // Inner thick pulse
-    ctx.beginPath();
-    ctx.arc(cx, cy, radarRadius * 0.95, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(${NEON_GREEN_RGB}, ${opacity * 0.05})`;
-    ctx.lineWidth = 15;
-    ctx.stroke();
-}
-
-// ---------------------------------------------------
-// 4. HOLOGRAPHIC GLITCH PLANETS
-// ---------------------------------------------------
-const planetImgs = [];
-for (let i = 0; i <= 3; i++) {
-    const img = new Image();
-    img.src = `/static/images/planets/planet_${i}.png`;
-    planetImgs.push(img);
-}
-
-let activePlanets = [
-    { imgIdx: 0, x: width * 0.85, y: height * 0.25, size: 400, phase: Math.random() * Math.PI * 2, glitching: false, glitchTimer: 0 },
-    { imgIdx: 2, x: width * 0.15, y: height * 0.75, size: 250, phase: Math.random() * Math.PI * 2, glitching: false, glitchTimer: 0 },
-    { imgIdx: 1, x: width * 0.5, y: height * 0.9, size: 600, phase: Math.random() * Math.PI * 2, glitching: false, glitchTimer: 0 }
-];
-
-function updateAndDrawPlanets() {
-    for (let p of activePlanets) {
-        // Floating animation
-        const currentY = p.y + Math.sin(Date.now() * 0.0005 + p.phase) * 15;
-        
-        // Recalculate positions on resize to keep them responsive
-        if (p.imgIdx === 0) p.x = width * 0.85;
-        if (p.imgIdx === 2) p.x = width * 0.15;
-        if (p.imgIdx === 1) p.x = width * 0.5;
-
-        // Random cyber glitch trigger
-        if (!p.glitching && Math.random() < 0.002) { 
-            p.glitching = true;
-            p.glitchTimer = 5 + Math.random() * 15; // Glitch duration in frames
-        }
-        
-        if (p.glitching) {
-            p.glitchTimer--;
-            if (p.glitchTimer <= 0) p.glitching = false;
+    class Planet {
+        constructor(imgIndex) {
+            const isLeftEdge = Math.random() > 0.5;
+            this.x = isLeftEdge ? Math.random() * (width * 0.2) : width - Math.random() * (width * 0.2);
+            this.y = Math.random() * height;
+            
+            this.z = Math.random() * 1.5 + 0.6; // Foreground depth
+            this.radius = (Math.random() * 50 + 20) / this.z; 
+            
+            this.vx = (Math.random() - 0.5) * 0.1 / this.z;
+            this.vy = (Math.random() - 0.5) * 0.1 / this.z;
+            
+            this.image = planetImages[imgIndex];
+            this.glowColor = planetGlows[imgIndex];
+            this.rotation = Math.random() * Math.PI * 2;
+            this.rotationSpeed = (Math.random() - 0.5) * 0.002;
         }
 
-        const img = planetImgs[p.imgIdx];
-        if (!img.complete || img.naturalWidth === 0) continue;
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.rotation += this.rotationSpeed;
+            
+            if (this.x < -this.radius * 2) this.x = width + this.radius * 2;
+            if (this.x > width + this.radius * 2) this.x = -this.radius * 2;
+            if (this.y < -this.radius * 2) this.y = height + this.radius * 2;
+            if (this.y > height + this.radius * 2) this.y = -this.radius * 2;
+        }
+
+        draw(px, py) {
+            if (!this.image.complete || this.image.naturalWidth === 0) return;
+            
+            // Reverse parallax direction for foreground feel
+            const drawX = this.x + px / this.z;
+            const drawY = this.y + py / this.z;
+
+            ctx.save();
+            ctx.translate(drawX, drawY);
+            
+            // Cyber Glow effect (Radial Gradient)
+            ctx.globalCompositeOperation = 'screen';
+            let grad = ctx.createRadialGradient(0, 0, this.radius * 0.5, 0, 0, this.radius * 1.6);
+            grad.addColorStop(0, this.glowColor);
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius * 1.6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Reset composite operation to draw the solid planet image
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.rotate(this.rotation);
+            
+            // Subtle CSS-like drop shadow for depth
+            ctx.shadowColor = this.glowColor;
+            ctx.shadowBlur = 20;
+            
+            ctx.drawImage(this.image, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
+            
+            ctx.restore();
+        }
+    }
+
+    function initElements() {
+        nodes = [];
+        planets = [];
+        nebulas = [];
+
+        // Dynamic density based on screen size to maintain 60fps
+        const area = width * height;
+        const numNodes = Math.min(Math.floor(area / 10000), 120); 
         
-        ctx.save();
+        for (let i = 0; i < numNodes; i++) {
+            nodes.push(new Node());
+        }
+
+        // Draw 3-4 nebulas for ambient lighting
+        for(let i=0; i < 4; i++) {
+            nebulas.push(new Nebula());
+        }
+
+        // Draw 6 planets
+        for (let i = 0; i < 6; i++) {
+            planets.push(new Planet(i % 4));
+        }
+    }
+
+    function animate() {
+        // Render Deep Void Background
+        ctx.fillStyle = colors.bg;
+        ctx.fillRect(0, 0, width, height);
+
+        // Interpolate mouse parallax for smoothness
+        mouse.currentX += (mouse.targetX - mouse.currentX) * 0.05;
+        mouse.currentY += (mouse.targetY - mouse.currentY) * 0.05;
         
-        // Hologram opacity and blending mode
-        ctx.globalAlpha = 0.5 - (warpFactor * 0.3); // Fade out slightly during warp
-        ctx.globalCompositeOperation = 'screen';
-        
-        if (p.glitching) {
-            // RGB Split Effect
-            ctx.globalAlpha = 0.4;
-            ctx.drawImage(img, p.x - p.size/2 - 10, currentY - p.size/2, p.size, p.size); // Red shift (simulated by compositing with original color)
+        // Reverse Parallax Offset Calculation
+        const px = mouse.currentX * -1;
+        const py = mouse.currentY * -1;
+
+        // 1. Draw Nebulas (Deepest Layer)
+        for (let n of nebulas) {
+            n.update();
+            n.draw(px, py);
+        }
+
+        // 2. Draw Network Nodes & Connections
+        ctx.lineWidth = 1;
+        for (let i = 0; i < nodes.length; i++) {
+            const n1 = nodes[i];
+            n1.update();
             
-            ctx.globalAlpha = 0.5;
-            ctx.drawImage(img, p.x - p.size/2 + 10, currentY - p.size/2, p.size, p.size); // Cyan shift
-            
-            // Horizontal Slicing Glitch
-            ctx.globalAlpha = 0.7;
-            const sliceY = currentY - p.size/2 + Math.random() * p.size;
-            const sliceH = 10 + Math.random() * 40;
-            const offset = (Math.random() - 0.5) * 50;
-            
-            // Avoid drawing out of bounds of the source image
-            const sy = Math.max(0, (sliceY - (currentY - p.size/2)) * (img.naturalHeight/p.size));
-            const sh = Math.min(img.naturalHeight - sy, sliceH * (img.naturalHeight/p.size));
-            
-            if (sh > 0) {
-                ctx.drawImage(img, 
-                    0, sy, img.naturalWidth, sh,
-                    p.x - p.size/2 + offset, sliceY, p.size, sliceH
-                );
+            // Calculate absolute position on canvas
+            const x1 = n1.x + px / n1.z;
+            const y1 = n1.y + py / n1.z;
+
+            // Connect nearby nodes
+            for (let j = i + 1; j < nodes.length; j++) {
+                const n2 = nodes[j];
+                const x2 = n2.x + px / n2.z;
+                const y2 = n2.y + py / n2.z;
+
+                const dx = x1 - x2;
+                const dy = y1 - y2;
+                const distSq = dx * dx + dy * dy;
+
+                // Threshold distance (150px squared = 22500)
+                if (distSq < 22500) { 
+                    const dist = Math.sqrt(distSq);
+                    const opacity = 1 - (dist / 150);
+                    // Network line color - Neon Green
+                    ctx.strokeStyle = `rgba(0, 255, 204, ${opacity * 0.6})`; 
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                }
             }
-        } else {
-            // Normal Holographic Render
-            ctx.drawImage(img, p.x - p.size/2, currentY - p.size/2, p.size, p.size);
+            n1.draw(px, py);
         }
-        
-        // Cyan color wash over planet to enforce "Cyber" aesthetic
-        ctx.globalCompositeOperation = 'source-atop';
-        ctx.fillStyle = `rgba(${NEON_GREEN_RGB}, 0.1)`;
-        ctx.fillRect(p.x - p.size/2, currentY - p.size/2, p.size, p.size);
-        
-        ctx.restore();
+
+        // 3. Draw Planets (Foreground Layer)
+        for (let p of planets) {
+            p.update();
+            p.draw(px, py);
+        }
+
+        requestAnimationFrame(animate);
     }
-}
 
-// ---------------------------------------------------
-// 5. POST-PROCESSING OVERLAYS
-// ---------------------------------------------------
-function drawOverlays() {
-    // Deep Space Vignette
-    const grad = ctx.createRadialGradient(cx, cy, height * 0.2, cx, cy, Math.max(width, height));
-    grad.addColorStop(0, 'rgba(5, 10, 16, 0)');
-    grad.addColorStop(1, 'rgba(2, 4, 8, 0.95)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, width, height);
-    
-    // Subtle CRT Scanlines
-    ctx.fillStyle = `rgba(${NEON_GREEN_RGB}, 0.015)`;
-    for (let i = 0; i < height; i += 4) {
-        ctx.fillRect(0, i, width, 1);
-    }
-    
-    // Screen noise/grain
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.01)';
-    for(let i = 0; i < 500; i++) {
-        ctx.fillRect(Math.random() * width, Math.random() * height, 1.5, 1.5);
-    }
-}
-
-// ---------------------------------------------------
-// MAIN RENDER LOOP (Highly Optimized)
-// ---------------------------------------------------
-function animate() {
-    // Clear with opaque color to avoid alpha compositing overhead
-    ctx.fillStyle = BG_COLOR;
-    ctx.fillRect(0, 0, width, height);
-    
-    // 1. Stars (Hyperdrive)
-    updateAndDrawStars();
-    
-    // 2. Network Radar Sweeps
-    drawRadar();
-    
-    // 3. Holographic Planets
-    updateAndDrawPlanets();
-    
-    // 4. Matrix Data Streams
-    updateAndDrawMeteors();
-    
-    // 5. Vignette & CRT overlays
-    drawOverlays();
-    
-    requestAnimationFrame(animate);
-}
-
-// Start the engine
-animate();
-
-// ---------------------------------------------------
-// INTERACTIVITY LISTENERS (Warp Speed)
-// ---------------------------------------------------
-window.addEventListener('mousedown', () => isWarping = true);
-window.addEventListener('mouseup', () => isWarping = false);
-window.addEventListener('touchstart', () => isWarping = true);
-window.addEventListener('touchend', () => isWarping = false);
+    // Initialize and start animation loop
+    resize();
+    animate();
+});
