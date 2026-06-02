@@ -1345,28 +1345,72 @@ def get_subscription(token):
         }
 
 
+import threading
+
+users_cache = {}
+users_cache_lock = threading.Lock()
+
+def on_users_snapshot(col_snapshot, changes, read_time):
+    with users_cache_lock:
+        for change in changes:
+            if change.type.name == 'ADDED' or change.type.name == 'MODIFIED':
+                doc_dict = change.document.to_dict()
+                if doc_dict.get('status') == 'active':
+                    users_cache[change.document.id] = doc_dict
+                else:
+                    users_cache.pop(change.document.id, None)
+            elif change.type.name == 'REMOVED':
+                users_cache.pop(change.document.id, None)
+
+servers_cache = {}
+servers_cache_lock = threading.Lock()
+
+def on_servers_snapshot(col_snapshot, changes, read_time):
+    with servers_cache_lock:
+        for change in changes:
+            if change.type.name == 'ADDED' or change.type.name == 'MODIFIED':
+                servers_cache[change.document.id] = change.document.to_dict()
+            elif change.type.name == 'REMOVED':
+                servers_cache.pop(change.document.id, None)
+
 def background_expiry_checker():
+    print("Starting Firestore realtime listeners for background task...")
+    users_watch = None
+    servers_watch = None
+    
+    while True:
+        try:
+            if not users_watch:
+                users_watch = db.collection('users').on_snapshot(on_users_snapshot)
+            if not servers_watch:
+                servers_watch = db.collection('servers').on_snapshot(on_servers_snapshot)
+            
+            # If both succeeded, break out of initialization loop
+            if users_watch and servers_watch:
+                print("Firestore listeners started successfully!")
+                break
+        except Exception as e:
+            print(f"Error starting Firestore listeners (Quota exceeded? Retrying in 5m): {e}")
+            time.sleep(300) # Wait 5 minutes before retrying
+
     while True:
         try:
             now = datetime.utcnow()
             
-            # Pre-fetch all active servers ONCE per check to save Firestore read quota
-            all_active_servers = []
-            try:
-                for sdoc in db.collection('servers').stream():
-                    s = sdoc.to_dict()
-                    s['id'] = sdoc.id
+            with servers_cache_lock:
+                all_active_servers = []
+                for s_id, s_dict in servers_cache.items():
+                    s = s_dict.copy()
+                    s['id'] = s_id
                     s_expires = s.get('expires_at')
                     if s_expires and s_expires.replace(tzinfo=None) > now:
                         all_active_servers.append(s)
-            except Exception as e:
-                print(f"Error fetching servers in background check: {e}")
 
-            users_ref = db.collection('users').where('status', '==', 'active').stream()
-            for doc in users_ref:
+            with users_cache_lock:
+                current_users = {uid: u.copy() for uid, u in users_cache.items()}
+
+            for user_id, user in current_users.items():
                 try:
-                    user = doc.to_dict()
-                    user_id = doc.id
                     expires_at = user.get('subscription_expires_at')
                     if expires_at:
                         expires_at = expires_at.replace(tzinfo=None)
@@ -1424,7 +1468,7 @@ def background_expiry_checker():
                                 })
                                 print(f"Auto-recovered user {user.get('email')} to server {best_server['id']} (temp={new_temp}, debt={new_in_debt})")
                 except Exception as e:
-                    print(f"Error processing user {doc.id} in background task: {e}")
+                    print(f"Error processing user {user_id} in background task: {e}")
                     continue
         except Exception as e:
             print(f"Background expiry checker error: {e}")
