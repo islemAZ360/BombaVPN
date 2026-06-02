@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Error 500 - Maintenance{% endblock %}
+{% block content %}
+<div class="auth-container" style="display: flex; justify-content: center; align-items: center; min-height: 80vh;">
+    <div class="card" style="text-align: center; max-width: 500px;">
+        <div style="font-size: 4rem; margin-bottom: 20px;">🛠️</div>
+        <h2 style="color: #ff4757; margin-bottom: 15px;">{{ _('Server Error / Maintenance') if _ else 'Server Error / Maintenance' }}</h2>
+        <p style="color: #d0d0d0; line-height: 1.6; margin-bottom: 20px;">
+            {{ _('We are currently experiencing high traffic or performing maintenance.') if _ else 'We are currently experiencing high traffic or performing maintenance. (Database Quota Exceeded).' }}<br><br>
+            {{ _('Please try again later. Your data is safe.') if _ else 'Please try again later. Your data is safe.' }}
+        </p>
+        <a href="/" class="btn btn-primary">{{ _('Return to Home') if _ else 'Return to Home' }}</a>
+    </div>
+</div>
+{% endblock %}
