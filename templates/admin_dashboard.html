@@ -160,7 +160,13 @@
 </div>
 
 <div class="card">
-    <h3>{{ _('Servers') }}</h3>
+    <h3 style="display: flex; align-items: center; justify-content: space-between;">
+        <span>{{ _('Servers') }}</span>
+        <div style="display: flex; gap: 10px;">
+            <button id="save-all-btn" class="btn btn-primary btn-small" onclick="saveAllServers()">{{ _('SaveAll') }}</button>
+            <button id="delete-all-btn" class="btn btn-danger btn-small" onclick="deleteAllServers()">{{ _('DeleteAll') }}</button>
+        </div>
+    </h3>
     <div class="table-responsive">
         <table>
             <tr>
@@ -195,9 +201,102 @@
     </div>
 </div>
 
+<div id="confirm-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:var(--card-bg, #1a1a2e); border:1px solid var(--border-color, #333); border-radius:16px; padding:2rem; max-width:380px; width:90%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.5); animation: modalIn 0.25s ease;">
+        <div style="font-size:2.5rem; margin-bottom:0.8rem;">⚠️</div>
+        <h3 style="margin-bottom:0.5rem; color:var(--text-primary, #fff);">هل أنت متأكد؟</h3>
+        <p id="confirm-msg" style="color:var(--text-muted, #999); margin-bottom:1.5rem; font-size:0.95rem;">سيتم حذف هذا السيرفر ونقل مستخدميه تلقائياً</p>
+        <div style="display:flex; gap:0.8rem; justify-content:center;">
+            <button id="confirm-yes" class="btn btn-danger" style="min-width:100px;">{{ _('Delete') }}</button>
+            <button id="confirm-no" class="btn btn-primary" style="min-width:100px; background:var(--border-color, #444); border:none;">{{ _('Cancel') if lang == 'en' else 'إلغاء' }}</button>
+        </div>
+    </div>
+</div>
+<style>
+    @keyframes modalIn { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:scale(1); } }
+</style>
+
 <script>
-    async function deleteServer(serverId) {
-        if (!confirm('هل أنت متأكد من حذف هذا السيرفر؟')) return;
+    let pendingDeleteId = null;
+    let isDeletingAll = false;
+    const modal = document.getElementById('confirm-modal');
+    const confirmYes = document.getElementById('confirm-yes');
+    const confirmNo = document.getElementById('confirm-no');
+    const confirmMsg = document.getElementById('confirm-msg');
+    
+    function deleteServer(serverId) {
+        pendingDeleteId = serverId;
+        isDeletingAll = false;
+        confirmMsg.textContent = 'سيتم حذف هذا السيرفر ونقل مستخدميه تلقائياً';
+        modal.style.display = 'flex';
+    }
+
+    function deleteAllServers() {
+        isDeletingAll = true;
+        pendingDeleteId = null;
+        confirmMsg.textContent = 'تحذير: سيتم حذف جميع السيرفرات بالكامل، وسيتم نقل جميع المستخدمين المعتمدين عليها إلى حالة الديون. هل أنت متأكد؟';
+        modal.style.display = 'flex';
+    }
+    
+    confirmNo.addEventListener('click', () => {
+        modal.style.display = 'none';
+        pendingDeleteId = null;
+        isDeletingAll = false;
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+            pendingDeleteId = null;
+            isDeletingAll = false;
+        }
+    });
+    
+    confirmYes.addEventListener('click', async () => {
+        modal.style.display = 'none';
+        
+        if (isDeletingAll) {
+            const deleteBtn = document.getElementById('delete-all-btn');
+            const originalText = deleteBtn.textContent;
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = '...';
+            
+            try {
+                const rows = document.querySelectorAll('tr[id^="server-row-"]');
+                let successCount = 0;
+                
+                for (let row of rows) {
+                    const serverId = row.id.replace('server-row-', '');
+                    const resp = await fetch('/admin/delete_server/' + serverId, {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (resp.ok) {
+                        row.style.transition = 'all 0.4s ease';
+                        row.style.opacity = '0';
+                        row.style.transform = 'translateX(-30px)';
+                        setTimeout(() => row.remove(), 400);
+                        successCount++;
+                    }
+                }
+                
+                if (successCount > 0) {
+                    showToast('success', '{{ _("Delete") }}', 'تم حذف ' + successCount + ' سيرفر بنجاح');
+                }
+            } catch(e) {
+                showToast('error', '{{ _("Error") }}', e.message);
+            } finally {
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = originalText;
+                isDeletingAll = false;
+            }
+            return;
+        }
+
+        if (!pendingDeleteId) return;
+        
+        const serverId = pendingDeleteId;
+        pendingDeleteId = null;
         
         const row = document.getElementById('server-row-' + serverId);
         const btn = row.querySelector('.btn-danger');
@@ -224,6 +323,59 @@
             btn.disabled = false;
             btn.textContent = '{{ _("Delete") }}';
             showToast('error', '{{ _("Error") }}', e.message);
+        }
+    });
+
+    async function saveAllServers() {
+        const saveAllBtn = document.getElementById('save-all-btn');
+        const originalText = saveAllBtn.textContent;
+        saveAllBtn.disabled = true;
+        saveAllBtn.textContent = '...';
+        
+        try {
+            const forms = document.querySelectorAll('form[action^="/admin/edit_server/"]');
+            let successCount = 0;
+            
+            for (let form of forms) {
+                const url = form.action;
+                const formData = new FormData(form);
+                const btn = form.querySelector('button[type="submit"]');
+                btn.disabled = true;
+                btn.textContent = '...';
+                
+                try {
+                    const resp = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        body: formData
+                    });
+                    
+                    if (resp.ok) {
+                        successCount++;
+                        btn.style.backgroundColor = 'var(--success)';
+                        btn.textContent = '✓';
+                        setTimeout(() => {
+                            btn.style.backgroundColor = '';
+                            btn.textContent = '{{ _("Save") }}';
+                        }, 2000);
+                    } else {
+                        btn.textContent = '{{ _("Save") }}';
+                    }
+                } catch(e) {
+                    btn.textContent = '{{ _("Save") }}';
+                } finally {
+                    btn.disabled = false;
+                }
+            }
+            
+            if (successCount > 0) {
+                showToast('success', '{{ _("Save") }}', 'تم حفظ ' + successCount + ' سيرفر بنجاح');
+            }
+        } catch(e) {
+            showToast('error', '{{ _("Error") }}', e.message);
+        } finally {
+            saveAllBtn.disabled = false;
+            saveAllBtn.textContent = originalText;
         }
     }
 </script>

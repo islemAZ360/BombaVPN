@@ -107,7 +107,9 @@ TRANSLATIONS = {
         'AutoImportTitle': 'Auto Import (Subscription / VLESS)',
         'PasteLink': 'Paste Subscription Link or vless:// URIs',
         'AutoImportDesc': 'Automatically extracts and converts VLESS servers into JSON files. Supports Base64 subscription links or multiple raw vless:// links separated by lines.',
-        'ImportServersBtn': 'Import & Activate'
+        'ImportServersBtn': 'Import & Activate',
+        'SaveAll': 'Save All',
+        'DeleteAll': 'Delete All'
     },
     'ar': {
         'Login': 'تسجيل الدخول',
@@ -219,7 +221,9 @@ TRANSLATIONS = {
         'AutoImportTitle': 'الاستيراد السريع (اشتراك / VLESS)',
         'PasteLink': 'ضع رابط الاشتراك أو روابط vless:// هنا',
         'AutoImportDesc': 'يقوم باستخراج وتحويل سيرفرات VLESS أوتوماتيكياً إلى ملفات JSON. يدعم روابط الاشتراكات (Base64) أو وضع روابط vless:// مباشرة أسفل بعضها.',
-        'ImportServersBtn': 'استيراد وتفعيل السيرفرات'
+        'ImportServersBtn': 'استيراد وتفعيل السيرفرات',
+        'SaveAll': 'حفظ الكل',
+        'DeleteAll': 'حذف الكل'
     },
     'ru': {
         'Login': 'Вход',
@@ -331,6 +335,8 @@ TRANSLATIONS = {
         'AutoImportTitle': 'Автоимпорт (Подписка / VLESS)',
         'PasteLink': 'Вставьте ссылку на подписку или URI vless://',
         'AutoImportDesc': 'Автоматически извлекает и преобразует серверы VLESS в файлы JSON. Поддерживает ссылки подписки (Base64) или несколько ссылок vless://.',
-        'ImportServersBtn': 'Импортировать и активировать'
+        'ImportServersBtn': 'Импортировать и активировать',
+        'SaveAll': 'Сохранить все',
+        'DeleteAll': 'Удалить все'
     }
 }

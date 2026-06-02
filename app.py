@@ -404,6 +404,48 @@ def admin_debts():
         
     return render_template('debts.html', users=in_debt_users, now=datetime.utcnow())
 
+def get_country_info_bulk(ips):
+    import socket
+    import requests
+    resolved_ips = []
+    ip_to_originals = {}
+    
+    for ip in set(ips):
+        if not ip: continue
+        try:
+            # Simple check if it might be a domain (contains letters, no colons for IPv6)
+            if any(c.isalpha() for c in ip) and ':' not in ip:
+                try:
+                    resolved = socket.gethostbyname(ip)
+                except:
+                    resolved = ip
+            else:
+                resolved = ip
+                
+            resolved_ips.append(resolved)
+            if resolved not in ip_to_originals:
+                ip_to_originals[resolved] = []
+            ip_to_originals[resolved].append(ip)
+        except Exception:
+            pass
+            
+    country_map = {}
+    resolved_ips = list(set(resolved_ips))
+    for i in range(0, len(resolved_ips), 100):
+        batch = resolved_ips[i:i+100]
+        try:
+            resp = requests.post("http://ip-api.com/batch", json=[{"query": r, "fields": "status,country,countryCode,query"} for r in batch], timeout=10)
+            if resp.status_code == 200:
+                for r in resp.json():
+                    if r.get("status") == "success":
+                        originals = ip_to_originals.get(r.get("query"), [])
+                        for orig in originals:
+                            country_map[orig] = (r.get("country"), r.get("countryCode"))
+        except Exception as e:
+            print("Batch IP error:", e)
+            
+    return country_map
+
 @app.route('/admin/add_servers', methods=['POST'])
 @login_required
 def add_servers():
@@ -424,26 +466,30 @@ def add_servers():
     expires_at = datetime.utcnow() + timedelta(days=real_days, hours=real_hours, minutes=real_minutes)
     
     added = 0
-    # First, fetch all existing server names to determine the counts
     existing_servers = [s.to_dict().get('name', '') for s in db.collection('servers').stream()]
     
+    # Pre-parse files
+    file_data_list = []
+    ips_to_query = []
     for file in files:
         if file and file.filename.endswith('.json'):
             content = file.read().decode('utf-8')
             ip = extract_ip_from_json(content)
+            file_data_list.append((file.filename, content, ip))
             if ip:
-                orig_name = extract_name_from_json(content) or file.filename.replace('.json', '')
-                orig_name_lower = orig_name.lower()
+                ips_to_query.append(ip)
                 
-                country_name = "Unknown"
-                cc = None
-                try:
-                    resp = requests.get(f"http://ip-api.com/json/{ip}?fields=status,country,countryCode", timeout=3).json()
-                    if resp.get("status") == "success":
-                        country_name = resp.get("country")
-                        cc = resp.get("countryCode")
-                except Exception as e:
-                    print(f"Error getting country info: {e}")
+    country_map = get_country_info_bulk(ips_to_query)
+    
+    for filename, content, ip in file_data_list:
+        if ip:
+            orig_name = extract_name_from_json(content) or filename.replace('.json', '')
+            orig_name_lower = orig_name.lower()
+            
+            country_name = "Unknown"
+            cc = None
+            if ip in country_map:
+                country_name, cc = country_map[ip]
                 
                 if country_name == "Unknown":
                     n_lower = orig_name_lower.replace('-', ' ').replace('_', ' ').replace('|', ' ')
@@ -553,23 +599,26 @@ def import_servers():
     added = 0
     existing_servers = [s.to_dict().get('name', '') for s in db.collection('servers').stream()]
     
+    config_data_list = []
+    ips_to_query = []
     for config_dict in parsed_configs:
         content = json.dumps(config_dict, ensure_ascii=False)
         ip = extract_ip_from_json(content)
+        config_data_list.append((config_dict, content, ip))
+        if ip:
+            ips_to_query.append(ip)
+            
+    country_map = get_country_info_bulk(ips_to_query)
+    
+    for config_dict, content, ip in config_data_list:
         if ip:
             orig_name = extract_name_from_json(content) or "Imported Server"
             orig_name_lower = orig_name.lower()
             
             country_name = "Unknown"
             cc = None
-            try:
-                # Fast API lookup for country
-                resp = requests.get(f"http://ip-api.com/json/{ip}?fields=status,country,countryCode", timeout=3).json()
-                if resp.get("status") == "success":
-                    country_name = resp.get("country")
-                    cc = resp.get("countryCode")
-            except:
-                pass
+            if ip in country_map:
+                country_name, cc = country_map[ip]
             
             if country_name == "Unknown":
                 n_lower = orig_name_lower.replace('-', ' ').replace('_', ' ').replace('|', ' ')
@@ -640,9 +689,17 @@ def edit_server(server_id):
     if new_name:
         try:
             db.collection('servers').document(server_id).update({'name': new_name})
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'status': 'success'})
             flash('تم تغيير اسم السيرفر', 'success')
         except Exception as e:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'status': 'error', 'message': str(e)}), 400
             flash(f'خطأ أثناء التعديل: السيرفر غير موجود أو محذوف.', 'error')
+    else:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'status': 'error', 'message': 'Name is required'}), 400
+
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/delete_server/<server_id>', methods=['POST'])
