@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let nebulas = [];
     
     // Smooth Parallax tracking
-    let mouse = { x: null, y: null, targetX: 0, targetY: 0, currentX: 0, currentY: 0 };
+    let mouse = { screenX: -1000, screenY: -1000, targetX: 0, targetY: 0, currentX: 0, currentY: 0 };
     
     const colors = {
         bg: '#0a0e1a',
@@ -34,12 +34,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.addEventListener('mousemove', (e) => {
         // Calculate offset from center of screen
+        mouse.screenX = e.clientX;
+        mouse.screenY = e.clientY;
         mouse.targetX = (e.clientX - centerX) * 0.5; // The 0.5 is a sensitivity multiplier
         mouse.targetY = (e.clientY - centerY) * 0.5;
     });
 
     window.addEventListener('mouseout', () => {
         // Return to center slowly
+        mouse.screenX = -1000;
+        mouse.screenY = -1000;
         mouse.targetX = 0;
         mouse.targetY = 0;
     });
@@ -47,12 +51,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Touch support for parallax
     window.addEventListener('touchmove', (e) => {
         if(e.touches.length > 0) {
+            mouse.screenX = e.touches[0].clientX;
+            mouse.screenY = e.touches[0].clientY;
             mouse.targetX = (e.touches[0].clientX - centerX) * 0.5;
             mouse.targetY = (e.touches[0].clientY - centerY) * 0.5;
         }
     }, { passive: true });
 
     window.addEventListener('touchend', () => {
+        mouse.screenX = -1000;
+        mouse.screenY = -1000;
         mouse.targetX = 0;
         mouse.targetY = 0;
     });
@@ -204,6 +212,48 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    class ShootingStar {
+        constructor() { this.reset(); }
+        reset() {
+            this.active = false;
+            if (Math.random() < 0.01) { // Occasional spawn
+                this.active = true;
+                this.x = Math.random() * width;
+                this.y = -50;
+                this.vx = (Math.random() * 8 + 10) * (Math.random() > 0.5 ? 1 : -1);
+                this.vy = Math.random() * 8 + 10;
+                this.opacity = Math.random() * 0.5 + 0.3;
+            }
+        }
+        update() {
+            if (!this.active) { this.reset(); return; }
+            this.x += this.vx;
+            this.y += this.vy;
+            if (this.y > height + 100 || this.x < -100 || this.x > width + 100) this.active = false;
+        }
+        draw(px, py) {
+            if (!this.active) return;
+            const drawX = this.x + px * 0.3;
+            const drawY = this.y + py * 0.3;
+            let grad = ctx.createLinearGradient(drawX, drawY, drawX - this.vx * 4, drawY - this.vy * 4);
+            grad.addColorStop(0, `rgba(0, 255, 204, ${this.opacity})`);
+            grad.addColorStop(1, 'rgba(0, 255, 204, 0)');
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(drawX, drawY);
+            ctx.lineTo(drawX - this.vx * 4, drawY - this.vy * 4);
+            ctx.stroke();
+            
+            // Star head
+            ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+            ctx.beginPath();
+            ctx.arc(drawX, drawY, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    let shootingStar = new ShootingStar();
+
     function initElements() {
         nodes = [];
         planets = [];
@@ -279,6 +329,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     ctx.stroke();
                 }
             }
+            
+            // Connect to mouse cursor
+            if (mouse.screenX !== -1000 && mouse.screenY !== -1000) {
+                const mdx = x1 - mouse.screenX;
+                const mdy = y1 - mouse.screenY;
+                const mDistSq = mdx * mdx + mdy * mdy;
+                if (mDistSq < 40000) { // 200px radius connection
+                    const mDist = Math.sqrt(mDistSq);
+                    const mOpacity = 1 - (mDist / 200);
+                    ctx.strokeStyle = `rgba(0, 255, 204, ${mOpacity * 0.8})`;
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(mouse.screenX, mouse.screenY);
+                    ctx.stroke();
+                }
+            }
+            
             n1.draw(px, py);
         }
 
@@ -287,6 +354,10 @@ document.addEventListener('DOMContentLoaded', () => {
             p.update();
             p.draw(px, py);
         }
+
+        // 4. Draw Shooting Star
+        shootingStar.update();
+        shootingStar.draw(px, py);
 
         requestAnimationFrame(animate);
     }
