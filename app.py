@@ -414,6 +414,18 @@ def add_servers():
                         cc = resp.get("countryCode")
                 except Exception as e:
                     print(f"Error getting country info: {e}")
+                
+                if country_name == "Unknown":
+                    n_lower = orig_name_lower.replace('-', ' ').replace('_', ' ').replace('|', ' ')
+                    words = n_lower.split()
+                    if 'russia' in n_lower or 'ru' in words: country_name, cc = "Russia", "RU"
+                    elif 'germany' in n_lower or 'de' in words: country_name, cc = "Germany", "DE"
+                    elif 'estonia' in n_lower or 'ee' in words: country_name, cc = "Estonia", "EE"
+                    elif 'latvia' in n_lower or 'lv' in words: country_name, cc = "Latvia", "LV"
+                    elif 'netherlands' in n_lower or 'nl' in words: country_name, cc = "Netherlands", "NL"
+                    elif 'france' in n_lower or 'fr' in words: country_name, cc = "France", "FR"
+                    elif 'uk' in words or 'united kingdom' in n_lower: country_name, cc = "United Kingdom", "GB"
+                    elif 'usa' in words or 'us' in words or 'america' in n_lower: country_name, cc = "United States", "US"
                     
                 # Determine the # number by finding the max existing number
                 max_num = 0
@@ -528,6 +540,18 @@ def import_servers():
                     cc = resp.get("countryCode")
             except:
                 pass
+            
+            if country_name == "Unknown":
+                n_lower = orig_name_lower.replace('-', ' ').replace('_', ' ').replace('|', ' ')
+                words = n_lower.split()
+                if 'russia' in n_lower or 'ru' in words: country_name, cc = "Russia", "RU"
+                elif 'germany' in n_lower or 'de' in words: country_name, cc = "Germany", "DE"
+                elif 'estonia' in n_lower or 'ee' in words: country_name, cc = "Estonia", "EE"
+                elif 'latvia' in n_lower or 'lv' in words: country_name, cc = "Latvia", "LV"
+                elif 'netherlands' in n_lower or 'nl' in words: country_name, cc = "Netherlands", "NL"
+                elif 'france' in n_lower or 'fr' in words: country_name, cc = "France", "FR"
+                elif 'uk' in words or 'united kingdom' in n_lower: country_name, cc = "United Kingdom", "GB"
+                elif 'usa' in words or 'us' in words or 'america' in n_lower: country_name, cc = "United States", "US"
                 
             max_num = 0
             for s_name in existing_servers:
