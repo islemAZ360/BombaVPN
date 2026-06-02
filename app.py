@@ -919,7 +919,14 @@ def delete_user(user_id):
         sub = data.get('allocated_subdomain')
         if sub: delete_dns_record(sub, DYNV6_TOKEN)
     db.collection('users').document(user_id).delete()
-    flash('تم حذف المستخدم بنجاح / User deleted', 'success')
+    
+    # Delete from Firebase Auth as well
+    try:
+        firebase_auth.delete_user(user_id)
+    except Exception as e:
+        print(f"Error deleting user from Firebase Auth: {e}")
+        
+    flash('تم حذف المستخدم نهائياً / User deleted completely', 'success')
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/manage_user_sub/<user_id>', methods=['POST'])
