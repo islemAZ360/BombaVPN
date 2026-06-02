@@ -174,14 +174,24 @@ document.addEventListener('DOMContentLoaded', () => {
         'rgba(100, 150, 255, 0.3)',
         'rgba(255, 100, 50, 0.4)',  // Red gas
         'rgba(150, 255, 255, 0.4)', // Ice crystal
-        'rgba(100, 255, 150, 0.4)'  // Shattered lava
+        'rgba(100, 255, 150, 0.4)', // Shattered lava
+        'rgba(200, 50, 255, 0.4)',  // Purple ring
+        'rgba(50, 255, 50, 0.4)'    // Toxic green
     ];
 
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 9; i++) {
         const img = new Image();
         img.src = `/static/images/planets/planet_${i}.png`; 
         planetImages.push(img);
     }
+    
+    const extraImages = {};
+    const extraKeys = ['nebula_cloud', 'space_station', 'astronaut', 'crystal_asteroids'];
+    extraKeys.forEach(k => {
+        const img = new Image();
+        img.src = `/static/images/planets/${k}.png`;
+        extraImages[k] = img;
+    });
     
     const sunImage = new Image();
     sunImage.src = '/static/images/planets/sun.png';
@@ -259,6 +269,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.drawImage(this.image, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
             }
             
+            ctx.restore();
+        }
+    }
+
+    class FloatingObject {
+        constructor(imgKey, sizeScale, speedScale, rotationSpeed) {
+            this.imgKey = imgKey;
+            this.reset(sizeScale, speedScale, rotationSpeed);
+            // scatter initial y position so they don't all start at bottom
+            this.y = Math.random() * height;
+        }
+        reset(sizeScale, speedScale, rotationSpeed) {
+            this.sizeScale = sizeScale || 1;
+            this.x = Math.random() * width;
+            this.y = height + 100;
+            this.z = Math.random() * 2 + 1;
+            this.radius = Math.min(width, height) * 0.05 * this.sizeScale / this.z;
+            this.speed = (Math.random() * 0.2 + 0.1) * (speedScale || 1);
+            this.rotation = Math.random() * Math.PI * 2;
+            this.rotSpeed = ((Math.random() - 0.5) * 0.01) * (rotationSpeed || 1);
+        }
+        update() {
+            this.y -= (this.speed / this.z) * (warpSpeed * 0.5);
+            this.rotation += this.rotSpeed * warpSpeed;
+            if (this.y < -this.radius * 2) {
+                this.reset(this.sizeScale, this.speed / (this.speedScale||1), this.rotSpeed / (this.rotationSpeed||1));
+            }
+        }
+        draw(px, py) {
+            const img = extraImages[this.imgKey];
+            if (!img.complete || img.naturalWidth === 0) return;
+            const drawX = this.x + px / this.z;
+            const drawY = this.y + py / this.z;
+            
+            ctx.save();
+            ctx.translate(drawX, drawY);
+            ctx.rotate(this.rotation);
+            ctx.globalCompositeOperation = 'screen';
+            ctx.drawImage(img, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
             ctx.restore();
         }
     }
@@ -512,12 +561,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeLightnings = [];
     let sun, blackHole, galaxy;
     let shootingStars = [];
+    let floatingObjects = [];
 
     function initElements() {
         nodes = [];
         planets = [];
         nebulas = [];
         shootingStars = [];
+        floatingObjects = [];
         sun = new Sun();
         blackHole = new BlackHole();
         galaxy = new Galaxy();
@@ -527,8 +578,17 @@ document.addEventListener('DOMContentLoaded', () => {
         
         for (let i = 0; i < numNodes; i++) nodes.push(new Node());
         for (let i = 0; i < 4; i++) nebulas.push(new Nebula());
-        for (let i = 0; i < 14; i++) planets.push(new Planet(i % 7)); // 7 unique planets now
+        
+        // Reduced planets count for a cleaner space view
+        for (let i = 0; i < 6; i++) planets.push(new Planet(i % 9)); 
+        
         for (let i = 0; i < 4; i++) shootingStars.push(new ShootingStar());
+
+        // Add diverse floating objects
+        floatingObjects.push(new FloatingObject('nebula_cloud', 4, 0.5, 0.2)); // Large, slow
+        floatingObjects.push(new FloatingObject('space_station', 1.5, 0.8, 0.5));
+        floatingObjects.push(new FloatingObject('astronaut', 0.5, 1.2, 2.0)); // Small, faster, spins more
+        floatingObjects.push(new FloatingObject('crystal_asteroids', 1.2, 0.9, 1.0));
     }
 
     function drawRadar() {
@@ -646,8 +706,9 @@ document.addEventListener('DOMContentLoaded', () => {
             nodes[i].draw(px, py);
         }
 
-        // 4. Planets
+        // 4. Planets and Floating Objects
         for (let p of planets) { p.update(); p.draw(px, py); }
+        for (let obj of floatingObjects) { obj.update(); obj.draw(px, py); }
         
         // 4.5 Celestial Bodies
         if(galaxy) { galaxy.update(); galaxy.draw(px, py); }
