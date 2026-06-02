@@ -121,6 +121,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.lineWidth = this.radius;
                 ctx.stroke();
             } else {
+                // Glowing synapses (Neural Network style)
+                ctx.fillStyle = `rgba(0, 255, 204, ${this.baseAlpha * 0.4})`;
+                ctx.beginPath();
+                ctx.arc(drawX, drawY, this.radius * 3.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.baseAlpha})`;
+                ctx.beginPath();
                 ctx.arc(drawX, drawY, this.radius, 0, Math.PI * 2);
                 ctx.fill();
             }
@@ -540,12 +548,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Radar Sweep
         drawRadar();
 
-        // 3. Network Nodes & Connections (Batched for Performance)
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.strokeStyle = 'rgba(0, 255, 204, 0.15)'; // Uniform faint color for batched lines
-        
-        // Step 3.1: Calculate updates and batch line connections
+        // 3. Network Nodes & Connections
+        ctx.globalCompositeOperation = 'screen';
         if (warpSpeed < 3) {
             for (let i = 0; i < nodes.length; i++) {
                 const n1 = nodes[i];
@@ -560,12 +564,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
                     const distSq = (x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2);
                     if (distSq < 15000) { 
+                        const opacity = 1 - (Math.sqrt(distSq) / 122.5); // Dynamic opacity
+                        ctx.beginPath();
                         ctx.moveTo(x1, y1);
                         ctx.lineTo(x2, y2);
+                        ctx.strokeStyle = `rgba(0, 255, 204, ${opacity * 0.6})`;
+                        ctx.lineWidth = opacity * 1.5;
+                        ctx.stroke();
                     }
                 }
             }
-            ctx.stroke(); // ONE single stroke for all node connections! (Huge FPS boost)
             
             // Mouse connection in a separate path
             if (mouse.screenX !== -1000 && mouse.screenY !== -1000) {
