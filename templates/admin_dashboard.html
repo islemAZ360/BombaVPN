@@ -3,7 +3,7 @@
 <div class="header-actions" style="display: flex; gap: 10px; align-items: center;">
     <h2>{{ _('AdminDashboard') }}</h2>
     <a href="{{ url_for('admin_debts') }}" class="btn btn-secondary btn-small" style="background-color: #ff4757; color: white;">{{ _('DebtStats') }}</a>
-    <button id="logout-btn" class="btn btn-danger btn-small">{{ _('Logout') }}</button>
+    <button id="logout-btn" class="btn btn-transparent-danger btn-small">{{ _('Logout') }}</button>
 </div>
 
 <div class="card">
@@ -35,7 +35,7 @@
                         {% if not u.server.plan_days and not u.server.plan_hours and not u.server.plan_minutes %}0 {{ _('Days') }}{% endif %}
                         - {{ u.server.price }})
                     {% else %}
-                        -
+                        {{ _('NotSelectedYet') }}
                     {% endif %}
                 </td>
                 <td><a href="{{ url_for('static', filename='uploads/' + u.receipt_image) }}" target="_blank">{{ _('ViewReceipt') }}</a></td>
