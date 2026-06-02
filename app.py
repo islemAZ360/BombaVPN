@@ -365,6 +365,9 @@ def mark_read(notif_id):
     if not request.is_admin:
         return "Unauthorized", 403
     db.collection('notifications').document(notif_id).update({'is_read': True})
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'status': 'success', 'action': 'remove_parent'}), 200
     return redirect(url_for('admin_notifications'))
 
 @app.route('/admin/notifications/read_all', methods=['POST'])
@@ -374,6 +377,9 @@ def mark_all_read():
         return "Unauthorized", 403
     for doc in db.collection('notifications').where('is_read', '==', False).stream():
         db.collection('notifications').document(doc.id).update({'is_read': True})
+        
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'status': 'success', 'action': 'remove_all_notifications', 'message': 'All notifications marked as read'}), 200
     return redirect(url_for('admin_notifications'))
 
 @app.route('/admin/debts')
@@ -1164,6 +1170,8 @@ def user_dashboard():
 @login_required
 def send_message():
     text = request.form.get('message')
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    
     if text:
         db.collection('messages').add({
             'user_id': request.user['uid'],
@@ -1172,6 +1180,8 @@ def send_message():
             'created_at': datetime.utcnow(),
             'admin_reply': None
         })
+        if is_ajax:
+            return jsonify({'status': 'success', 'message': TRANSLATIONS.get(request.cookies.get('lang', 'ar'), {}).get('Message sent successfully', 'Message sent successfully'), 'action': 'clear'}), 200
         flash('تم إرسال رسالتك بنجاح', 'success')
     return redirect(url_for('user_dashboard'))
 

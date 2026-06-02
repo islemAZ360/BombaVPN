@@ -196,7 +196,7 @@
         {% endfor %}
     </div>
 
-    <form action="{{ url_for('send_message') }}" method="POST">
+    <form action="{{ url_for('send_message') }}" method="POST" class="ajax-form">
         <div class="form-group" style="margin-bottom: 0;">
             <textarea name="message" class="support-textarea" rows="4" placeholder="{{ _('TypeMessage') }}" required></textarea>
         </div>

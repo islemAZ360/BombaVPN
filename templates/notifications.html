@@ -8,7 +8,7 @@
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <h3>{{ _('SystemNotifications') }}</h3>
-        <form action="{{ url_for('mark_all_read') }}" method="POST">
+        <form action="{{ url_for('mark_all_read') }}" method="POST" class="ajax-form">
             <button type="submit" class="btn btn-primary btn-small">{{ _('MarkAllRead') }}</button>
         </form>
     </div>
@@ -22,7 +22,7 @@
                 <small style="color: #666; display: block; margin-top: 8px;">{{ n.created_at.strftime('%Y-%m-%d %H:%M') if n.created_at else '' }}</small>
             </div>
             {% if not n.is_read %}
-            <form action="{{ url_for('mark_read', notif_id=n.id) }}" method="POST">
+            <form action="{{ url_for('mark_read', notif_id=n.id) }}" method="POST" class="ajax-form">
                 <button type="submit" class="btn btn-secondary btn-small" style="font-size: 12px; padding: 5px 10px;">{{ _('Read') }}</button>
             </form>
             {% endif %}

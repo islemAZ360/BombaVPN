@@ -109,6 +109,64 @@
                 }
             }, duration);
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.ajax-form').forEach(form => {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    const submitBtn = form.querySelector('button[type="submit"]') || form.querySelector('button');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.dataset.originalText = submitBtn.innerHTML;
+                        submitBtn.innerHTML = '...';
+                    }
+
+                    try {
+                        const formData = new FormData(form);
+                        const response = await fetch(form.action || window.location.href, {
+                            method: form.method || 'POST',
+                            body: formData,
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            if (result.message) showToast('success', '{{ _("Success") }}', result.message);
+                            if (result.action === 'clear') {
+                                form.reset();
+                            } else if (result.action === 'remove_parent') {
+                                const parent = form.closest('.notification-item') || form.closest('.card');
+                                if (parent) parent.remove();
+                                const badge = document.querySelector('.badge');
+                                if (badge) {
+                                    const newCount = parseInt(badge.textContent) - 1;
+                                    if (newCount <= 0) badge.remove();
+                                    else badge.textContent = newCount;
+                                }
+                            } else if (result.action === 'remove_all_notifications') {
+                                document.querySelectorAll('.notification-item').forEach(el => el.remove());
+                                const badge = document.querySelector('.badge');
+                                if (badge) badge.remove();
+                            }
+                        } else {
+                            showToast('error', '{{ _("Error") }}', result.error || 'Operation failed');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        showToast('error', '{{ _("Error") }}', 'Network error occurred');
+                    } finally {
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = submitBtn.dataset.originalText;
+                        }
+                    }
+                });
+            });
+        });
     </script>
 
     <!-- Firebase Auth -->
