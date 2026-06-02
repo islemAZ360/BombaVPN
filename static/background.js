@@ -243,6 +243,139 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    class Sun {
+        constructor() {
+            this.x = width * 0.85;
+            this.y = height * 0.15;
+            this.radius = Math.min(width, height) * 0.08;
+            this.z = 15; // Very far
+        }
+        update() {}
+        draw(px, py) {
+            const drawX = this.x + px / this.z;
+            const drawY = this.y + py / this.z;
+            
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            
+            let grad = ctx.createRadialGradient(drawX, drawY, this.radius * 0.1, drawX, drawY, this.radius * 4);
+            grad.addColorStop(0, 'rgba(255, 220, 100, 1)');
+            grad.addColorStop(0.3, 'rgba(255, 120, 20, 0.4)');
+            grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(drawX, drawY, this.radius * 4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#fff4cc';
+            ctx.beginPath();
+            ctx.arc(drawX, drawY, this.radius * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+        }
+    }
+
+    class BlackHole {
+        constructor() {
+            this.x = width * 0.15;
+            this.y = height * 0.8;
+            this.radius = Math.min(width, height) * 0.05;
+            this.z = 12;
+            this.rotation = 0;
+        }
+        update() {
+            this.rotation += 0.02 * warpSpeed;
+        }
+        draw(px, py) {
+            const drawX = this.x + px / this.z;
+            const drawY = this.y + py / this.z;
+            
+            ctx.save();
+            ctx.translate(drawX, drawY);
+            
+            ctx.rotate(this.rotation);
+            ctx.scale(1, 0.25); 
+            let grad = ctx.createRadialGradient(0, 0, this.radius, 0, 0, this.radius * 5);
+            grad.addColorStop(0, 'rgba(200, 0, 255, 0.9)');
+            grad.addColorStop(0.4, 'rgba(80, 0, 150, 0.5)');
+            grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius * 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+            
+            ctx.save();
+            ctx.translate(drawX, drawY);
+            
+            let innerGrad = ctx.createRadialGradient(0, 0, this.radius * 0.8, 0, 0, this.radius * 1.5);
+            innerGrad.addColorStop(0, 'black');
+            innerGrad.addColorStop(0.6, 'rgba(150, 50, 255, 0.8)');
+            innerGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            
+            ctx.fillStyle = innerGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius * 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+        }
+    }
+
+    class ShootingStar {
+        constructor() { this.reset(); }
+        reset() {
+            this.active = false;
+            if (Math.random() < 0.01) { 
+                this.active = true;
+                this.x = Math.random() * width * 1.5;
+                this.y = -100;
+                this.length = Math.random() * 200 + 100;
+                this.speed = Math.random() * 15 + 10;
+                this.angle = Math.PI / 4 + (Math.random() - 0.5) * 0.2; 
+                this.opacity = Math.random() * 0.8 + 0.2;
+            }
+        }
+        update() {
+            if (!this.active) { this.reset(); return; }
+            this.x -= Math.cos(this.angle) * this.speed * warpSpeed;
+            this.y += Math.sin(this.angle) * this.speed * warpSpeed;
+            if (this.x < -this.length || this.y > height + this.length) this.active = false;
+        }
+        draw(px, py) {
+            if (!this.active) return;
+            const drawX = this.x + px * 0.2;
+            const drawY = this.y + py * 0.2;
+            
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            
+            let grad = ctx.createLinearGradient(drawX, drawY, drawX + Math.cos(this.angle) * this.length, drawY - Math.sin(this.angle) * this.length);
+            grad.addColorStop(0, `rgba(255, 255, 255, ${this.opacity})`);
+            grad.addColorStop(0.1, `rgba(0, 255, 204, ${this.opacity * 0.8})`);
+            grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(drawX, drawY);
+            ctx.lineTo(drawX + Math.cos(this.angle) * this.length, drawY - Math.sin(this.angle) * this.length);
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+    }
+
     class DataStream {
         constructor() { this.reset(); }
         reset() {
@@ -348,20 +481,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let activeLightnings = [];
+    let sun, blackHole;
+    let shootingStars = [];
 
     function initElements() {
         nodes = [];
         planets = [];
         nebulas = [];
         dataStreams = [];
+        shootingStars = [];
+        sun = new Sun();
+        blackHole = new BlackHole();
 
         const area = width * height;
-        const numNodes = Math.min(Math.floor(area / 12000), 80); // Optimized for performance 
+        const numNodes = Math.min(Math.floor(area / 12000), 80); 
         
         for (let i = 0; i < numNodes; i++) nodes.push(new Node());
         for (let i = 0; i < 4; i++) nebulas.push(new Nebula());
-        for (let i = 0; i < 6; i++) planets.push(new Planet(i % 4));
+        for (let i = 0; i < 12; i++) planets.push(new Planet(i % 4));
         for (let i = 0; i < 15; i++) dataStreams.push(new DataStream());
+        for (let i = 0; i < 4; i++) shootingStars.push(new ShootingStar());
     }
 
     function drawRadar() {
@@ -481,6 +620,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 4. Planets
         for (let p of planets) { p.update(); p.draw(px, py); }
+        
+        // 4.5 Celestial Bodies
+        if(sun) { sun.update(); sun.draw(px, py); }
+        if(blackHole) { blackHole.update(); blackHole.draw(px, py); }
+        for (let s of shootingStars) { s.update(); s.draw(px, py); }
 
         // 5. Matrix Data Streams
         for (let d of dataStreams) { d.update(); d.draw(px, py); }
