@@ -4,6 +4,7 @@ from firebase_admin import credentials, firestore, auth as firebase_auth
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 import os
+os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "1"
 import json
 import uuid
 import functools
@@ -29,10 +30,7 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.after_request
-def add_security_headers(response):
-    response.headers['Cross-Origin-Opener-Policy'] = 'same-origin-allow-popups'
-    return response
+
 
 @app.route('/set_language/<lang>')
 def set_language(lang):
@@ -99,6 +97,22 @@ def login_required(f):
             
         return f(*args, **kwargs)
     return decorated_function
+
+thread_started = False
+thread_lock = threading.Lock()
+
+@app.before_request
+def start_background_thread():
+    global thread_started
+    if not thread_started:
+        with thread_lock:
+            if not thread_started:
+                try:
+                    checker_thread = threading.Thread(target=background_expiry_checker, daemon=True)
+                    checker_thread.start()
+                    thread_started = True
+                except Exception as e:
+                    print("Could not start background thread:", e)
 
 @app.route('/')
 def index():
@@ -861,7 +875,7 @@ def get_subscription(token):
                 
     allocated_subdomain = user_doc.get('allocated_subdomain')
     if current_server and not allocated_subdomain:
-        safe_prefix = email.replace('@', '-').replace('.', '-')
+        safe_prefix = user_doc.get('email', '').replace('@', '-').replace('.', '-')
         allocated_subdomain = f"{safe_prefix}.{BASE_ZONE}"
         delete_dns_record(allocated_subdomain, DYNV6_TOKEN)
         create_dns_record(allocated_subdomain, current_server['original_ip'], DYNV6_TOKEN)
@@ -902,7 +916,7 @@ def get_subscription(token):
                 # Add notification
                 db.collection('notifications').add({
                     'title': 'سيرفرات غير متوفرة',
-                    'message': f'نفدت سيرفرات ({" ".join(required_tags)})! تم إعطاء المستخدم {email} سيرفراً مؤقتاً.',
+                    'message': f'نفدت سيرفرات ({" ".join(required_tags)})! تم إعطاء المستخدم {user_doc.get("email")} سيرفراً مؤقتاً.',
                     'created_at': datetime.utcnow(),
                     'is_read': False,
                     'type': 'out_of_stock'
@@ -922,7 +936,7 @@ def get_subscription(token):
         else:
             best_server = max(candidate_servers, key=lambda s: s['expires_at'].replace(tzinfo=None))
         
-        safe_prefix = email.replace('@', '-').replace('.', '-')
+        safe_prefix = user_doc.get('email', '').replace('@', '-').replace('.', '-')
         subdomain = f"{safe_prefix}.{BASE_ZONE}"
         
         delete_dns_record(subdomain, DYNV6_TOKEN)
@@ -941,7 +955,7 @@ def get_subscription(token):
             debt_delta = user_expiry - best_exp
             db.collection('notifications').add({
                 'title': 'ديون جديدة لمستخدم',
-                'message': f'المستخدم {email} لم يجد سيرفراً يغطي مدته بالكامل (نقل تلقائي)! لديك دين له بقيمة {debt_delta.days} يوم و {debt_delta.seconds // 3600} ساعة.',
+                'message': f'المستخدم {user_doc.get("email")} لم يجد سيرفراً يغطي مدته بالكامل (نقل تلقائي)! لديك دين له بقيمة {debt_delta.days} يوم و {debt_delta.seconds // 3600} ساعة.',
                 'created_at': datetime.utcnow(),
                 'is_read': False,
                 'type': 'debt'
@@ -1033,9 +1047,6 @@ def background_expiry_checker():
             print(f"Background expiry checker error: {e}")
             
         time.sleep(60)
-
-bg_thread = threading.Thread(target=background_expiry_checker, daemon=True)
-bg_thread.start()
 
 if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
