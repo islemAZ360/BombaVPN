@@ -156,12 +156,15 @@
         </div>
 
         <div>
-            <label style="font-size: 0.85rem; color: #a0a0a0; margin-bottom: 8px; display: block;">Dynamic Pricing (Optional)</label>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <input type="text" name="price_base" class="form-control" placeholder="Base Price" style="flex: 1; min-width: 120px;">
-                <input type="text" name="price_gemini" class="form-control" placeholder="Price: Gemini" style="flex: 1; min-width: 120px;">
-                <input type="text" name="price_yt" class="form-control" placeholder="Price: YT" style="flex: 1; min-width: 120px;">
-                <input type="text" name="price_lte" class="form-control" placeholder="Price: LTE" style="flex: 1; min-width: 120px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label style="font-size: 0.85rem; color: #a0a0a0; margin: 0;">Pricing Rules</label>
+                <button type="button" class="btn btn-primary btn-small" onclick="addPricingRule()">+ Add Rule</button>
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="text" name="price_base" class="form-control" placeholder="Base Price (Default)" style="flex: 1;">
+            </div>
+            <div id="pricing-rules-container" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Rules will be injected here -->
             </div>
         </div>
 
@@ -537,5 +540,42 @@
     
     updateCountdowns();
     setInterval(updateCountdowns, 60000); // Update every minute
+</script>
+
+<script>
+    // Dynamic Pricing Rules logic
+    function addPricingRule() {
+        const container = document.getElementById('pricing-rules-container');
+        const ruleDiv = document.createElement('div');
+        ruleDiv.style.cssText = 'display: flex; gap: 10px; align-items: center;';
+        
+        const tagsInput = document.createElement('input');
+        tagsInput.type = 'text';
+        tagsInput.name = 'rule_tags[]';
+        tagsInput.className = 'form-control';
+        tagsInput.placeholder = 'Tags (e.g., Gemini, YT)';
+        tagsInput.style.flex = '2';
+        tagsInput.required = true;
+
+        const priceInput = document.createElement('input');
+        priceInput.type = 'text';
+        priceInput.name = 'rule_prices[]';
+        priceInput.className = 'form-control';
+        priceInput.placeholder = 'Price';
+        priceInput.style.flex = '1';
+        priceInput.required = true;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'btn btn-danger btn-small';
+        removeBtn.innerHTML = '×';
+        removeBtn.onclick = function() { ruleDiv.remove(); };
+
+        ruleDiv.appendChild(tagsInput);
+        ruleDiv.appendChild(priceInput);
+        ruleDiv.appendChild(removeBtn);
+        
+        container.appendChild(ruleDiv);
+    }
 </script>
 {% endblock %}

@@ -577,9 +577,15 @@ def import_servers():
     real_minutes = int(request.form.get('real_minutes') or 0)
     
     price_base = request.form.get('price_base') or ''
-    price_gemini = request.form.get('price_gemini') or ''
-    price_yt = request.form.get('price_yt') or ''
-    price_lte = request.form.get('price_lte') or ''
+    rule_tags = request.form.getlist('rule_tags[]')
+    rule_prices = request.form.getlist('rule_prices[]')
+    
+    pricing_rules = []
+    for t_str, p_str in zip(rule_tags, rule_prices):
+        if t_str and p_str:
+            tags_set = set(tag.strip().lower() for tag in t_str.split(',') if tag.strip())
+            if tags_set:
+                pricing_rules.append({'tags': tags_set, 'price': p_str.strip()})
     
     expires_at = datetime.utcnow() + timedelta(days=real_days, hours=real_hours, minutes=real_minutes)
     
@@ -672,12 +678,20 @@ def import_servers():
             else:
                 final_name = base_name
                 
-            # Determine price based on tags
+            # Determine price based on rules
             final_price = price_base
-            if "Gemini" in keywords and price_gemini: final_price = price_gemini
-            elif "YT" in keywords and price_yt: final_price = price_yt
-            elif "LTE" in keywords and price_lte: final_price = price_lte
-                
+            keywords_lower = set(k.lower() for k in keywords)
+            
+            matched_rules = []
+            for rule in pricing_rules:
+                if rule['tags'].issubset(keywords_lower):
+                    matched_rules.append(rule)
+                    
+            if matched_rules:
+                # Prioritize the rule with the most matching tags (highest specificity)
+                best_rule = max(matched_rules, key=lambda r: len(r['tags']))
+                final_price = best_rule['price']
+
             existing_servers.append(final_name)
             
             db.collection('servers').add({
