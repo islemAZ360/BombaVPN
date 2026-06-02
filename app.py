@@ -1356,9 +1356,19 @@ def background_expiry_checker():
     while True:
         try:
             now = datetime.utcnow()
-            # We must fetch users with subscription_expires_at <= now
-            # Firestore requires an index for inequality on a different field than the order by.
-            # So we will just fetch all active users and filter in memory to avoid index issues.
+            
+            # Pre-fetch all active servers ONCE per check to save Firestore read quota
+            all_active_servers = []
+            try:
+                for sdoc in db.collection('servers').stream():
+                    s = sdoc.to_dict()
+                    s['id'] = sdoc.id
+                    s_expires = s.get('expires_at')
+                    if s_expires and s_expires.replace(tzinfo=None) > now:
+                        all_active_servers.append(s)
+            except Exception as e:
+                print(f"Error fetching servers in background check: {e}")
+
             users_ref = db.collection('users').where('status', '==', 'active').stream()
             for doc in users_ref:
                 try:
@@ -1382,9 +1392,7 @@ def background_expiry_checker():
                     if user.get('is_temporary_server') or user.get('is_in_debt'):
                         required_tags = set(user.get('required_tags') or [])
                         candidate_servers = []
-                        for sdoc in db.collection('servers').where('expires_at', '>', now).stream():
-                            s = sdoc.to_dict()
-                            s['id'] = sdoc.id
+                        for s in all_active_servers:
                             s_tags = set(s.get('tags') or [])
                             if required_tags.issubset(s_tags):
                                 candidate_servers.append(s)
