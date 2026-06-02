@@ -391,41 +391,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    class DataStream {
-        constructor() { this.reset(); }
-        reset() {
-            this.active = false;
-            if (Math.random() < 0.05) { 
-                this.active = true;
-                this.x = Math.random() * width;
-                this.y = -100;
-                this.length = Math.random() * 100 + 50;
-                this.speed = Math.random() * 5 + 5;
-                this.opacity = Math.random() * 0.5 + 0.1;
-            }
-        }
-        update() {
-            if (!this.active) { this.reset(); return; }
-            this.y += this.speed * warpSpeed;
-            if (this.y > height + this.length) this.active = false;
-        }
-        draw(px, py) {
-            if (!this.active) return;
-            const drawX = this.x + px * 0.1; // Minimal parallax for streams
-            
-            let grad = ctx.createLinearGradient(drawX, this.y, drawX, this.y - this.length);
-            grad.addColorStop(0, `rgba(0, 255, 204, ${this.opacity})`);
-            grad.addColorStop(1, 'rgba(0, 255, 204, 0)');
-            
-            ctx.strokeStyle = grad;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(drawX, this.y);
-            ctx.lineTo(drawX, this.y - this.length);
-            ctx.stroke();
-        }
-    }
-
     class LightningBolt {
         constructor(x, y) {
             this.segments = [];
@@ -503,7 +468,6 @@ document.addEventListener('DOMContentLoaded', () => {
         nodes = [];
         planets = [];
         nebulas = [];
-        dataStreams = [];
         shootingStars = [];
         sun = new Sun();
         blackHole = new BlackHole();
@@ -515,7 +479,6 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < numNodes; i++) nodes.push(new Node());
         for (let i = 0; i < 4; i++) nebulas.push(new Nebula());
         for (let i = 0; i < 14; i++) planets.push(new Planet(i % 7)); // 7 unique planets now
-        for (let i = 0; i < 15; i++) dataStreams.push(new DataStream());
         for (let i = 0; i < 4; i++) shootingStars.push(new ShootingStar());
     }
 
@@ -642,9 +605,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(sun) { sun.update(); sun.draw(px, py); }
         if(blackHole) { blackHole.update(); blackHole.draw(px, py); }
         for (let s of shootingStars) { s.update(); s.draw(px, py); }
-
-        // 5. Matrix Data Streams
-        for (let d of dataStreams) { d.update(); d.draw(px, py); }
 
         requestAnimationFrame(animate);
     }
