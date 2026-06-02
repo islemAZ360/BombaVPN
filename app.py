@@ -1313,16 +1313,9 @@ def get_subscription(token):
         user_doc['allocated_subdomain'] = subdomain
 
     import socket
-    active_address = current_server['original_ip']
-    subdomain_to_check = user_doc.get('allocated_subdomain')
-    
-    if subdomain_to_check:
-        try:
-            # Fallback to direct IP if the Dynv6 subdomain hasn't propagated yet or mock failed
-            socket.gethostbyname(subdomain_to_check)
-            active_address = subdomain_to_check
-        except Exception:
-            pass
+    # We must ALWAYS use the subdomain, otherwise users will bypass the DNS revocation
+    # when their subscription expires by saving the raw IP.
+    active_address = user_doc.get('allocated_subdomain') or current_server['original_ip']
 
     from utils import generate_vless_uri
     import base64
