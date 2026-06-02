@@ -278,6 +278,77 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    class LightningBolt {
+        constructor(x, y) {
+            this.segments = [];
+            this.alpha = 1.0;
+            this.generate(x, y, 0);
+        }
+        
+        generate(startX, startY, depth) {
+            let x = startX;
+            let y = startY;
+            let path = [{x, y}];
+            while(y < height && path.length < 50) {
+                x += (Math.random() - 0.5) * 80;
+                y += Math.random() * 60 + 20;
+                path.push({x, y});
+                if (Math.random() < 0.2 && depth < 2) {
+                    this.segments.push(this.createBranch(x, y, depth + 1));
+                }
+            }
+            this.segments.push(path);
+        }
+
+        createBranch(startX, startY, depth) {
+            let x = startX;
+            let y = startY;
+            let path = [{x, y}];
+            let length = Math.random() * 200 + 100;
+            let currentLength = 0;
+            let angle = (Math.random() - 0.5) * Math.PI * 0.8; 
+            
+            while(currentLength < length) {
+                let dist = Math.random() * 40 + 10;
+                currentLength += dist;
+                x += Math.sin(angle) * dist + (Math.random() - 0.5) * 30;
+                y += Math.cos(angle) * dist + Math.random() * 20;
+                path.push({x, y});
+            }
+            return path;
+        }
+
+        draw() {
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            
+            ctx.beginPath();
+            for (let path of this.segments) {
+                ctx.moveTo(path[0].x, path[0].y);
+                for (let i = 1; i < path.length; i++) {
+                    ctx.lineTo(path[i].x, path[i].y);
+                }
+            }
+            
+            ctx.strokeStyle = `rgba(0, 204, 255, ${this.alpha * 0.2})`;
+            ctx.lineWidth = 15;
+            ctx.stroke();
+
+            ctx.strokeStyle = `rgba(0, 255, 204, ${this.alpha * 0.5})`;
+            ctx.lineWidth = 6;
+            ctx.stroke();
+            
+            ctx.strokeStyle = `rgba(255, 255, 255, ${this.alpha})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.restore();
+            this.alpha -= 0.05;
+        }
+    }
+
+    let activeLightnings = [];
+
     function initElements() {
         nodes = [];
         planets = [];
@@ -315,14 +386,23 @@ document.addEventListener('DOMContentLoaded', () => {
         // Lightning flash effect
         if (Math.random() < 0.003) {
             lightningFlash = 1.0;
+            activeLightnings.push(new LightningBolt(Math.random() * width, 0));
         }
         if (lightningFlash > 0) {
-            ctx.fillStyle = `rgba(180, 230, 255, ${lightningFlash * 0.15})`;
+            ctx.fillStyle = `rgba(180, 230, 255, ${lightningFlash * 0.1})`;
             ctx.fillRect(0, 0, width, height);
             lightningFlash -= 0.04;
             // Secondary strike
             if (Math.random() < 0.1 && lightningFlash < 0.5) {
                 lightningFlash = 0.7;
+                activeLightnings.push(new LightningBolt(Math.random() * width, 0));
+            }
+        }
+        
+        for (let i = activeLightnings.length - 1; i >= 0; i--) {
+            activeLightnings[i].draw();
+            if (activeLightnings[i].alpha <= 0) {
+                activeLightnings.splice(i, 1);
             }
         }
 
