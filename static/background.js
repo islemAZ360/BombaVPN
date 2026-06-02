@@ -171,6 +171,12 @@ document.addEventListener('DOMContentLoaded', () => {
         img.src = `/static/images/planets/planet_${i}.png`; // تأكد من مسار الصور الخاص بك
         planetImages.push(img);
     }
+    
+    const sunImage = new Image();
+    sunImage.src = '/static/images/planets/sun.png';
+
+    const blackHoleImage = new Image();
+    blackHoleImage.src = '/static/images/planets/blackhole.png';
 
     class Planet {
         constructor(imgIndex) {
@@ -245,32 +251,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     class Sun {
         constructor() {
-            this.x = width * 0.85;
-            this.y = height * 0.15;
-            this.radius = Math.min(width, height) * 0.08;
-            this.z = 15; // Very far
+            this.x = width * 0.9;
+            this.y = height * 0.1;
+            this.radius = Math.min(width, height) * 0.12;
+            this.z = 25; // Extremely far to give massive scale
         }
         update() {}
         draw(px, py) {
+            if (!sunImage.complete || sunImage.naturalWidth === 0) return;
             const drawX = this.x + px / this.z;
             const drawY = this.y + py / this.z;
             
             ctx.save();
+            ctx.translate(drawX, drawY);
             ctx.globalCompositeOperation = 'screen';
             
-            let grad = ctx.createRadialGradient(drawX, drawY, this.radius * 0.1, drawX, drawY, this.radius * 4);
-            grad.addColorStop(0, 'rgba(255, 220, 100, 1)');
-            grad.addColorStop(0.3, 'rgba(255, 120, 20, 0.4)');
+            // Draw realistic sun image
+            ctx.drawImage(sunImage, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
+            
+            // Extra outer glow
+            let grad = ctx.createRadialGradient(0, 0, this.radius * 0.5, 0, 0, this.radius * 3);
+            grad.addColorStop(0, 'rgba(255, 200, 50, 0)');
+            grad.addColorStop(0.3, 'rgba(255, 120, 20, 0.5)');
             grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
             
             ctx.fillStyle = grad;
             ctx.beginPath();
-            ctx.arc(drawX, drawY, this.radius * 4, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.fillStyle = '#fff4cc';
-            ctx.beginPath();
-            ctx.arc(drawX, drawY, this.radius * 0.8, 0, Math.PI * 2);
+            ctx.arc(0, 0, this.radius * 3, 0, Math.PI * 2);
             ctx.fill();
             
             ctx.restore();
@@ -279,53 +286,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     class BlackHole {
         constructor() {
-            this.x = width * 0.15;
-            this.y = height * 0.8;
-            this.radius = Math.min(width, height) * 0.05;
-            this.z = 12;
+            this.x = width * 0.1;
+            this.y = height * 0.9;
+            this.radius = Math.min(width, height) * 0.15;
+            this.z = 20; // Very far
             this.rotation = 0;
         }
         update() {
-            this.rotation += 0.02 * warpSpeed;
+            this.rotation += 0.005 * warpSpeed; // Slow rotation
         }
         draw(px, py) {
+            if (!blackHoleImage.complete || blackHoleImage.naturalWidth === 0) return;
             const drawX = this.x + px / this.z;
             const drawY = this.y + py / this.z;
             
             ctx.save();
             ctx.translate(drawX, drawY);
+            ctx.globalCompositeOperation = 'screen';
             
             ctx.rotate(this.rotation);
-            ctx.scale(1, 0.25); 
-            let grad = ctx.createRadialGradient(0, 0, this.radius, 0, 0, this.radius * 5);
-            grad.addColorStop(0, 'rgba(200, 0, 255, 0.9)');
-            grad.addColorStop(0.4, 'rgba(80, 0, 150, 0.5)');
-            grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(0, 0, this.radius * 5, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.restore();
-            
-            ctx.save();
-            ctx.translate(drawX, drawY);
-            
-            let innerGrad = ctx.createRadialGradient(0, 0, this.radius * 0.8, 0, 0, this.radius * 1.5);
-            innerGrad.addColorStop(0, 'black');
-            innerGrad.addColorStop(0.6, 'rgba(150, 50, 255, 0.8)');
-            innerGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            
-            ctx.fillStyle = innerGrad;
-            ctx.beginPath();
-            ctx.arc(0, 0, this.radius * 1.5, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.fillStyle = 'black';
-            ctx.beginPath();
-            ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-            ctx.fill();
+            // Draw realistic black hole image
+            ctx.drawImage(blackHoleImage, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
             
             ctx.restore();
         }
