@@ -55,4 +55,68 @@
         </button>
     </form>
 </div>
+
 {% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-refresh available servers every 30 seconds
+    const serverContainer = document.querySelector('.form-group[style*="flex-direction: column"]');
+    
+    async function refreshServers() {
+        try {
+            const resp = await fetch('/api/available_servers');
+            if (!resp.ok) return;
+            const servers = await resp.json();
+            
+            // Remember selected server
+            const selected = document.querySelector('input[name="server_id"]:checked');
+            const selectedId = selected ? selected.value : null;
+            
+            // Rebuild server list
+            serverContainer.innerHTML = '';
+            
+            if (servers.length === 0) {
+                serverContainer.innerHTML = '<div class="alert alert-warning">{{ _("NoPlansAvailable") }}</div>';
+                document.querySelector('button[type="submit"]').disabled = true;
+                return;
+            }
+            
+            document.querySelector('button[type="submit"]').disabled = false;
+            
+            servers.forEach(server => {
+                const label = document.createElement('label');
+                label.style.cssText = 'display: flex; align-items: center; gap: 0.5rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius); cursor: pointer; background: var(--input-bg);';
+                
+                const flagImg = server.country_code 
+                    ? `<img src="https://flagcdn.com/24x18/${server.country_code}.png" alt="${server.country_code}" style="border-radius: 2px;">` 
+                    : '';
+                
+                let duration = '';
+                if (server.plan_days) duration += server.plan_days + ' {{ _("Days") }} ';
+                if (server.plan_hours) duration += server.plan_hours + ' {{ _("Hours") }} ';
+                if (server.plan_minutes) duration += server.plan_minutes + ' {{ _("Minutes") }}';
+                if (!duration) duration = '0 {{ _("Days") }}';
+                
+                label.innerHTML = `
+                    <input type="radio" name="server_id" value="${server.id}" ${server.id === selectedId ? 'checked' : ''} required style="width: 1.2rem; height: 1.2rem;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                            ${flagImg} ${server.name}
+                        </div>
+                        <div style="font-size: 0.9rem; color: var(--text-muted);">
+                            {{ _("Price") }}: ${server.price || ''} ₽ | {{ _("Duration") }}: ${duration}
+                        </div>
+                    </div>
+                `;
+                serverContainer.appendChild(label);
+            });
+        } catch(e) {
+            console.log('Auto-refresh error:', e);
+        }
+    }
+    
+    setInterval(refreshServers, 30000);
+</script>
+{% endblock %}
+

@@ -154,6 +154,21 @@ def session_logout():
     response.set_cookie('session', '', expires=0)
     return response
 
+@app.route('/api/available_servers')
+@login_required
+def api_available_servers():
+    servers = []
+    for doc in db.collection('servers').stream():
+        s = doc.to_dict()
+        s['id'] = doc.id
+        # Clean non-serializable fields
+        if 'expires_at' in s and s['expires_at']:
+            s['expires_at'] = s['expires_at'].isoformat()
+        if 'created_at' in s and s['created_at']:
+            s['created_at'] = s['created_at'].isoformat()
+        servers.append(s)
+    return jsonify(servers)
+
 @app.route('/pay', methods=['GET', 'POST'])
 @login_required
 def pay():
@@ -643,6 +658,11 @@ def delete_server(server_id):
         })
         
     db.collection('servers').document(server_id).delete()
+    
+    # If AJAX request, return JSON
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'status': 'success'})
+    
     flash('تم حذف السيرفر وجدولة نقل مستخدميه تلقائياً', 'success')
     return redirect(url_for('admin_dashboard'))
 

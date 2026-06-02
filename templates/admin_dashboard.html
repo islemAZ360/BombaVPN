@@ -171,7 +171,7 @@
                 <th>{{ _('Action') }}</th>
             </tr>
             {% for s in servers %}
-            <tr>
+            <tr id="server-row-{{ s.id }}">
                 <td>
                     <form method="POST" action="{{ url_for('edit_server', server_id=s.id) }}" style="display:inline-flex; gap:0.5rem; align-items:center;">
                         {% if s.country_code %}
@@ -185,9 +185,7 @@
                 <td>{{ s.ip or s.original_ip }}</td>
                 <td>{{ s.expires_at.strftime('%Y-%m-%d %H:%M') if s.expires_at else '' }}</td>
                 <td>
-                    <form method="POST" action="{{ url_for('delete_server', server_id=s.id) }}">
-                        <button type="submit" class="btn btn-danger btn-small">{{ _('Delete') }}</button>
-                    </form>
+                    <button class="btn btn-danger btn-small" onclick="deleteServer('{{ s.id }}')">{{ _('Delete') }}</button>
                 </td>
             </tr>
             {% else %}
@@ -196,6 +194,39 @@
         </table>
     </div>
 </div>
+
+<script>
+    async function deleteServer(serverId) {
+        if (!confirm('هل أنت متأكد من حذف هذا السيرفر؟')) return;
+        
+        const row = document.getElementById('server-row-' + serverId);
+        const btn = row.querySelector('.btn-danger');
+        btn.disabled = true;
+        btn.textContent = '...';
+        
+        try {
+            const resp = await fetch('/admin/delete_server/' + serverId, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (resp.ok) {
+                row.style.transition = 'all 0.4s ease';
+                row.style.opacity = '0';
+                row.style.transform = 'translateX(-30px)';
+                setTimeout(() => row.remove(), 400);
+                showToast('success', '{{ _("Delete") }}', 'تم حذف السيرفر بنجاح');
+            } else {
+                btn.disabled = false;
+                btn.textContent = '{{ _("Delete") }}';
+                showToast('error', '{{ _("Error") }}', 'فشل حذف السيرفر');
+            }
+        } catch(e) {
+            btn.disabled = false;
+            btn.textContent = '{{ _("Delete") }}';
+            showToast('error', '{{ _("Error") }}', e.message);
+        }
+    }
+</script>
 
 <script>
     // Live JSON preview logic
