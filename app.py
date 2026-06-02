@@ -270,6 +270,7 @@ def admin_dashboard():
 
     pending_users = []
     active_users = []
+    all_users = []
     
     for doc in db.collection('users').stream():
         data = doc.to_dict()
@@ -279,8 +280,16 @@ def admin_dashboard():
         if 'subscription_expires_at' in data and data['subscription_expires_at']:
             data['subscription_expires_at'] = data['subscription_expires_at'].replace(tzinfo=None)
             
+        all_users.append(data)
+        
         if data.get('status') == 'active':
             active_users.append(data)
+            
+    # Add server name to all_users for easy display
+    server_map = {s['id']: s.get('name') for s in servers}
+    for u in all_users:
+        if u.get('allocated_server_id'):
+            u['allocated_server_name'] = server_map.get(u['allocated_server_id'], 'Unknown')
             
     # 1. New users
     for doc in db.collection('users').where('status', 'in', ['pending', 'review']).stream():
@@ -327,7 +336,7 @@ def admin_dashboard():
         'lte': sum(1 for s in servers if 'LTE' in s.get('tags', []))
     }
     
-    return render_template('admin_dashboard.html', servers=servers, pending_users=pending_users, active_users=active_users, tickets=tickets, now=now, server_stats=server_stats)
+    return render_template('admin_dashboard.html', servers=servers, pending_users=pending_users, active_users=active_users, all_users=all_users, tickets=tickets, now=now, server_stats=server_stats)
 
 
 
@@ -814,11 +823,13 @@ def approve_user(user_id):
     else:
         expires_at = datetime.utcnow() + duration_delta
     
+    current_count = user_data.get('purchases_count', 0)
     update_data = {
         'subscription_expires_at': expires_at,
         'allocated_server_id': server_id,
         'status': 'active',
-        'is_in_debt': False
+        'is_in_debt': False,
+        'purchases_count': current_count + 1
     }
     
     if is_renewal:
@@ -898,7 +909,113 @@ def reject_user(user_id):
     flash('تم رفض الإيصال', 'success')
     return redirect(url_for('admin_dashboard'))
 
-@app.route('/admin/reply_message/<message_id>', methods=['POST'])
+@app.route('/admin/delete_user/<user_id>', methods=['POST'])
+@login_required
+def delete_user(user_id):
+    if not request.is_admin: return "Unauthorized", 403
+    user_doc = db.collection('users').document(user_id).get()
+    if user_doc.exists:
+        data = user_doc.to_dict()
+        sub = data.get('allocated_subdomain')
+        if sub: delete_dns_record(sub, DYNV6_TOKEN)
+    db.collection('users').document(user_id).delete()
+    flash('تم حذف المستخدم بنجاح / User deleted', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/manage_user_sub/<user_id>', methods=['POST'])
+@login_required
+def manage_user_sub(user_id):
+    if not request.is_admin: return "Unauthorized", 403
+    action = request.form.get('action')
+    
+    user_doc = db.collection('users').document(user_id).get()
+    if not user_doc.exists: return redirect(url_for('admin_dashboard'))
+    data = user_doc.to_dict()
+    
+    if action == 'cancel':
+        update_data = {'status': 'expired'}
+        if data.get('allocated_subdomain'):
+            delete_dns_record(data['allocated_subdomain'], DYNV6_TOKEN)
+            update_data['allocated_subdomain'] = None
+            update_data['allocated_server_id'] = None
+        db.collection('users').document(user_id).update(update_data)
+        flash('تم إلغاء الاشتراك بنجاح / Subscription cancelled', 'success')
+        
+    elif action == 'modify':
+        days = int(request.form.get('days', 0))
+        hours = int(request.form.get('hours', 0))
+        delta = timedelta(days=days, hours=hours)
+        
+        current_expires = data.get('subscription_expires_at')
+        if current_expires:
+            current_expires = current_expires.replace(tzinfo=None)
+            new_expires = current_expires + delta
+        else:
+            new_expires = datetime.utcnow() + delta
+            
+        db.collection('users').document(user_id).update({
+            'subscription_expires_at': new_expires,
+            'status': 'active' if new_expires > datetime.utcnow() else 'expired'
+        })
+        flash('تم تعديل المدة بنجاح / Duration modified', 'success')
+        
+    elif action == 'assign':
+        server_id = request.form.get('server_id')
+        if server_id:
+            s_doc = db.collection('servers').document(server_id).get()
+            if s_doc.exists:
+                s_data = s_doc.to_dict()
+                email_val = data.get('email', '')
+                subdomain = f"{email_val.replace('@', '-').replace('.', '-')}.{BASE_ZONE}"
+                
+                old_subdomain = data.get('allocated_subdomain')
+                if old_subdomain != subdomain or data.get('allocated_server_id') != server_id:
+                    if old_subdomain: delete_dns_record(old_subdomain, DYNV6_TOKEN)
+                    create_dns_record(subdomain, s_data['original_ip'], DYNV6_TOKEN)
+                
+                db.collection('users').document(user_id).update({
+                    'allocated_server_id': server_id,
+                    'allocated_subdomain': subdomain,
+                    'status': 'active'
+                })
+                flash('تم تعيين السيرفر بنجاح / Server assigned', 'success')
+                
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/send_message/<user_id>', methods=['POST'])
+@login_required
+def send_admin_message(user_id):
+    if not request.is_admin: return "Unauthorized", 403
+    message = request.form.get('message')
+    if message:
+        db.collection('admin_messages').add({
+            'user_id': user_id,
+            'message': message,
+            'created_at': datetime.utcnow(),
+            'is_read': False
+        })
+        flash('تم إرسال الرسالة للمستخدم / Message sent', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/read_admin_message/<msg_id>', methods=['POST'])
+@login_required
+def read_admin_message(msg_id):
+    user_id = request.user['uid']
+    doc = db.collection('admin_messages').document(msg_id).get()
+    if doc.exists and doc.to_dict().get('user_id') == user_id:
+        db.collection('admin_messages').document(msg_id).update({'is_read': True})
+    return jsonify({'success': True})
+
+@app.route('/admin/delete_message/<message_id>', methods=['POST'])
+@login_required
+def delete_message(message_id):
+    if not request.is_admin:
+        return "Unauthorized", 403
+    db.collection('messages').document(message_id).delete()
+    flash('تم حذف الرسالة بنجاح / Message deleted', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/reply_message/<message_id>', methods=['POST'])
 @login_required
 def reply_message(message_id):
     if not request.is_admin:
@@ -949,6 +1066,17 @@ def user_dashboard():
     except Exception as e:
         print("Error fetching messages:", e)
         
+    admin_msgs = []
+    try:
+        for doc in db.collection('admin_messages').where('user_id', '==', user_id).order_by('created_at', direction=firestore.Query.DESCENDING).stream():
+            msg = doc.to_dict()
+            msg['id'] = doc.id
+            if 'created_at' in msg and msg['created_at']:
+                msg['created_at'] = msg['created_at'].replace(tzinfo=None)
+            admin_msgs.append(msg)
+    except Exception as e:
+        print("Error fetching admin messages:", e)
+        
     server = None
     if user_data.get('status') == 'active' and user_data.get('allocated_server_id'):
         s_doc = db.collection('servers').document(user_data['allocated_server_id']).get()
@@ -987,7 +1115,7 @@ def user_dashboard():
         except Exception as e:
             print("Error parsing server config for dashboard:", e)
             
-    return render_template('user_dashboard.html', user_email=email, user=user_data, sub_link=sub_link, messages=messages, server=server, now=datetime.utcnow())
+    return render_template('user_dashboard.html', user_email=email, user=user_data, sub_link=sub_link, messages=messages, admin_msgs=admin_msgs, server=server, now=datetime.utcnow())
 
 # --- API ROUTES ---
 @app.route('/api/message', methods=['POST'])
