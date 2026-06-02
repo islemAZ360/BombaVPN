@@ -155,8 +155,40 @@
             </div>
         </div>
 
+        <div>
+            <label style="font-size: 0.85rem; color: #a0a0a0; margin-bottom: 8px; display: block;">Dynamic Pricing (Optional)</label>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <input type="text" name="price_base" class="form-control" placeholder="Base Price" style="flex: 1; min-width: 120px;">
+                <input type="text" name="price_gemini" class="form-control" placeholder="Price: Gemini" style="flex: 1; min-width: 120px;">
+                <input type="text" name="price_yt" class="form-control" placeholder="Price: YT" style="flex: 1; min-width: 120px;">
+                <input type="text" name="price_lte" class="form-control" placeholder="Price: LTE" style="flex: 1; min-width: 120px;">
+            </div>
+        </div>
+
         <button type="submit" class="btn btn-primary" style="width: fit-content; align-self: flex-end;">{{ _('ImportServersBtn') }}</button>
     </form>
+</div>
+
+<div class="card" style="margin-bottom: 20px; background: rgba(0, 255, 204, 0.05); border-color: var(--primary);">
+    <h4 style="margin-bottom: 1rem; color: var(--primary);">Server Statistics</h4>
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: space-between;">
+        <div style="text-align: center; flex: 1;">
+            <div style="font-size: 2rem; font-weight: bold;">{{ server_stats.total }}</div>
+            <div style="font-size: 0.85rem; color: var(--text-muted);">Total Servers</div>
+        </div>
+        <div style="text-align: center; flex: 1;">
+            <div style="font-size: 2rem; font-weight: bold;">{{ server_stats.gemini }}</div>
+            <div style="font-size: 0.85rem; color: var(--text-muted);">Gemini Tags</div>
+        </div>
+        <div style="text-align: center; flex: 1;">
+            <div style="font-size: 2rem; font-weight: bold;">{{ server_stats.yt }}</div>
+            <div style="font-size: 0.85rem; color: var(--text-muted);">YT Tags</div>
+        </div>
+        <div style="text-align: center; flex: 1;">
+            <div style="font-size: 2rem; font-weight: bold;">{{ server_stats.lte }}</div>
+            <div style="font-size: 0.85rem; color: var(--text-muted);">LTE Tags</div>
+        </div>
+    </div>
 </div>
 
 <div class="card">
@@ -179,18 +211,25 @@
             {% for s in servers %}
             <tr id="server-row-{{ s.id }}">
                 <td>
-                    <form method="POST" action="{{ url_for('edit_server', server_id=s.id) }}" style="display:inline-flex; gap:0.5rem; align-items:center;">
+                    <form method="POST" action="{{ url_for('edit_server', server_id=s.id) }}" style="display:flex; gap:0.5rem; align-items:center;">
                         {% if s.country_code %}
                         <img src="https://flagcdn.com/24x18/{{ s.country_code }}.png" alt="{{ s.country_code }}" style="border-radius: 2px;">
                         {% endif %}
                         <input type="text" name="name" value="{{ s.name }}" class="form-control" style="width: 150px; padding: 0.2rem 0.5rem;" required>
+                </td>
+                <td>
+                        <input type="text" name="price" value="{{ s.price }}" class="form-control" style="width: 80px; padding: 0.2rem 0.5rem;">
+                </td>
+                <td>{{ s.ip or s.original_ip }}</td>
+                <td>
+                    <div style="font-size: 0.9rem;">{{ s.expires_at.strftime('%Y-%m-%d %H:%M') if s.expires_at else '' }}</div>
+                    {% if s.expires_at %}
+                    <div class="countdown-timer" data-expires="{{ s.expires_at.isoformat() }}" style="font-size: 0.8rem; color: var(--warning); margin-top: 4px;"></div>
+                    {% endif %}
+                </td>
+                <td>
                         <button type="submit" class="btn btn-primary btn-small">{{ _('Save') }}</button>
                     </form>
-                </td>
-                <td>{{ s.price }}</td>
-                <td>{{ s.ip or s.original_ip }}</td>
-                <td>{{ s.expires_at.strftime('%Y-%m-%d %H:%M') if s.expires_at else '' }}</td>
-                <td>
                     <button class="btn btn-danger btn-small" onclick="deleteServer('{{ s.id }}')">{{ _('Delete') }}</button>
                 </td>
             </tr>
@@ -467,5 +506,36 @@
             }
         });
     }
+</script>
+
+<script>
+    // Live countdown timers for expiration dates
+    function updateCountdowns() {
+        document.querySelectorAll('.countdown-timer').forEach(el => {
+            const expires = new Date(el.getAttribute('data-expires'));
+            if (isNaN(expires)) return;
+            const now = new Date();
+            const diff = expires - now;
+            
+            if (diff <= 0) {
+                el.textContent = 'Expired';
+                el.style.color = 'var(--danger)';
+            } else {
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                const minutes = Math.floor((diff / 1000 / 60) % 60);
+                
+                let text = 'Expires in: ';
+                if (days > 0) text += days + 'd ';
+                if (hours > 0) text += hours + 'h ';
+                text += minutes + 'm';
+                
+                el.textContent = text;
+            }
+        });
+    }
+    
+    updateCountdowns();
+    setInterval(updateCountdowns, 60000); // Update every minute
 </script>
 {% endblock %}

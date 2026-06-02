@@ -320,7 +320,14 @@ def admin_dashboard():
     except Exception as e:
         print("Error fetching tickets:", e)
             
-    return render_template('admin_dashboard.html', servers=servers, pending_users=pending_users, active_users=active_users, tickets=tickets, now=now)
+    server_stats = {
+        'total': len(servers),
+        'gemini': sum(1 for s in servers if 'Gemini' in s.get('tags', [])),
+        'yt': sum(1 for s in servers if 'YT' in s.get('tags', [])),
+        'lte': sum(1 for s in servers if 'LTE' in s.get('tags', []))
+    }
+    
+    return render_template('admin_dashboard.html', servers=servers, pending_users=pending_users, active_users=active_users, tickets=tickets, now=now, server_stats=server_stats)
 
 
 
@@ -569,7 +576,11 @@ def import_servers():
     real_hours = int(request.form.get('real_hours') or 0)
     real_minutes = int(request.form.get('real_minutes') or 0)
     
-    price = request.form.get('price') or ''
+    price_base = request.form.get('price_base') or ''
+    price_gemini = request.form.get('price_gemini') or ''
+    price_yt = request.form.get('price_yt') or ''
+    price_lte = request.form.get('price_lte') or ''
+    
     expires_at = datetime.utcnow() + timedelta(days=real_days, hours=real_hours, minutes=real_minutes)
     
     # Strip happ://add/ if present
@@ -661,6 +672,12 @@ def import_servers():
             else:
                 final_name = base_name
                 
+            # Determine price based on tags
+            final_price = price_base
+            if "Gemini" in keywords and price_gemini: final_price = price_gemini
+            elif "YT" in keywords and price_yt: final_price = price_yt
+            elif "LTE" in keywords and price_lte: final_price = price_lte
+                
             existing_servers.append(final_name)
             
             db.collection('servers').add({
@@ -668,7 +685,7 @@ def import_servers():
                 'original_ip': ip,
                 'country_code': cc.lower() if cc else None,
                 'json_config': content,
-                'price': price,
+                'price': final_price,
                 'plan_days': plan_days,
                 'plan_hours': plan_hours,
                 'plan_minutes': plan_minutes,
@@ -686,12 +703,16 @@ def import_servers():
 def edit_server(server_id):
     if not request.is_admin: return "Unauthorized", 403
     new_name = request.form.get('name')
+    new_price = request.form.get('price')
     if new_name:
         try:
-            db.collection('servers').document(server_id).update({'name': new_name})
+            update_data = {'name': new_name}
+            if new_price is not None:
+                update_data['price'] = new_price
+            db.collection('servers').document(server_id).update(update_data)
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({'status': 'success'})
-            flash('تم تغيير اسم السيرفر', 'success')
+            flash('تم التعديل بنجاح', 'success')
         except Exception as e:
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({'status': 'error', 'message': str(e)}), 400
