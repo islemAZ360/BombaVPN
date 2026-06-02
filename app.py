@@ -1055,18 +1055,30 @@ def user_dashboard():
         return redirect(url_for('admin_dashboard'))
         
     user_id = request.user['uid']
-    user_doc = db.collection('users').document(user_id).get()
+    user_data = None
     
-    if not user_doc.exists:
-        db.collection('users').document(user_id).set({
-            'email': request.user['email'],
-            'status': 'pending',
-            'created_at': datetime.utcnow()
-        })
-        user_data = {'status': 'pending'}
-    else:
-        user_data = user_doc.to_dict()
-        if 'subscription_expires_at' in user_data and user_data['subscription_expires_at']:
+    with users_cache_lock:
+        if user_id in users_cache:
+            user_data = users_cache[user_id].copy()
+
+    if not user_data:
+        try:
+            user_doc = db.collection('users').document(user_id).get()
+            if not user_doc.exists:
+                db.collection('users').document(user_id).set({
+                    'email': request.user['email'],
+                    'status': 'pending',
+                    'created_at': datetime.utcnow()
+                })
+                user_data = {'status': 'pending'}
+            else:
+                user_data = user_doc.to_dict()
+        except Exception as e:
+            print(f"Error fetching user doc in dashboard: {e}")
+            user_data = {'status': 'pending', 'error': 'db_quota'}
+
+    if 'subscription_expires_at' in user_data and user_data['subscription_expires_at']:
+        if isinstance(user_data['subscription_expires_at'], datetime):
             user_data['subscription_expires_at'] = user_data['subscription_expires_at'].replace(tzinfo=None)
             
     email = request.user['email']
@@ -1096,19 +1108,32 @@ def user_dashboard():
         
     server = None
     if user_data.get('status') == 'active' and user_data.get('allocated_server_id'):
-        s_doc = db.collection('servers').document(user_data['allocated_server_id']).get()
-        if s_doc.exists:
-            server = s_doc.to_dict()
+        allocated_server_id = user_data.get('allocated_server_id')
+        with servers_cache_lock:
+            if allocated_server_id in servers_cache:
+                server = servers_cache[allocated_server_id].copy()
+                
+        if not server:
+            try:
+                s_doc = db.collection('servers').document(allocated_server_id).get()
+                if s_doc.exists:
+                    server = s_doc.to_dict()
+            except Exception as e:
+                print("Error fetching server in dashboard:", e)
             
     if user_data.get('status') == 'active' and server is None:
         # Trigger reassignment
-        get_subscription(user_id)
-        user_doc = db.collection('users').document(user_id).get()
-        user_data = user_doc.to_dict()
-        if user_data.get('status') == 'active' and user_data.get('allocated_server_id'):
-            s_doc = db.collection('servers').document(user_data['allocated_server_id']).get()
-            if s_doc.exists:
-                server = s_doc.to_dict()
+        try:
+            get_subscription(user_id)
+            with users_cache_lock:
+                if user_id in users_cache:
+                    user_data = users_cache[user_id].copy()
+            if user_data.get('status') == 'active' and user_data.get('allocated_server_id'):
+                with servers_cache_lock:
+                    if user_data.get('allocated_server_id') in servers_cache:
+                        server = servers_cache[user_data.get('allocated_server_id')].copy()
+        except Exception as e:
+            print("Error in reassignment dashboard:", e)
     
     if 'subscription_expires_at' in user_data and user_data['subscription_expires_at'] and not isinstance(user_data['subscription_expires_at'], datetime):
         pass
