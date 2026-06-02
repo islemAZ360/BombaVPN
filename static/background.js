@@ -163,12 +163,15 @@ document.addEventListener('DOMContentLoaded', () => {
         'rgba(0, 255, 204, 0.5)', 
         'rgba(0, 204, 255, 0.5)', 
         'rgba(255, 100, 200, 0.3)', 
-        'rgba(100, 150, 255, 0.3)'  
+        'rgba(100, 150, 255, 0.3)',
+        'rgba(255, 100, 50, 0.4)',  // Red gas
+        'rgba(150, 255, 255, 0.4)', // Ice crystal
+        'rgba(100, 255, 150, 0.4)'  // Shattered lava
     ];
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 7; i++) {
         const img = new Image();
-        img.src = `/static/images/planets/planet_${i}.png`; // تأكد من مسار الصور الخاص بك
+        img.src = `/static/images/planets/planet_${i}.png`; 
         planetImages.push(img);
     }
     
@@ -177,6 +180,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const blackHoleImage = new Image();
     blackHoleImage.src = '/static/images/planets/blackhole.png';
+
+    const galaxyImage = new Image();
+    galaxyImage.src = '/static/images/planets/galaxy.png';
 
     class Planet {
         constructor(imgIndex) {
@@ -229,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.arc(0, 0, this.radius * 1.6, 0, Math.PI * 2);
             ctx.fill();
             
-            ctx.globalCompositeOperation = 'source-over';
+            ctx.globalCompositeOperation = 'screen';
             ctx.rotate(this.rotation);
             
             // Hologram Glitch Effect
@@ -307,6 +313,34 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.rotate(this.rotation);
             // Draw realistic black hole image
             ctx.drawImage(blackHoleImage, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
+            
+            ctx.restore();
+        }
+    }
+
+    class Galaxy {
+        constructor() {
+            this.x = width * 0.7;
+            this.y = height * 0.8;
+            this.radius = Math.min(width, height) * 0.35; // Massive
+            this.z = 35; // Furthest object
+            this.rotation = Math.PI / 4;
+        }
+        update() {
+            this.rotation -= 0.001 * warpSpeed; // Extremely slow majestic rotation
+        }
+        draw(px, py) {
+            if (!galaxyImage.complete || galaxyImage.naturalWidth === 0) return;
+            const drawX = this.x + px / this.z;
+            const drawY = this.y + py / this.z;
+            
+            ctx.save();
+            ctx.translate(drawX, drawY);
+            ctx.globalCompositeOperation = 'screen';
+            
+            ctx.rotate(this.rotation);
+            ctx.globalAlpha = 0.6; // Slightly transparent to look like background
+            ctx.drawImage(galaxyImage, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
             
             ctx.restore();
         }
@@ -462,7 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let activeLightnings = [];
-    let sun, blackHole;
+    let sun, blackHole, galaxy;
     let shootingStars = [];
 
     function initElements() {
@@ -473,13 +507,14 @@ document.addEventListener('DOMContentLoaded', () => {
         shootingStars = [];
         sun = new Sun();
         blackHole = new BlackHole();
+        galaxy = new Galaxy();
 
         const area = width * height;
         const numNodes = Math.min(Math.floor(area / 12000), 80); 
         
         for (let i = 0; i < numNodes; i++) nodes.push(new Node());
         for (let i = 0; i < 4; i++) nebulas.push(new Nebula());
-        for (let i = 0; i < 12; i++) planets.push(new Planet(i % 4));
+        for (let i = 0; i < 14; i++) planets.push(new Planet(i % 7)); // 7 unique planets now
         for (let i = 0; i < 15; i++) dataStreams.push(new DataStream());
         for (let i = 0; i < 4; i++) shootingStars.push(new ShootingStar());
     }
@@ -603,6 +638,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let p of planets) { p.update(); p.draw(px, py); }
         
         // 4.5 Celestial Bodies
+        if(galaxy) { galaxy.update(); galaxy.draw(px, py); }
         if(sun) { sun.update(); sun.draw(px, py); }
         if(blackHole) { blackHole.update(); blackHole.draw(px, py); }
         for (let s of shootingStars) { s.update(); s.draw(px, py); }
