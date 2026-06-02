@@ -263,12 +263,34 @@
 <div class="card">
     <h3>{{ _('AllUsers') | default('All Users') }}</h3>
     <style>
-        .all-users-table th { position: sticky; top: 0; background: rgba(10, 14, 26, 0.95); backdrop-filter: blur(10px); z-index: 10; border-bottom: 2px solid rgba(0, 255, 204, 0.2); }
-        .action-btn-group { display: flex; gap: 8px; justify-content: center; }
-        .action-btn-group .btn { width: 32px; height: 32px; border-radius: 6px; padding: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(4px); font-size: 0.9rem; }
-        .hud-stat-number { text-align: center; display: flex; justify-content: center; align-items: center; width: 100%; }
+        .all-users-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; margin-top: 10px; }
+        .all-users-table th { position: sticky; top: 0; background: transparent; color: rgba(255,255,255,0.5); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; padding: 0 15px 10px 15px; border: none; text-align: left; }
+        .all-users-table tbody tr { background: rgba(255, 255, 255, 0.02); transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 8px; }
+        .all-users-table tbody tr:hover { background: rgba(255, 255, 255, 0.05); transform: translateY(-1px); box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+        .all-users-table td { padding: 16px 15px; border: none; }
+        .all-users-table td:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+        .all-users-table td:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+        
+        .action-btn-group { display: flex; gap: 6px; justify-content: center; }
+        .action-btn-group .icon-btn { 
+            width: 34px; height: 34px; border-radius: 8px; padding: 0; display: flex; align-items: center; justify-content: center; 
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); 
+            transition: all 0.2s ease; cursor: pointer;
+        }
+        .action-btn-group .icon-btn:hover { transform: scale(1.05); }
+        .icon-btn.mod-btn:hover { background: rgba(0, 123, 255, 0.15); color: #007bff; border-color: rgba(0, 123, 255, 0.3); }
+        .icon-btn.assign-btn:hover { background: rgba(0, 255, 204, 0.15); color: #00ffcc; border-color: rgba(0, 255, 204, 0.3); }
+        .icon-btn.msg-btn:hover { background: rgba(40, 167, 69, 0.15); color: #28a745; border-color: rgba(40, 167, 69, 0.3); }
+        .icon-btn.cancel-btn:hover { background: rgba(255, 193, 7, 0.15); color: #ffc107; border-color: rgba(255, 193, 7, 0.3); }
+        .icon-btn.del-btn:hover { background: rgba(255, 71, 87, 0.15); color: #ff4757; border-color: rgba(255, 71, 87, 0.3); }
+        
+        .status-badge { font-size: 0.7rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .status-badge.active { background: rgba(0, 255, 204, 0.1); color: #00ffcc; }
+        .status-badge.expired { background: rgba(255, 71, 87, 0.1); color: #ff4757; }
+        .status-badge.pending { background: rgba(255, 193, 7, 0.1); color: #ffc107; }
+        
     </style>
-    <div class="table-responsive">
+    <div class="table-responsive" style="overflow-x: auto; padding-bottom: 20px;">
         <table class="all-users-table">
             <thead>
                 <tr>
@@ -276,7 +298,7 @@
                     <th>{{ _('Status') }}</th>
                     <th>{{ _('AllocatedServer') | default('Allocated Server') }}</th>
                     <th>{{ _('ExpiresAt') }}</th>
-                    <th>{{ _('Purchases') | default('Purchases') }}</th>
+                    <th style="text-align: center;">{{ _('Purchases') | default('Purchases') }}</th>
                     <th style="text-align: center;">{{ _('Actions') | default('Actions') }}</th>
                 </tr>
             </thead>
@@ -284,41 +306,57 @@
                 {% for u in all_users %}
                 <tr>
                     <td>
-                        <div style="max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ u.email }}">{{ u.email }}</div>
+                        <div style="font-weight: 500; color: #fff; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ u.email }}">{{ u.email }}</div>
                     </td>
                     <td>
                         {% if u.status == 'active' %}
-                            <span class="badge" style="background: rgba(0,255,204,0.1); color: #00ffcc; border: 1px solid #00ffcc;">Active</span>
+                            <span class="status-badge active">Active</span>
                         {% elif u.status == 'expired' %}
-                            <span class="badge" style="background: rgba(255,71,87,0.1); color: #ff4757; border: 1px solid #ff4757;">Expired</span>
+                            <span class="status-badge expired">Expired</span>
                         {% elif u.status == 'pending' or u.status == 'review' %}
-                            <span class="badge" style="background: rgba(255,193,7,0.1); color: #ffc107; border: 1px solid #ffc107;">Pending</span>
+                            <span class="status-badge pending">Pending</span>
                         {% else %}
-                            <span class="badge" style="background: var(--text-muted); color: white;">{{ u.status }}</span>
+                            <span class="status-badge" style="background: rgba(255,255,255,0.1); color: #ccc;">{{ u.status }}</span>
                         {% endif %}
                     </td>
-                    <td><div style="color: rgba(255,255,255,0.8);">{{ u.allocated_server_name | default('-') }}</div></td>
+                    <td>
+                        <div style="color: rgba(255,255,255,0.85); font-size: 0.9rem;">
+                            {{ u.allocated_server_name | default('<span style="color:rgba(255,255,255,0.3);">-</span>') | safe }}
+                        </div>
+                    </td>
                     <td>
                         {% if u.subscription_expires_at %}
-                            <div style="color: rgba(255,255,255,0.6); font-family: monospace;">{{ u.subscription_expires_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                            <div style="color: rgba(255,255,255,0.7); font-family: 'Space Mono', monospace; font-size: 0.85rem;">{{ u.subscription_expires_at.strftime('%Y-%m-%d %H:%M') }}</div>
                         {% else %}
-                            <div style="color: rgba(255,255,255,0.4);">-</div>
+                            <div style="color: rgba(255,255,255,0.3);">-</div>
                         {% endif %}
                     </td>
-                    <td><span class="badge" style="background: rgba(0, 255, 204, 0.1); color: #00ffcc; font-family: monospace;">{{ u.purchases_count | default(0) }}</span></td>
+                    <td style="text-align: center;">
+                        <span style="color: #00ffcc; font-weight: bold; font-family: 'Space Mono', monospace; background: rgba(0,255,204,0.05); padding: 2px 8px; border-radius: 4px;">{{ u.purchases_count | default(0) }}</span>
+                    </td>
                     <td>
                         <div class="action-btn-group">
-                            <button type="button" class="btn btn-primary" onclick="openModifyModal('{{ u.id }}', '{{ u.subscription_expires_at.isoformat() + 'Z' if u.subscription_expires_at else '' }}')" title="Modify Duration">⏱️</button>
-                            <button type="button" class="btn btn-secondary" onclick="openAssignModal('{{ u.id }}')" title="Assign Server">🔌</button>
-                            <button type="button" class="btn btn-success" onclick="openMessageModal('{{ u.id }}', '{{ u.email }}')" title="Send Message">✉️</button>
+                            <button type="button" class="icon-btn mod-btn" onclick="openModifyModal('{{ u.id }}', '{{ u.subscription_expires_at.isoformat() + 'Z' if u.subscription_expires_at else '' }}')" title="Modify Duration">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            </button>
+                            <button type="button" class="icon-btn assign-btn" onclick="openAssignModal('{{ u.id }}')" title="Assign Server">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                            </button>
+                            <button type="button" class="icon-btn msg-btn" onclick="openMessageModal('{{ u.id }}', '{{ u.email }}')" title="Send Message">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                            </button>
                             
                             <form method="POST" action="{{ url_for('manage_user_sub', user_id=u.id) }}" style="margin:0;" onsubmit="return confirm('Cancel subscription?');">
                                 <input type="hidden" name="action" value="cancel">
-                                <button type="submit" class="btn btn-warning" style="background: rgba(255,193,7,0.1); color:#ffc107; border-color:#ffc107;" title="Cancel Subscription">❌</button>
+                                <button type="submit" class="icon-btn cancel-btn" title="Cancel Subscription">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                                </button>
                             </form>
                             
                             <form method="POST" action="{{ url_for('delete_user', user_id=u.id) }}" style="margin:0;" onsubmit="return confirm('Delete user completely?');">
-                                <button type="submit" class="btn btn-danger" style="background: rgba(255,71,87,0.1); color:#ff4757; border-color:#ff4757;" title="Delete User">🗑️</button>
+                                <button type="submit" class="icon-btn del-btn" title="Delete User">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                </button>
                             </form>
                         </div>
                     </td>
