@@ -7,9 +7,10 @@
     --bg-card: rgba(255, 255, 255, 0.05);
     --bg-card-hover: rgba(255, 255, 255, 0.08);
     --glass-border: rgba(255, 255, 255, 0.1);
-    --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    --glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 8px 32px rgba(0, 0, 0, 0.5);
     --primary: #00ffcc;
     --primary-glow: rgba(0, 255, 204, 0.5);
+    --primary-glow-intense: 0 0 10px rgba(0,255,204,0.6), 0 0 20px rgba(0,255,204,0.4), 0 0 30px rgba(0,255,204,0.2);
     --primary-hover: #39ff14;
     --accent: #00ffcc;
     --accent-glow: rgba(0, 255, 204, 0.3);
@@ -38,6 +39,28 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+}
+
+/* --- Scrollbar & Selection --- */
+::selection {
+    background: var(--primary);
+    color: #0a0e1a;
+}
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(10, 14, 26, 0.9);
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 204, 0.3);
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+    box-shadow: 0 0 10px var(--primary);
 }
 
 html {
@@ -69,10 +92,12 @@ body.rtl {
     justify-content: space-between;
     align-items: center;
     padding: 1rem 2rem;
-    background: rgba(10, 14, 26, 0.8);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border-color);
+    background: rgba(10, 14, 26, 0.7);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    border-bottom: 1px solid transparent;
+    border-image: linear-gradient(90deg, transparent, rgba(0, 255, 204, 0.5), transparent) 1;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
 }
 
 .logo {
@@ -132,7 +157,7 @@ body.rtl {
 
 /* --- Card (Glassmorphism) --- */
 .card {
-    background: rgba(15, 23, 42, 0.6);
+    background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.2) 100%);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -145,7 +170,7 @@ body.rtl {
 
 .card:hover {
     border-color: rgba(0, 255, 204, 0.3);
-    box-shadow: 0 0 15px rgba(0, 255, 204, 0.1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 255, 204, 0.15);
 }
 
 /* --- Typography --- */
@@ -179,21 +204,21 @@ h3 {
 .form-control {
     width: 100%;
     padding: 12px 16px;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.4);
     border: none;
     border-bottom: 2px solid rgba(255, 255, 255, 0.1);
     border-radius: 4px 4px 0 0;
     color: var(--text-primary);
     font-family: inherit;
     font-size: 0.95rem;
-    transition: var(--transition);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .form-control:focus {
     outline: none;
     border-color: var(--primary);
-    background: rgba(255, 255, 255, 0.05);
-    box-shadow: 0 4px 15px -5px var(--primary-glow);
+    background: rgba(0, 255, 204, 0.05);
+    box-shadow: 0 4px 15px -5px var(--primary-glow), inset 0 -2px 10px rgba(0,255,204,0.1);
 }
 
 .form-control::placeholder {
@@ -233,23 +258,35 @@ h3 {
     opacity: 1;
 }
 
+@keyframes btnScan {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
 .btn-primary {
     width: 100%;
-    background: linear-gradient(135deg, rgba(0, 255, 204, 0.2), rgba(57, 255, 20, 0.2));
+    background: linear-gradient(90deg, rgba(0, 255, 204, 0.1), rgba(0, 255, 204, 0.4), rgba(0, 255, 204, 0.1));
+    background-size: 200% auto;
     border: 1px solid var(--primary);
-    color: var(--primary);
-    box-shadow: 0 4px 15px var(--primary-glow);
+    color: #fff;
+    text-shadow: 0 0 8px rgba(255,255,255,0.8), 0 0 15px var(--primary);
+    box-shadow: 0 0 10px rgba(0,255,204,0.3), inset 0 0 15px rgba(0,255,204,0.2);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 25px var(--primary-glow);
+    animation: btnScan 2s linear infinite;
+    box-shadow: var(--primary-glow-intense), inset 0 0 20px rgba(0,255,204,0.4);
+    border-color: #fff;
 }
 
 .btn-primary:active {
-    transform: translateY(0);
+    transform: scale(0.96);
+    box-shadow: 0 0 5px rgba(0,255,204,0.5);
 }
 
 .btn-danger {
@@ -576,14 +613,20 @@ tbody td {
     vertical-align: middle;
 }
 
+@keyframes rowTargetLock {
+    0% { background: rgba(0, 255, 204, 0); }
+    100% { background: rgba(0, 255, 204, 0.08); }
+}
+
 tbody tr {
-    transition: var(--transition);
-    border-left: 2px solid transparent;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-left: 3px solid transparent;
 }
 
 tbody tr:hover {
-    background: rgba(0, 255, 204, 0.05);
-    border-left: 2px solid var(--primary);
+    animation: rowTargetLock 0.3s forwards;
+    border-left: 3px solid var(--primary);
+    box-shadow: inset 20px 0 30px -20px rgba(0, 255, 204, 0.3);
 }
 
 /* --- HUD Stats --- */
@@ -616,12 +659,13 @@ tbody tr:hover {
     left: -10px;
 }
 .hud-stat-number {
-    font-family: 'Rajdhani', 'Space Mono', monospace;
+    font-family: 'Space Mono', monospace;
     font-size: 2.5rem;
     font-weight: 700;
-    color: var(--primary);
-    text-shadow: 0 0 10px var(--primary-glow);
+    color: #fff;
+    text-shadow: 0 0 5px #fff, 0 0 10px var(--primary), 0 0 20px var(--primary), 0 0 40px var(--primary);
     line-height: 1.1;
+    letter-spacing: -1px;
 }
 .hud-stat-label {
     font-size: 0.85rem;
@@ -711,23 +755,23 @@ tbody tr:hover {
 
 /* --- Plan Cards --- */
 .plan-card {
-    background: var(--bg-card);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.2) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-sm);
     padding: 1.25rem;
     text-align: center;
-    transition: var(--transition);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     cursor: pointer;
     position: relative;
     box-shadow: var(--glass-shadow);
 }
 
 .plan-card:hover {
-    border-color: rgba(0, 255, 204, 0.5);
-    transform: translateY(-3px);
-    box-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+    border-color: var(--primary);
+    transform: translateY(-5px);
+    box-shadow: var(--primary-glow-intense), inset 0 0 20px rgba(0,255,204,0.1);
 }
 
 .plan-card.selected {
