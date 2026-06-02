@@ -225,19 +225,15 @@ document.addEventListener('DOMContentLoaded', () => {
             
             ctx.globalCompositeOperation = 'source-over';
             ctx.rotate(this.rotation);
-            ctx.shadowColor = this.glowColor;
-            ctx.shadowBlur = 15;
             
             // Hologram Glitch Effect
             if (this.glitchTimer > 0 && Math.random() > 0.3) {
                 let offset = (Math.random() - 0.5) * 10;
                 ctx.globalAlpha = 0.7;
                 // Cyan split
-                ctx.shadowColor = 'cyan';
                 ctx.drawImage(this.image, -this.radius + offset, -this.radius, this.radius * 2, this.radius * 2);
                 // Red/Green split
                 ctx.globalCompositeOperation = 'screen';
-                ctx.shadowColor = 'lime';
                 ctx.drawImage(this.image, -this.radius - offset, -this.radius + offset/2, this.radius * 2, this.radius * 2);
             } else {
                 ctx.drawImage(this.image, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
@@ -289,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dataStreams = [];
 
         const area = width * height;
-        const numNodes = Math.min(Math.floor(area / 9000), 150); 
+        const numNodes = Math.min(Math.floor(area / 12000), 80); // Optimized for performance 
         
         for (let i = 0; i < numNodes; i++) nodes.push(new Node());
         for (let i = 0; i < 4; i++) nebulas.push(new Nebula());
@@ -346,47 +342,61 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Radar Sweep
         drawRadar();
 
-        // 3. Network Nodes
+        // 3. Network Nodes & Connections (Batched for Performance)
         ctx.lineWidth = 1;
-        for (let i = 0; i < nodes.length; i++) {
-            const n1 = nodes[i];
-            n1.update();
-            
-            const x1 = n1.x + px / n1.z;
-            const y1 = n1.y + py / n1.z;
-
-            // Connections
-            if (warpSpeed < 3) { // Hide connections during hyper-speed for better effect
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(0, 255, 204, 0.15)'; // Uniform faint color for batched lines
+        
+        // Step 3.1: Calculate updates and batch line connections
+        if (warpSpeed < 3) {
+            for (let i = 0; i < nodes.length; i++) {
+                const n1 = nodes[i];
+                n1.update(); // Update positions once here
+                const x1 = n1.x + px / n1.z;
+                const y1 = n1.y + py / n1.z;
+    
                 for (let j = i + 1; j < nodes.length; j++) {
                     const n2 = nodes[j];
                     const x2 = n2.x + px / n2.z;
                     const y2 = n2.y + py / n2.z;
-
-                    const distSq = (x1 - x2)**2 + (y1 - y2)**2;
-                    if (distSq < 22500) { 
-                        const opacity = 1 - (Math.sqrt(distSq) / 150);
-                        ctx.strokeStyle = `rgba(0, 255, 204, ${opacity * 0.5})`; 
-                        ctx.beginPath();
+    
+                    const distSq = (x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2);
+                    if (distSq < 15000) { 
                         ctx.moveTo(x1, y1);
                         ctx.lineTo(x2, y2);
-                        ctx.stroke();
-                    }
-                }
-                
-                // Mouse Connection
-                if (mouse.screenX !== -1000 && mouse.screenY !== -1000) {
-                    const mDistSq = (x1 - mouse.screenX)**2 + (y1 - mouse.screenY)**2;
-                    if (mDistSq < 40000) {
-                        const mOpacity = 1 - (Math.sqrt(mDistSq) / 200);
-                        ctx.strokeStyle = `rgba(0, 255, 204, ${mOpacity * 0.8})`;
-                        ctx.beginPath();
-                        ctx.moveTo(x1, y1);
-                        ctx.lineTo(mouse.screenX, mouse.screenY);
-                        ctx.stroke();
                     }
                 }
             }
-            n1.draw(px, py);
+            ctx.stroke(); // ONE single stroke for all node connections! (Huge FPS boost)
+            
+            // Mouse connection in a separate path
+            if (mouse.screenX !== -1000 && mouse.screenY !== -1000) {
+                ctx.beginPath();
+                for (let i = 0; i < nodes.length; i++) {
+                    const n1 = nodes[i];
+                    const x1 = n1.x + px / n1.z;
+                    const y1 = n1.y + py / n1.z;
+                    const mDistSq = (x1 - mouse.screenX)*(x1 - mouse.screenX) + (y1 - mouse.screenY)*(y1 - mouse.screenY);
+                    if (mDistSq < 30000) {
+                        const mOpacity = 1 - (Math.sqrt(mDistSq) / 173);
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(mouse.screenX, mouse.screenY);
+                        ctx.strokeStyle = `rgba(0, 255, 204, ${mOpacity * 0.8})`;
+                        ctx.stroke();
+                        ctx.beginPath(); // Reset for next line
+                    }
+                }
+            }
+        } else {
+            // If warp speed is high, still update nodes
+            for (let i = 0; i < nodes.length; i++) {
+                nodes[i].update();
+            }
+        }
+
+        // Step 3.2: Draw the nodes (circles)
+        for (let i = 0; i < nodes.length; i++) {
+            nodes[i].draw(px, py);
         }
 
         // 4. Planets
