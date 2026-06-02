@@ -1166,12 +1166,26 @@ def api_user_status():
 @app.route('/sub/<token>')
 def get_subscription(token):
     user_id = token
-    doc = db.collection('users').document(user_id).get()
+    user_doc = None
     
-    if not doc.exists:
-        return "", 200
-        
-    user_doc = doc.to_dict()
+    with users_cache_lock:
+        if user_id in users_cache:
+            user_doc = users_cache[user_id].copy()
+            
+    if not user_doc:
+        try:
+            doc = db.collection('users').document(user_id).get()
+            if not doc.exists:
+                return "", 200
+            user_doc = doc.to_dict()
+        except Exception as e:
+            print(f"Error in sub route for user {user_id}: {e}")
+            import base64
+            err_link = "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:80?type=tcp&security=none#⚠️_Database_Quota_Exceeded_-_Please_Wait"
+            return base64.b64encode(err_link.encode('utf-8')).decode('utf-8'), 200, {
+                'Content-Type': 'text/plain; charset=utf-8',
+                'profile-update-interval': '1'
+            }
         
     if user_doc.get('status') != 'active':
         # Return a poisoned subscription for non-active users
@@ -1210,9 +1224,19 @@ def get_subscription(token):
     allocated_server_id = user_doc.get('allocated_server_id')
     current_server = None
     if allocated_server_id:
-        server_doc = db.collection('servers').document(allocated_server_id).get()
-        if server_doc.exists:
-            current_server = server_doc.to_dict()
+        with servers_cache_lock:
+            if allocated_server_id in servers_cache:
+                current_server = servers_cache[allocated_server_id].copy()
+                
+        if not current_server:
+            try:
+                server_doc = db.collection('servers').document(allocated_server_id).get()
+                if server_doc.exists:
+                    current_server = server_doc.to_dict()
+            except Exception:
+                pass
+                
+        if current_server:
             s_expires = current_server.get('expires_at')
             if s_expires:
                 s_expires = s_expires.replace(tzinfo=None)
@@ -1244,15 +1268,34 @@ def get_subscription(token):
 
         candidate_servers = []
         all_active = []
-        for doc in db.collection('servers').where('expires_at', '>', now).stream():
-            s = doc.to_dict()
-            s['id'] = doc.id
-            all_active.append(s)
-            s_tags = set(s.get('tags') or [])
-            if required_tags and required_tags.issubset(s_tags):
-                candidate_servers.append(s)
-            elif not required_tags:
-                candidate_servers.append(s)
+        
+        with servers_cache_lock:
+            for s_id, s_dict in servers_cache.items():
+                s = s_dict.copy()
+                s['id'] = s_id
+                s_exp = s.get('expires_at')
+                if s_exp and s_exp.replace(tzinfo=None) > now:
+                    all_active.append(s)
+                    s_tags = set(s.get('tags') or [])
+                    if required_tags and required_tags.issubset(s_tags):
+                        candidate_servers.append(s)
+                    elif not required_tags:
+                        candidate_servers.append(s)
+                        
+        # Fallback if cache is empty
+        if not all_active:
+            try:
+                for doc in db.collection('servers').where('expires_at', '>', now).stream():
+                    s = doc.to_dict()
+                    s['id'] = doc.id
+                    all_active.append(s)
+                    s_tags = set(s.get('tags') or [])
+                    if required_tags and required_tags.issubset(s_tags):
+                        candidate_servers.append(s)
+                    elif not required_tags:
+                        candidate_servers.append(s)
+            except Exception as e:
+                print(f"Error fetching servers fallback in sub: {e}")
                 
         is_temporary = False
         if not candidate_servers and required_tags:
