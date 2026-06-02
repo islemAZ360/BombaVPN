@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, make_response
 import firebase_admin
 from firebase_admin import credentials, firestore, auth as firebase_auth
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from werkzeug.utils import secure_filename
 import os
 os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "1"
@@ -949,6 +949,7 @@ def manage_user_sub(user_id):
         flash('تم إلغاء الاشتراك بنجاح / Subscription cancelled', 'success')
         
     elif action == 'modify':
+        modify_type = request.form.get('modify_type', 'add')
         days = int(request.form.get('days') or 0)
         hours = int(request.form.get('hours') or 0)
         minutes = int(request.form.get('minutes') or 0)
@@ -957,12 +958,20 @@ def manage_user_sub(user_id):
         current_expires = data.get('subscription_expires_at')
         if current_expires:
             current_expires = current_expires.replace(tzinfo=None)
-            new_expires = current_expires + delta
         else:
+            current_expires = datetime.utcnow()
+            
+        if modify_type == 'add':
+            new_expires = current_expires + delta
+        elif modify_type == 'subtract':
+            new_expires = current_expires - delta
+        else: # set
             new_expires = datetime.utcnow() + delta
             
+        new_expires_aware = new_expires.replace(tzinfo=timezone.utc)
+            
         db.collection('users').document(user_id).update({
-            'subscription_expires_at': new_expires,
+            'subscription_expires_at': new_expires_aware,
             'status': 'active' if new_expires > datetime.utcnow() else 'expired'
         })
         flash('تم تعديل المدة بنجاح / Duration modified', 'success')
