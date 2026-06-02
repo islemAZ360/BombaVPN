@@ -606,6 +606,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function animate() {
+        // Reset composite operation to avoid leaking 'screen' mode into the background fill
+        ctx.globalCompositeOperation = 'source-over';
+
         // Deep background
         ctx.fillStyle = colors.bg;
         ctx.fillRect(0, 0, width, height);
