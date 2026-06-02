@@ -1027,8 +1027,18 @@ def get_subscription(token):
         return "", 200
         
     user_doc = doc.to_dict()
+        
     if user_doc.get('status') != 'active':
-        return "", 200
+        # Return a poisoned subscription for non-active users
+        # This overwrites their profile with a fake server, cutting their connection
+        import base64
+        poisoned_link = "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:80?type=tcp&security=none#❌_Your_Subscription_Has_Expired_-_Please_Renew"
+        b64_content = base64.b64encode(poisoned_link.encode('utf-8')).decode('utf-8')
+        return b64_content, 200, {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'profile-update-interval': '1',
+            'profile-web-page-url': 'https://bombavpn.onrender.com'
+        }
         
     expires_at = user_doc.get('subscription_expires_at')
     if expires_at:
@@ -1041,7 +1051,16 @@ def get_subscription(token):
             update_data['allocated_subdomain'] = None
             update_data['allocated_server_id'] = None
         db.collection('users').document(user_id).update(update_data)
-        return "", 200
+        
+        # Immediate poisoning upon expiry detection
+        import base64
+        poisoned_link = "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:80?type=tcp&security=none#❌_Your_Subscription_Has_Expired_-_Please_Renew"
+        b64_content = base64.b64encode(poisoned_link.encode('utf-8')).decode('utf-8')
+        return b64_content, 200, {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'profile-update-interval': '1',
+            'profile-web-page-url': 'https://bombavpn.onrender.com'
+        }
         
     allocated_server_id = user_doc.get('allocated_server_id')
     current_server = None
@@ -1173,11 +1192,19 @@ def get_subscription(token):
     if vless_uri:
         # Standard subscription format: Base64 encoded list of links
         b64_content = base64.b64encode(vless_uri.encode('utf-8')).decode('utf-8')
-        return b64_content, 200, {'Content-Type': 'text/plain; charset=utf-8'}
+        return b64_content, 200, {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'profile-update-interval': '1',
+            'profile-web-page-url': 'https://bombavpn.onrender.com'
+        }
     else:
         # Fallback to JSON if it's not a standard vless config
         modified_json = modify_json_address(current_server['json_config'], active_address)
-        return modified_json, 200, {'Content-Type': 'application/json'}
+        return modified_json, 200, {
+            'Content-Type': 'application/json',
+            'profile-update-interval': '1',
+            'profile-web-page-url': 'https://bombavpn.onrender.com'
+        }
 
 
 def background_expiry_checker():
