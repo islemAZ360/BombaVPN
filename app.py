@@ -236,6 +236,21 @@ def admin_dashboard():
         if 'expires_at' in data and data['expires_at']:
             data['expires_at'] = data['expires_at'].replace(tzinfo=None)
         servers.append(data)
+    
+    # Sort servers: group by country, then by number
+    import re as _re
+    def server_sort_key(s):
+        name = s.get('name', '')
+        base = name.split('|')[0].strip()
+        match = _re.match(r'^(.+?)\s*#(\d+)$', base)
+        if match:
+            country = match.group(1).strip()
+            num = int(match.group(2))
+        else:
+            country = base
+            num = 0
+        return (country.lower(), num)
+    servers.sort(key=server_sort_key)
         
 
     pending_users = []
