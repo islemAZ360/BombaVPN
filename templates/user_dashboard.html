@@ -79,7 +79,11 @@
                 <li>{{ _('CopyConfig') }}</li>
             </ol>
             <div class="config-box">
-                vless://{{ server.uuid }}@{{ server.ip }}:{{ server.port }}?security=none&encryption=none&type=tcp#BombaVPN
+                {% if server.vless_link %}
+                    {{ server.vless_link }}
+                {% else %}
+                    vless://{{ server.uuid }}@{{ server.ip }}:{{ server.port }}?security=none&encryption=none&type=tcp#BombaVPN
+                {% endif %}
             </div>
         {% else %}
             <div class="alert alert-danger" style="margin-top: 2rem;">

@@ -172,6 +172,7 @@ def extract_vless_from_text(text):
     for link in links:
         parsed = parse_vless_uri(link)
         if parsed:
+            parsed['_original_link'] = link
             configs.append(parsed)
             
     return configs

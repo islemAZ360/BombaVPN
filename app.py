@@ -619,15 +619,16 @@ def import_servers():
     config_data_list = []
     ips_to_query = []
     for config_dict in parsed_configs:
+        original_link = config_dict.pop('_original_link', '')
         content = json.dumps(config_dict, ensure_ascii=False)
         ip = extract_ip_from_json(content)
-        config_data_list.append((config_dict, content, ip))
+        config_data_list.append((config_dict, content, ip, original_link))
         if ip:
             ips_to_query.append(ip)
             
     country_map = get_country_info_bulk(ips_to_query)
     
-    for config_dict, content, ip in config_data_list:
+    for config_dict, content, ip, original_link in config_data_list:
         if ip:
             orig_name = extract_name_from_json(content) or "Imported Server"
             orig_name_lower = orig_name.lower()
@@ -699,6 +700,7 @@ def import_servers():
                 'original_ip': ip,
                 'country_code': cc.lower() if cc else None,
                 'json_config': content,
+                'vless_link': original_link,
                 'price': final_price,
                 'plan_days': plan_days,
                 'plan_hours': plan_hours,
@@ -964,11 +966,27 @@ def user_dashboard():
                 server = s_doc.to_dict()
     
     if 'subscription_expires_at' in user_data and user_data['subscription_expires_at'] and not isinstance(user_data['subscription_expires_at'], datetime):
-        # Already handled above, but just in case it was refetched
         pass
     if 'subscription_expires_at' in user_data and isinstance(user_data['subscription_expires_at'], datetime):
         user_data['subscription_expires_at'] = user_data['subscription_expires_at'].replace(tzinfo=None)
         
+    if server:
+        try:
+            if 'json_config' in server:
+                conf = json.loads(server['json_config'])
+                for ob in conf.get('outbounds', []):
+                    if ob.get('protocol') in ['vless', 'vmess', 'trojan']:
+                        vnext = ob.get('settings', {}).get('vnext', [])
+                        if vnext:
+                            server['ip'] = server.get('ip') or vnext[0].get('address', '')
+                            server['port'] = server.get('port') or vnext[0].get('port', 443)
+                            users = vnext[0].get('users', [])
+                            if users:
+                                server['uuid'] = server.get('uuid') or users[0].get('id', '')
+                        break
+        except Exception as e:
+            print("Error parsing server config for dashboard:", e)
+            
     return render_template('user_dashboard.html', user_email=email, user=user_data, sub_link=sub_link, messages=messages, server=server, now=datetime.utcnow())
 
 # --- API ROUTES ---
