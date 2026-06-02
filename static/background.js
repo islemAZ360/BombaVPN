@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.arc(0, 0, this.radius * 1.6, 0, Math.PI * 2);
             ctx.fill();
             
-            ctx.globalCompositeOperation = 'screen';
+            ctx.globalCompositeOperation = 'source-over';
             ctx.rotate(this.rotation);
             
             // Hologram Glitch Effect
@@ -306,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.save();
             ctx.translate(drawX, drawY);
             ctx.rotate(this.rotation);
-            ctx.globalCompositeOperation = 'screen';
+            ctx.globalCompositeOperation = 'source-over';
             ctx.drawImage(img, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
             ctx.restore();
         }
@@ -649,6 +649,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Radar Sweep
         drawRadar();
 
+        // 2.5 Far Background Celestial Bodies (Must be drawn BEFORE planets)
+        if(galaxy) { galaxy.update(); galaxy.draw(px, py); }
+        if(sun) { sun.update(); sun.draw(px, py); }
+        if(blackHole) { blackHole.update(); blackHole.draw(px, py); }
+
         // 3. Network Nodes & Connections
         ctx.globalCompositeOperation = 'screen';
         if (warpSpeed < 3) {
@@ -706,14 +711,11 @@ document.addEventListener('DOMContentLoaded', () => {
             nodes[i].draw(px, py);
         }
 
-        // 4. Planets and Floating Objects
+        // 4. Planets and Floating Objects (Drawn after background)
         for (let p of planets) { p.update(); p.draw(px, py); }
         for (let obj of floatingObjects) { obj.update(); obj.draw(px, py); }
         
-        // 4.5 Celestial Bodies
-        if(galaxy) { galaxy.update(); galaxy.draw(px, py); }
-        if(sun) { sun.update(); sun.draw(px, py); }
-        if(blackHole) { blackHole.update(); blackHole.draw(px, py); }
+        // 5. Foreground Effects (Shooting Stars & Lightning)
         for (let s of shootingStars) { s.update(); s.draw(px, py); }
 
         requestAnimationFrame(animate);
