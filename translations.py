@@ -118,7 +118,10 @@ TRANSLATIONS = {
         'AutoImportDesc': 'Automatically extracts and converts VLESS servers into JSON files. Supports Base64 subscription links or multiple raw vless:// links separated by lines.',
         'ImportServersBtn': 'Import & Activate',
         'SaveAll': 'Save All',
-        'DeleteAll': 'Delete All'
+        'DeleteAll': 'Delete All',
+        'ModifyAdd': 'Add Time',
+        'ModifySet': 'Set Remaining Time',
+        'ModifySubtract': 'Subtract Time'
     },
     'ar': {
         'Login': 'تسجيل الدخول',
@@ -242,7 +245,10 @@ TRANSLATIONS = {
         'AutoImportDesc': 'يقوم باستخراج وتحويل سيرفرات VLESS أوتوماتيكياً إلى ملفات JSON. يدعم روابط الاشتراكات (Base64) أو وضع روابط vless:// مباشرة أسفل بعضها.',
         'ImportServersBtn': 'استيراد وتفعيل السيرفرات',
         'SaveAll': 'حفظ الكل',
-        'DeleteAll': 'حذف الكل'
+        'DeleteAll': 'حذف الكل',
+        'ModifyAdd': 'إضافة وقت',
+        'ModifySet': 'تحديد وقت متبقي',
+        'ModifySubtract': 'خصم وقت'
     },
     'ru': {
         'Login': 'Вход',
@@ -366,6 +372,9 @@ TRANSLATIONS = {
         'AutoImportDesc': 'Автоматически извлекает и преобразует серверы VLESS в файлы JSON. Поддерживает ссылки подписки (Base64) или несколько ссылок vless://.',
         'ImportServersBtn': 'Импортировать и активировать',
         'SaveAll': 'Сохранить все',
-        'DeleteAll': 'Удалить все'
+        'DeleteAll': 'Удалить все',
+        'ModifyAdd': 'Добавить время',
+        'ModifySet': 'Установить оставшееся время',
+        'ModifySubtract': 'Вычесть время'
     }
 }
