@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let nebulas = [];
     let dataStreams = [];
     let radarRadius = 0;
+    let lightningFlash = 0;
     
     // Parallax & Warp Speed controls
     let mouse = { screenX: -1000, screenY: -1000, targetX: 0, targetY: 0, currentX: 0, currentY: 0 };
@@ -51,8 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
         isWarping = false;
     });
 
-    window.addEventListener('mousedown', () => isWarping = true);
-    window.addEventListener('mouseup', () => isWarping = false);
+    // window.addEventListener('mousedown', () => isWarping = true);
+    // window.addEventListener('mouseup', () => isWarping = false);
 
     // Touch Interaction
     window.addEventListener('touchmove', (e) => {
@@ -64,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, { passive: true });
 
-    window.addEventListener('touchstart', () => isWarping = true, { passive: true });
+    // window.addEventListener('touchstart', () => isWarping = true, { passive: true });
     window.addEventListener('touchend', () => {
         mouse.screenX = -1000;
         mouse.screenY = -1000;
@@ -314,6 +315,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // Deep background
         ctx.fillStyle = colors.bg;
         ctx.fillRect(0, 0, width, height);
+
+        // Lightning flash effect
+        if (Math.random() < 0.003) {
+            lightningFlash = 1.0;
+        }
+        if (lightningFlash > 0) {
+            ctx.fillStyle = `rgba(180, 230, 255, ${lightningFlash * 0.15})`;
+            ctx.fillRect(0, 0, width, height);
+            lightningFlash -= 0.04;
+            // Secondary strike
+            if (Math.random() < 0.1 && lightningFlash < 0.5) {
+                lightningFlash = 0.7;
+            }
+        }
 
         // Smooth Warp Speed transition
         const targetWarp = isWarping ? 12 : 1;
