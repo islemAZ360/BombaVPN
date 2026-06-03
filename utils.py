@@ -147,3 +147,176 @@ def generate_vless_uri(json_str, active_address=None):
     except Exception as e:
         print(f"Error generating VLESS URI: {e}")
         return None
+
+
+def generate_full_config(json_str, active_address=None):
+    """
+    Builds a COMPLETE Xray JSON config (dns + inbounds + outbounds + routing)
+    from a stored server config. This is the fix for the DNS resolution issue:
+    previously we sent only a vless:// URI which creates a single outbound
+    without any DNS configuration, causing "DNS error" and no internet.
+    
+    The full config includes:
+    - dns: Cloudflare (1.1.1.1) via proxy + Google (8.8.8.8) direct fallback
+    - inbounds: socks (10808) + http (10809) — v2rayNG/Hiddify defaults
+    - outbounds: proxy + direct + block + dns-out
+    - routing: DNS queries → dns-out, local traffic → direct, everything else → proxy
+    """
+    try:
+        data = json.loads(json_str)
+        name = data.get('remarks', 'BombaVPN')
+        
+        proxy_outbound = None
+        for outbound in data.get('outbounds', []):
+            if outbound.get('protocol') == 'vless':
+                proxy_outbound = outbound.copy()
+                break
+        
+        if not proxy_outbound:
+            return None
+        
+        # Update the address to the active one (subdomain or IP)
+        if active_address:
+            settings = proxy_outbound.get('settings', {})
+            vnext = settings.get('vnext', [])
+            if vnext and len(vnext) > 0:
+                vnext[0]['address'] = active_address
+        
+        # Ensure the proxy outbound has the correct tag
+        proxy_outbound['tag'] = 'proxy'
+        
+        # Extract the SNI for DNS routing (the real server hostname for TLS)
+        stream = proxy_outbound.get('streamSettings', {})
+        security = stream.get('security', 'none')
+        sni = None
+        if security == 'reality':
+            sni = stream.get('realitySettings', {}).get('serverName')
+        elif security == 'tls':
+            sni = stream.get('tlsSettings', {}).get('serverName')
+        
+        # Build the complete config
+        full_config = {
+            "remarks": name,
+            "log": {
+                "access": "",
+                "error": "",
+                "loglevel": "warning"
+            },
+            "dns": {
+                "hosts": {
+                    "domain:googleapis.cn": "googleapis.com"
+                },
+                "servers": [
+                    {
+                        "address": "1.1.1.1",
+                        "domains": ["geosite:geolocation-!cn"],
+                        "expectIPs": [],
+                        "port": 53
+                    },
+                    {
+                        "address": "8.8.8.8",
+                        "domains": ["geosite:geolocation-!cn"],
+                        "expectIPs": [],
+                        "port": 53
+                    },
+                    "localhost"
+                ]
+            },
+            "inbounds": [
+                {
+                    "tag": "socks",
+                    "port": 10808,
+                    "listen": "127.0.0.1",
+                    "protocol": "socks",
+                    "sniffing": {
+                        "enabled": True,
+                        "destOverride": ["http", "tls", "quic"],
+                        "routeOnly": False
+                    },
+                    "settings": {
+                        "auth": "noauth",
+                        "udp": True,
+                        "allowTransparent": False
+                    }
+                },
+                {
+                    "tag": "http",
+                    "port": 10809,
+                    "listen": "127.0.0.1",
+                    "protocol": "http",
+                    "sniffing": {
+                        "enabled": True,
+                        "destOverride": ["http", "tls", "quic"],
+                        "routeOnly": False
+                    },
+                    "settings": {
+                        "auth": "noauth",
+                        "udp": True,
+                        "allowTransparent": False
+                    }
+                }
+            ],
+            "outbounds": [
+                proxy_outbound,
+                {
+                    "tag": "direct",
+                    "protocol": "freedom",
+                    "settings": {}
+                },
+                {
+                    "tag": "block",
+                    "protocol": "blackhole",
+                    "settings": {
+                        "response": {
+                            "type": "http"
+                        }
+                    }
+                },
+                {
+                    "tag": "dns-out",
+                    "protocol": "dns"
+                }
+            ],
+            "routing": {
+                "domainStrategy": "IPIfNonMatch",
+                "rules": [
+                    {
+                        "type": "field",
+                        "inboundTag": ["socks", "http"],
+                        "port": "53",
+                        "outboundTag": "dns-out"
+                    },
+                    {
+                        "type": "field",
+                        "port": "53",
+                        "outboundTag": "dns-out"
+                    },
+                    {
+                        "type": "field",
+                        "protocol": ["quic"],
+                        "outboundTag": "block"
+                    },
+                    {
+                        "type": "field",
+                        "ip": ["geoip:private"],
+                        "outboundTag": "direct"
+                    },
+                    {
+                        "type": "field",
+                        "domain": ["geosite:private"],
+                        "outboundTag": "direct"
+                    },
+                    {
+                        "type": "field",
+                        "port": "0-65535",
+                        "outboundTag": "proxy"
+                    }
+                ]
+            }
+        }
+        
+        return json.dumps(full_config, indent=2, ensure_ascii=False)
+        
+    except Exception as e:
+        print(f"Error generating full config: {e}")
+        return None

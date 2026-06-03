@@ -18,8 +18,14 @@ from vless_parser import extract_vless_from_text
 from dns_manager import create_dns_record, delete_dns_record
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-dev-key-change-it')
+import secrets
+# Security fix: Use a strong random key by default if env variable is missing
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 app.config['SESSION_COOKIE_NAME'] = 'flask_session'
+
+# Serializer for secure subscription links
+from itsdangerous import URLSafeSerializer
+sub_serializer = URLSafeSerializer(app.config['SECRET_KEY'], salt='subscription-link')
 
 # Upload Config
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
@@ -150,7 +156,9 @@ def session_login():
         session_cookie = firebase_auth.create_session_cookie(id_token, expires_in=expires_in)
         response = jsonify({'status': 'success'})
         expires = datetime.now() + expires_in
-        response.set_cookie('session', session_cookie, expires=expires, httponly=True, secure=False, samesite='Lax')
+        # Security fix: Set secure=True if running in production (Render sets RENDER env var)
+        is_production = os.environ.get('FLASK_ENV') == 'production' or os.environ.get('RENDER') == 'true'
+        response.set_cookie('session', session_cookie, expires=expires, httponly=True, secure=is_production, samesite='Lax')
         return response
     except Exception as e:
         return jsonify({'error': str(e)}), 401
@@ -1095,7 +1103,9 @@ def user_dashboard():
             user_data['subscription_expires_at'] = user_data['subscription_expires_at'].replace(tzinfo=None)
             
     email = request.user['email']
-    sub_link = url_for('get_subscription', token=user_id, _external=True)
+    # Security fix: Sign the user_id so it cannot be tampered with or guessed
+    secure_token = sub_serializer.dumps(user_id)
+    sub_link = url_for('get_subscription', token=secure_token, _external=True)
     
     messages = []
     try:
@@ -1207,7 +1217,12 @@ def api_user_status():
 
 @app.route('/sub/<token>')
 def get_subscription(token):
-    user_id = token
+    # Security fix: Verify the signed token instead of blindly trusting raw user_id
+    try:
+        user_id = sub_serializer.loads(token)
+    except Exception:
+        return "Invalid subscription token. Please copy the new link from your dashboard.", 403
+        
     user_doc = None
     
     with users_cache_lock:
@@ -1402,32 +1417,60 @@ def get_subscription(token):
     # when their subscription expires by saving the raw IP.
     active_address = user_doc.get('allocated_subdomain') or current_server['original_ip']
 
-    from utils import generate_vless_uri
+    from utils import generate_full_config, generate_vless_uri
+    from vless_parser import parse_vless_uri
     import base64
     import re
     
-    vless_uri = None
-    if current_server.get('vless_link'):
-        vless_uri = re.sub(r'(@)([^:?#]+)', r'\g<1>' + active_address, current_server['vless_link'], count=1)
-    else:
-        vless_uri = generate_vless_uri(current_server['json_config'], active_address)
+    # === PRIMARY PATH: Full JSON config with DNS + routing (fixes DNS error) ===
+    # This is the core fix: instead of sending a bare vless:// URI (which has NO dns config),
+    # we send a complete Xray JSON config that includes dns servers, inbounds, routing rules.
     
-    if vless_uri:
-        # Standard subscription format: Base64 encoded list of links
-        b64_content = base64.b64encode(vless_uri.encode('utf-8')).decode('utf-8')
+    full_config_json = None
+    
+    if current_server.get('json_config'):
+        # Server has a stored JSON config — use it directly
+        full_config_json = generate_full_config(current_server['json_config'], active_address)
+    elif current_server.get('vless_link'):
+        # Server was imported via vless:// link — parse it to JSON first, then build full config
+        parsed = parse_vless_uri(current_server['vless_link'])
+        if parsed:
+            temp_json = json.dumps(parsed, ensure_ascii=False)
+            full_config_json = generate_full_config(temp_json, active_address)
+    
+    if full_config_json:
+        # Send the complete config as Base64-encoded JSON
+        # v2rayNG and Hiddify both understand Base64-encoded full configs
+        b64_content = base64.b64encode(full_config_json.encode('utf-8')).decode('utf-8')
         return b64_content, 200, {
             'Content-Type': 'text/plain; charset=utf-8',
             'profile-update-interval': '0.25',
-            'profile-web-page-url': 'https://bombavpn.onrender.com'
+            'profile-web-page-url': 'https://bombavpn.onrender.com',
+            'subscription-userinfo': f'upload=0; download=0; total=0; expire={int(expires_at.timestamp()) if expires_at else 0}'
         }
     else:
-        # Fallback to JSON if it's not a standard vless config
-        modified_json = modify_json_address(current_server['json_config'], active_address)
-        return modified_json, 200, {
-            'Content-Type': 'application/json',
-            'profile-update-interval': '0.25',
-            'profile-web-page-url': 'https://bombavpn.onrender.com'
-        }
+        # === FALLBACK: vless:// URI (last resort) ===
+        vless_uri = None
+        if current_server.get('vless_link'):
+            vless_uri = re.sub(r'(@)([^:?#]+)', r'\g<1>' + active_address, current_server['vless_link'], count=1)
+        elif current_server.get('json_config'):
+            vless_uri = generate_vless_uri(current_server['json_config'], active_address)
+        
+        if vless_uri:
+            b64_content = base64.b64encode(vless_uri.encode('utf-8')).decode('utf-8')
+            return b64_content, 200, {
+                'Content-Type': 'text/plain; charset=utf-8',
+                'profile-update-interval': '0.25',
+                'profile-web-page-url': 'https://bombavpn.onrender.com'
+            }
+        else:
+            # Absolute last fallback: raw JSON with address replaced
+            modified_json = modify_json_address(current_server['json_config'], active_address)
+            return modified_json, 200, {
+                'Content-Type': 'application/json',
+                'profile-update-interval': '0.25',
+                'profile-web-page-url': 'https://bombavpn.onrender.com'
+            }
 
 
 import threading
