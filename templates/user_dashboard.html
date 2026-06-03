@@ -244,24 +244,34 @@
     // Live re-render/refresh mechanism
     const currentStatus = "{{ user.status }}";
     const currentPendingRenewal = "{{ 'true' if user.has_pending_renewal else 'false' }}";
+    const currentExpiresAt = "{{ user.subscription_expires_at.isoformat() if user.subscription_expires_at else '' }}";
 
-    // Poll every 5 seconds if status is review, pending, or has a pending renewal
-    if (currentStatus === 'review' || currentStatus === 'pending' || currentPendingRenewal === 'true') {
-        setInterval(async () => {
-            try {
-                const response = await fetch('/api/user_status');
-                if (response.ok) {
-                    const data = await response.json();
-                    // If server updated the status or renewal state, reload page to re-render
-                    if (data.status !== currentStatus || data.has_pending_renewal.toString() !== currentPendingRenewal) {
-                        window.location.reload();
+    // Poll every 5 seconds to check for any status, renewal, or time changes
+    setInterval(async () => {
+        try {
+            const response = await fetch('/api/user_status');
+            if (response.ok) {
+                const data = await response.json();
+                
+                let timeChanged = false;
+                if (data.expires_at) {
+                    // Check if time changed
+                    if (data.expires_at !== currentExpiresAt) {
+                        timeChanged = true;
                     }
+                } else if (currentExpiresAt !== "") {
+                    timeChanged = true;
                 }
-            } catch (err) {
-                console.error("Error polling user status:", err);
+
+                // If server updated the status, renewal state, or time, reload page to re-render
+                if (data.status !== currentStatus || data.has_pending_renewal.toString() !== currentPendingRenewal || timeChanged) {
+                    window.location.reload();
+                }
             }
-        }, 5000);
-    }
+        } catch (err) {
+            console.error("Error polling user status:", err);
+        }
+    }, 5000);
 
     function copyVlessLink() {
         const text = document.getElementById("vless-link-text").innerText.trim();

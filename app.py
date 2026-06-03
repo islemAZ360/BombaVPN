@@ -1245,11 +1245,15 @@ def api_user_status():
     doc = db.collection('users').document(user_id).get()
     if doc.exists:
         data = doc.to_dict()
+        expires_at = data.get('subscription_expires_at')
+        if expires_at:
+            expires_at = expires_at.replace(tzinfo=None).isoformat()
         return jsonify({
             'status': data.get('status'),
-            'has_pending_renewal': data.get('has_pending_renewal', False)
+            'has_pending_renewal': data.get('has_pending_renewal', False),
+            'expires_at': expires_at
         })
-    return jsonify({'status': 'unknown', 'has_pending_renewal': False}), 404
+    return jsonify({'status': 'unknown', 'has_pending_renewal': False, 'expires_at': None}), 404
 
 @app.route('/sub/<token>')
 def get_subscription(token):
