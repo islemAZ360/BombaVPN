@@ -1302,12 +1302,11 @@ def get_subscription(token):
             if server_doc.exists:
                 server = server_doc.to_dict()
                 
-                # Critical Bug Fix: Use Dynv6 subdomain to enable kicking users, NOT original_ip
-                # For expired servers, use 127.0.0.1 to poison the exact server name on the user's phone
+                # Reverting back to original_ip because Dynv6 is blocked by ISPs
                 if is_expired:
                     active_address = "127.0.0.1"
                 else:
-                    active_address = subdomain if subdomain else server.get('original_ip')
+                    active_address = server.get('original_ip')
                     has_active = True
                 
                 vless_uri = None
