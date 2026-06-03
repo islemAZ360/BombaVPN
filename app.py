@@ -951,8 +951,11 @@ def delete_user(user_id):
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/api/admin/pending_requests')
-@admin_required
+@login_required
 def api_pending_requests():
+    if not getattr(request, 'is_admin', False):
+        return "Unauthorized", 403
+        
     users_ref = db.collection('users')
     query = users_ref.where('status', 'in', ['pending', 'review']).stream()
     
