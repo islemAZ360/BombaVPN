@@ -10,12 +10,15 @@
     <h3>{{ _('PendingRequests') }}</h3>
     <div class="table-responsive">
         <table>
-            <tr>
-                <th>{{ _('Email') }}</th>
-                <th>{{ _('RequestedPlan') }}</th>
-                <th>{{ _('Receipt') }}</th>
-                <th>{{ _('Action') }}</th>
-            </tr>
+            <thead>
+                <tr>
+                    <th>{{ _('Email') }}</th>
+                    <th>{{ _('RequestedPlan') }}</th>
+                    <th>{{ _('Receipt') }}</th>
+                    <th>{{ _('Action') }}</th>
+                </tr>
+            </thead>
+            <tbody id="pending-requests-tbody">
             {% for u in pending_users %}
             <tr>
                 <td>
@@ -57,6 +60,7 @@
             {% else %}
             <tr><td colspan="4" style="text-align: center;">{{ _('PendingRequests') }}: 0</td></tr>
             {% endfor %}
+            </tbody>
         </table>
     </div>
 </div>
@@ -834,5 +838,72 @@
         
         container.appendChild(ruleDiv);
     }
+
+    // --- Real-time Auto-refresh for Pending Requests ---
+    async function fetchPendingRequests() {
+        try {
+            const resp = await fetch('/api/admin/pending_requests');
+            if (!resp.ok) return;
+            const pendingUsers = await resp.json();
+            
+            const tbody = document.getElementById('pending-requests-tbody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            
+            if (pendingUsers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">{{ _("PendingRequests") }}: 0</td></tr>';
+                return;
+            }
+            
+            pendingUsers.forEach(u => {
+                const tr = document.createElement('tr');
+                tr.style.animation = 'modalIn 0.3s ease';
+                
+                let badge = u.is_renewal 
+                    ? '<span class="badge" style="margin-left: 5px; font-size: 0.75rem; background: var(--primary); color: white;">{{ _("RenewalBadge") }}</span>'
+                    : '<span class="badge" style="margin-left: 5px; font-size: 0.75rem; background: var(--success); color: white;">{{ _("NewUserBadge") }}</span>';
+                
+                let planHtml = '{{ _("NotSelectedYet") }}';
+                if (u.server) {
+                    let days = u.server.plan_days ? `${u.server.plan_days} {{ _("Days") }} ` : '';
+                    let hours = u.server.plan_hours ? `${u.server.plan_hours} {{ _("Hours") }} ` : '';
+                    let minutes = u.server.plan_minutes ? `${u.server.plan_minutes} {{ _("Minutes") }}` : '';
+                    if (!days && !hours && !minutes) days = '0 {{ _("Days") }}';
+                    planHtml = `<strong>${u.server.name}</strong> (${days}${hours}${minutes} - ${u.server.price})`;
+                }
+                
+                const receiptUrl = `/static/uploads/${u.receipt_image}`;
+                const approveUrl = `/admin/approve_user/${u.id}`;
+                const rejectUrl = `/admin/reject_user/${u.id}`;
+                
+                tr.innerHTML = `
+                    <td>${u.email} ${badge}</td>
+                    <td>${planHtml}</td>
+                    <td><a href="${receiptUrl}" target="_blank">{{ _("ViewReceipt") }}</a></td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <form method="POST" action="${approveUrl}" style="margin:0;">
+                                <button type="submit" class="action-icon-btn save-btn" title="{{ _("Activate") }}">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                </button>
+                            </form>
+                            <form method="POST" action="${rejectUrl}" style="margin:0;">
+                                <button type="submit" class="action-icon-btn delete-btn" title="{{ _("Reject") }}">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (e) {
+            console.error('Failed to fetch pending requests:', e);
+        }
+    }
+    
+    // Poll every 15 seconds
+    setInterval(fetchPendingRequests, 15000);
 </script>
 {% endblock %}

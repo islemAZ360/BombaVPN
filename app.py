@@ -950,6 +950,32 @@ def delete_user(user_id):
     flash('تم حذف المستخدم نهائياً / User deleted completely', 'success')
     return redirect(url_for('admin_dashboard'))
 
+@app.route('/api/admin/pending_requests')
+@admin_required
+def api_pending_requests():
+    users_ref = db.collection('users')
+    query = users_ref.where('status', 'in', ['pending', 'review']).stream()
+    
+    pending_users = []
+    for doc in query:
+        u = doc.to_dict()
+        u['id'] = doc.id
+        # Convert datetime objects to string for JSON serialization
+        for k, v in u.items():
+            if isinstance(v, datetime):
+                u[k] = v.isoformat()
+        
+        # Get server details if applicable
+        if u.get('allocated_server_id'):
+            s_doc = db.collection('servers').document(u['allocated_server_id']).get()
+            if s_doc.exists:
+                u['server'] = s_doc.to_dict()
+                u['server']['id'] = s_doc.id
+        
+        pending_users.append(u)
+        
+    return jsonify(pending_users)
+
 @app.route('/admin/manage_user_sub/<user_id>', methods=['POST'])
 @login_required
 def manage_user_sub(user_id):

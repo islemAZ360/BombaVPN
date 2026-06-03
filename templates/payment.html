@@ -5,69 +5,120 @@
     <button id="logout-btn" class="btn btn-transparent-danger btn-small">{{ _('Logout') }}</button>
 </div>
 
-<div class="card" style="max-width: 600px; margin: 0 auto;">
-    <h3 style="text-align: center; margin-bottom: 1.5rem;">{{ _('BuySubscription') }}</h3>
+<div class="card" style="max-width: 800px; margin: 0 auto; border: none; background: transparent; box-shadow: none;">
+    <h3 style="text-align: center; margin-bottom: 1.5rem;">{{ _('SelectPlan') }}</h3>
     
-    <div class="alert alert-warning" style="text-align: center;">
-        <p>{{ _('PaymentInstructions') }}</p>
-        <p><strong>{{ _('ScanQR') }}</strong></p>
-    </div>
-    
-    <div style="text-align: center; margin: 2rem 0;">
-        <img src="{{ url_for('static', filename='images/qr.jpg') }}" alt="Sberbank QR Code" style="max-width: 250px; border-radius: var(--radius); box-shadow: var(--shadow);">
-    </div>
-    
-    <form method="POST" enctype="multipart/form-data" id="payment-form">
-        <input type="hidden" name="server_id" id="selected_server_id" required>
-        <h4 style="margin-bottom: 1rem;">{{ _('SelectPlan') }}</h4>
-        
-        <div class="plans-grid" id="plans-container">
-            {% for server in servers %}
-            <div class="plan-card" data-id="{{ server.id }}" onclick="selectPlan('{{ server.id }}', this)">
-                <div class="plan-name" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    {% if server.country_code %}
-                    <img src="https://flagcdn.com/24x18/{{ server.country_code }}.png" alt="{{ server.country_code }}" style="border-radius: 2px;">
-                    {% endif %}
-                    {{ server.name }}
-                </div>
-                <div class="plan-price">{{ server.price }} ₽</div>
-                <div class="plan-duration">
-                    {% if server.plan_days %}{{ server.plan_days }} {{ _('Days') }} {% endif %}
-                    {% if server.plan_hours %}{{ server.plan_hours }} {{ _('Hours') }} {% endif %}
-                    {% if server.plan_minutes %}{{ server.plan_minutes }} {{ _('Minutes') }}{% endif %}
-                    {% if not server.plan_days and not server.plan_hours and not server.plan_minutes %}0 {{ _('Days') }}{% endif %}
-                </div>
+    <div class="plans-grid" id="plans-container">
+        {% for server in servers %}
+        <div class="plan-card" data-id="{{ server.id }}" data-name="{{ server.name }}" data-price="{{ server.price }}" data-country="{{ server.country_code or '' }}" 
+             data-days="{{ server.plan_days or 0 }}" data-hours="{{ server.plan_hours or 0 }}" data-minutes="{{ server.plan_minutes or 0 }}"
+             onclick="openPaymentModal(this)">
+            <div class="plan-name" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                {% if server.country_code %}
+                <img src="https://flagcdn.com/24x18/{{ server.country_code }}.png" alt="{{ server.country_code }}" style="border-radius: 2px;">
+                {% endif %}
+                {{ server.name }}
             </div>
-            {% else %}
-            <div class="alert alert-warning" style="grid-column: 1 / -1;">{{ _('NoPlansAvailable') }}</div>
-            {% endfor %}
-        </div>
-
-        <div class="form-group" style="margin-top: 2rem;">
-            <label>{{ _('UploadReceipt') }}</label>
-            <input type="file" name="receipt" id="receipt-upload" accept="image/*" required style="display: none;">
-            <div class="drag-drop-zone" id="drop-zone" onclick="document.getElementById('receipt-upload').click()">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                <div class="zone-text" id="drop-zone-text">Drag & drop your receipt here or click to browse</div>
+            <div class="plan-price">{{ server.price }} ₽</div>
+            <div class="plan-duration">
+                {% if server.plan_days %}{{ server.plan_days }} {{ _('Days') }} {% endif %}
+                {% if server.plan_hours %}{{ server.plan_hours }} {{ _('Hours') }} {% endif %}
+                {% if server.plan_minutes %}{{ server.plan_minutes }} {{ _('Minutes') }}{% endif %}
+                {% if not server.plan_days and not server.plan_hours and not server.plan_minutes %}0 {{ _('Days') }}{% endif %}
             </div>
         </div>
-        
-        <button type="submit" class="btn btn-success" {% if not servers %}disabled{% endif %}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-            {{ _('Submit') }}
-        </button>
-    </form>
+        {% else %}
+        <div class="alert alert-warning" style="grid-column: 1 / -1; text-align: center;">{{ _('NoPlansAvailable') }}</div>
+        {% endfor %}
+    </div>
 </div>
+
+<!-- Payment Modal Overlay -->
+<div id="payment-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); backdrop-filter:blur(5px); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:var(--card-bg, #1a1a2e); border:1px solid var(--border-color, #333); border-radius:16px; padding:2rem; max-width:450px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.5); position: relative; animation: modalIn 0.3s ease;">
+        <button type="button" onclick="closePaymentModal()" style="position: absolute; top: 15px; right: 15px; background: transparent; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; transition: color 0.2s;">&times;</button>
+        
+        <h3 style="text-align: center; margin-bottom: 0.5rem; color: var(--text-primary);">{{ _('BuySubscription') }}</h3>
+        
+        <!-- Selected Plan Info Box -->
+        <div style="background: rgba(0, 255, 204, 0.05); border: 1px solid rgba(0, 255, 204, 0.2); border-radius: 8px; padding: 15px; margin-bottom: 1.5rem; text-align: center;">
+            <div id="modal-plan-name" style="font-weight: bold; font-size: 1.1rem; margin-bottom: 5px; color: var(--text-primary);"></div>
+            <div id="modal-plan-price" style="color: #00ffcc; font-size: 1.2rem; font-weight: bold;"></div>
+            <div id="modal-plan-duration" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;"></div>
+        </div>
+        
+        <div class="alert alert-warning" style="text-align: center; padding: 10px; font-size: 0.9rem; margin-bottom: 1.5rem;">
+            <p style="margin:0; margin-bottom: 5px;">{{ _('PaymentInstructions') }}</p>
+            <p style="margin:0;"><strong>{{ _('ScanQR') }}</strong></p>
+        </div>
+        
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <img src="{{ url_for('static', filename='images/qr.jpg') }}" alt="Sberbank QR Code" style="max-width: 200px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.4);">
+        </div>
+        
+        <form method="POST" enctype="multipart/form-data" id="payment-form">
+            <input type="hidden" name="server_id" id="selected_server_id" required>
+            
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="font-size: 0.9rem; color: var(--text-primary);">{{ _('UploadReceipt') }}</label>
+                <input type="file" name="receipt" id="receipt-upload" accept="image/*" required style="display: none;">
+                <div class="drag-drop-zone" id="drop-zone" onclick="document.getElementById('receipt-upload').click()" style="padding: 1.5rem; min-height: 100px;">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 10px; color: var(--primary);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <div class="zone-text" id="drop-zone-text" style="font-size: 0.85rem;">Drag & drop your receipt here or click to browse</div>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-success" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 1rem; padding: 12px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                {{ _('Submit') }}
+            </button>
+        </form>
+    </div>
+</div>
+<style>
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+</style>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // Plan Selection Logic
-    function selectPlan(id, element) {
+    // Modal Logic
+    const paymentModal = document.getElementById('payment-modal');
+    
+    function openPaymentModal(cardElement) {
+        const id = cardElement.getAttribute('data-id');
+        const name = cardElement.getAttribute('data-name');
+        const price = cardElement.getAttribute('data-price');
+        const days = cardElement.getAttribute('data-days');
+        const hours = cardElement.getAttribute('data-hours');
+        const minutes = cardElement.getAttribute('data-minutes');
+        
         document.getElementById('selected_server_id').value = id;
-        document.querySelectorAll('.plan-card').forEach(card => card.classList.remove('selected'));
-        element.classList.add('selected');
+        document.getElementById('modal-plan-name').textContent = name;
+        document.getElementById('modal-plan-price').textContent = `${price} ₽`;
+        
+        let duration = '';
+        if (days && days > 0) duration += `${days} {{ _("Days") }} `;
+        if (hours && hours > 0) duration += `${hours} {{ _("Hours") }} `;
+        if (minutes && minutes > 0) duration += `${minutes} {{ _("Minutes") }}`;
+        if (!duration) duration = `0 {{ _("Days") }}`;
+        
+        document.getElementById('modal-plan-duration').textContent = duration;
+        
+        paymentModal.style.display = 'flex';
     }
+    
+    function closePaymentModal() {
+        paymentModal.style.display = 'none';
+        document.getElementById('selected_server_id').value = '';
+    }
+    
+    // Close modal when clicking outside
+    paymentModal.addEventListener('click', function(e) {
+        if (e.target === paymentModal) {
+            closePaymentModal();
+        }
+    });
 
     // Drag and Drop Logic
     const dropZone = document.getElementById('drop-zone');
@@ -85,13 +136,15 @@
 
     ['dragenter', 'dragover'].forEach(eventName => {
         dropZone.addEventListener(eventName, () => {
-            dropZone.classList.add('drag-over');
+            dropZone.style.borderColor = 'var(--primary)';
+            dropZone.style.background = 'rgba(0, 255, 204, 0.1)';
         }, false);
     });
 
     ['dragleave', 'drop'].forEach(eventName => {
         dropZone.addEventListener(eventName, () => {
-            dropZone.classList.remove('drag-over');
+            dropZone.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+            dropZone.style.background = 'transparent';
         }, false);
     });
 
@@ -111,8 +164,8 @@
     });
 
     function updateDropZoneText(file) {
-        dropZone.classList.add('has-file');
-        dropZoneText.innerHTML = `Selected: <strong>${file.name}</strong>`;
+        dropZoneText.innerHTML = `Selected: <strong style="color:var(--primary)">${file.name}</strong>`;
+        dropZone.style.borderColor = 'var(--success)';
     }
 
     // Auto-refresh available servers every 30 seconds
