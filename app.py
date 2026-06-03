@@ -1417,31 +1417,20 @@ def get_subscription(token):
     # when their subscription expires by saving the raw IP.
     active_address = user_doc.get('allocated_subdomain') or current_server['original_ip']
 
-    from utils import generate_full_config, generate_vless_uri
+    from utils import generate_vless_uri
     from vless_parser import parse_vless_uri
     import base64
     import re
     
-    # === PRIMARY PATH: Full JSON config with DNS + routing (fixes DNS error) ===
-    # This is the core fix: instead of sending a bare vless:// URI (which has NO dns config),
-    # we send a complete Xray JSON config that includes dns servers, inbounds, routing rules.
+    # === FALLBACK: vless:// URI (Standard Subscription Format) ===
+    vless_uri = None
+    if current_server.get('vless_link'):
+        vless_uri = re.sub(r'(@)([^:?#]+)', r'\g<1>' + active_address, current_server['vless_link'], count=1)
+    elif current_server.get('json_config'):
+        vless_uri = generate_vless_uri(current_server['json_config'], active_address)
     
-    full_config_json = None
-    
-    if current_server.get('json_config'):
-        # Server has a stored JSON config — use it directly
-        full_config_json = generate_full_config(current_server['json_config'], active_address)
-    elif current_server.get('vless_link'):
-        # Server was imported via vless:// link — parse it to JSON first, then build full config
-        parsed = parse_vless_uri(current_server['vless_link'])
-        if parsed:
-            temp_json = json.dumps(parsed, ensure_ascii=False)
-            full_config_json = generate_full_config(temp_json, active_address)
-    
-    if full_config_json:
-        # Send the complete config as Base64-encoded JSON
-        # v2rayNG and Hiddify both understand Base64-encoded full configs
-        b64_content = base64.b64encode(full_config_json.encode('utf-8')).decode('utf-8')
+    if vless_uri:
+        b64_content = base64.b64encode(vless_uri.encode('utf-8')).decode('utf-8')
         return b64_content, 200, {
             'Content-Type': 'text/plain; charset=utf-8',
             'profile-update-interval': '0.25',
@@ -1449,13 +1438,6 @@ def get_subscription(token):
             'subscription-userinfo': f'upload=0; download=0; total=0; expire={int(expires_at.timestamp()) if expires_at else 0}'
         }
     else:
-        # === FALLBACK: vless:// URI (last resort) ===
-        vless_uri = None
-        if current_server.get('vless_link'):
-            vless_uri = re.sub(r'(@)([^:?#]+)', r'\g<1>' + active_address, current_server['vless_link'], count=1)
-        elif current_server.get('json_config'):
-            vless_uri = generate_vless_uri(current_server['json_config'], active_address)
-        
         if vless_uri:
             b64_content = base64.b64encode(vless_uri.encode('utf-8')).decode('utf-8')
             return b64_content, 200, {
