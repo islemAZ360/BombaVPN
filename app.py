@@ -1003,7 +1003,8 @@ def manage_user_sub(user_id):
         days = int(request.form.get('days') or 0)
         hours = int(request.form.get('hours') or 0)
         minutes = int(request.form.get('minutes') or 0)
-        delta = timedelta(days=days, hours=hours, minutes=minutes)
+        seconds = int(request.form.get('seconds') or 0)
+        delta = timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
         
         current_expires = data.get('subscription_expires_at')
         if current_expires:
@@ -1612,7 +1613,8 @@ def background_expiry_checker():
         except Exception as e:
             print(f"Background expiry checker error: {e}")
             
-        time.sleep(60)
+        time.sleep(15)
+
 def keep_alive():
     """
     Pings the server every 10 minutes to prevent Render's free tier from sleeping.
