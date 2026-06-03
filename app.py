@@ -1613,7 +1613,22 @@ def background_expiry_checker():
             print(f"Background expiry checker error: {e}")
             
         time.sleep(60)
+def keep_alive():
+    """
+    Pings the server every 10 minutes to prevent Render's free tier from sleeping.
+    """
+    while True:
+        time.sleep(10 * 60)  # Sleep 10 minutes
+        try:
+            requests.get('https://bombavpn.onrender.com', timeout=10)
+            print("Self-ping successful: Kept server awake.")
+        except Exception as e:
+            print(f"Self-ping failed: {e}")
 
 if __name__ == '__main__':
+    # Start the Keep-Alive thread
+    keep_alive_thread = threading.Thread(target=keep_alive, daemon=True)
+    keep_alive_thread.start()
+    
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
     app.run(debug=debug_mode, host='0.0.0.0', port=5000)
