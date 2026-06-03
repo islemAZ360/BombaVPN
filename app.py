@@ -1356,7 +1356,6 @@ def background_expiry_checker():
                     expires_at = sub.get('expires_at')
                     if expires_at:
                         if expires_at.tzinfo is None:
-                            from datetime import timezone
                             expires_at = expires_at.replace(tzinfo=timezone.utc)
                         if datetime.now(timezone.utc) > expires_at:
                             print(f"Background check: Subscription {sub_id} expired.")
