@@ -267,25 +267,45 @@ def admin_dashboard():
     pending_users = []
     active_users = []
     all_users = []
+    users_dict = {}
     
     for doc in db.collection('users').stream():
         data = doc.to_dict()
         data['id'] = doc.id
         if 'created_at' in data and data['created_at']:
             data['created_at'] = data['created_at'].replace(tzinfo=None)
-        if 'subscription_expires_at' in data and data['subscription_expires_at']:
-            data['subscription_expires_at'] = data['subscription_expires_at'].replace(tzinfo=None)
             
+        data['subscriptions'] = []
+        users_dict[data['id']] = data
         all_users.append(data)
         
-        if data.get('status') == 'active':
-            active_users.append(data)
-            
-    # Add server name to all_users for easy display
     server_map = {s['id']: s.get('name') for s in servers}
+    
+    # Fetch all subscriptions
+    for doc in db.collection('subscriptions').stream():
+        sub = doc.to_dict()
+        sub['id'] = doc.id
+        if 'expires_at' in sub and sub['expires_at']:
+            sub['expires_at'] = sub['expires_at'].replace(tzinfo=None)
+            
+        uid = sub.get('user_id')
+        if uid in users_dict:
+            if sub.get('server_id'):
+                sub['allocated_server_name'] = server_map.get(sub['server_id'], 'Unknown')
+            users_dict[uid]['subscriptions'].append(sub)
+            
+    # Update active_users based on subscriptions
     for u in all_users:
-        if u.get('allocated_server_id'):
-            u['allocated_server_name'] = server_map.get(u['allocated_server_id'], 'Unknown')
+        is_active = any(s.get('status') == 'active' for s in u['subscriptions'])
+        is_expired = any(s.get('status') == 'expired' for s in u['subscriptions'])
+        
+        if is_active:
+            u['status'] = 'active'
+            active_users.append(u)
+        elif is_expired:
+            u['status'] = 'expired'
+        elif u.get('status') != 'pending':
+            u['status'] = 'no_sub'
             
     # Fetch pending purchase requests
     for doc in db.collection('purchase_requests').where('status', '==', 'pending').stream():
@@ -946,23 +966,26 @@ def api_pending_requests():
         
     return jsonify(pending_list)
 
-@app.route('/admin/manage_user_sub/<user_id>', methods=['POST'])
+@app.route('/admin/manage_subscription/<sub_id>', methods=['POST'])
 @login_required
-def manage_user_sub(user_id):
+def manage_subscription(sub_id):
     if not request.is_admin: return "Unauthorized", 403
     action = request.form.get('action')
     
+    sub_doc = db.collection('subscriptions').document(sub_id).get()
+    if not sub_doc.exists: return redirect(url_for('admin_dashboard'))
+    data = sub_doc.to_dict()
+    user_id = data.get('user_id')
     user_doc = db.collection('users').document(user_id).get()
-    if not user_doc.exists: return redirect(url_for('admin_dashboard'))
-    data = user_doc.to_dict()
+    user_data = user_doc.to_dict() if user_doc.exists else {}
     
     if action == 'cancel':
         update_data = {'status': 'expired'}
         if data.get('allocated_subdomain'):
             delete_dns_record(data['allocated_subdomain'], DYNV6_TOKEN)
             update_data['allocated_subdomain'] = None
-            update_data['allocated_server_id'] = None
-        db.collection('users').document(user_id).update(update_data)
+            update_data['server_id'] = None
+        db.collection('subscriptions').document(sub_id).update(update_data)
         flash('تم إلغاء الاشتراك بنجاح / Subscription cancelled', 'success')
         
     elif action == 'modify':
@@ -973,26 +996,29 @@ def manage_user_sub(user_id):
         seconds = int(request.form.get('seconds') or 0)
         delta = timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
         
-        current_expires = data.get('subscription_expires_at')
+        current_expires = data.get('expires_at')
         if current_expires:
-            current_expires = current_expires.replace(tzinfo=None)
+            if current_expires.tzinfo is None:
+                current_expires = current_expires.replace(tzinfo=timezone.utc)
         else:
-            current_expires = datetime.utcnow()
+            current_expires = datetime.now(timezone.utc)
             
         if modify_type == 'add':
             new_expires = current_expires + delta
         elif modify_type == 'subtract':
             new_expires = current_expires - delta
         else: # set
-            new_expires = datetime.utcnow() + delta
+            new_expires = datetime.now(timezone.utc) + delta
             
-        new_expires_aware = new_expires.replace(tzinfo=timezone.utc)
+        # Make sure new_expires is timezone aware
+        if new_expires.tzinfo is None:
+            new_expires = new_expires.replace(tzinfo=timezone.utc)
             
-        db.collection('users').document(user_id).update({
-            'subscription_expires_at': new_expires_aware,
-            'status': 'active' if new_expires > datetime.utcnow() else 'expired'
+        db.collection('subscriptions').document(sub_id).update({
+            'expires_at': new_expires,
+            'status': 'active' if new_expires > datetime.now(timezone.utc) else 'expired'
         })
-        flash('تم تعديل المدة بنجاح / Duration modified', 'success')
+        flash('تم تعديل مدة الاشتراك بنجاح / Subscription duration modified', 'success')
         
     elif action == 'assign':
         server_id = request.form.get('server_id')
@@ -1000,20 +1026,20 @@ def manage_user_sub(user_id):
             s_doc = db.collection('servers').document(server_id).get()
             if s_doc.exists:
                 s_data = s_doc.to_dict()
-                email_val = data.get('email', '')
-                subdomain = f"{email_val.replace('@', '-').replace('.', '-')}.{BASE_ZONE}"
+                email_val = user_data.get('email', f'user-{user_id}')
+                subdomain = f"{email_val.replace('@', '-').replace('.', '-')}-{sub_id[:4]}.{BASE_ZONE}"
                 
                 old_subdomain = data.get('allocated_subdomain')
-                if old_subdomain != subdomain or data.get('allocated_server_id') != server_id:
+                if old_subdomain != subdomain or data.get('server_id') != server_id:
                     if old_subdomain: delete_dns_record(old_subdomain, DYNV6_TOKEN)
                     create_dns_record(subdomain, s_data['original_ip'], DYNV6_TOKEN)
                 
-                db.collection('users').document(user_id).update({
-                    'allocated_server_id': server_id,
+                db.collection('subscriptions').document(sub_id).update({
+                    'server_id': server_id,
                     'allocated_subdomain': subdomain,
                     'status': 'active'
                 })
-                flash('تم تعيين السيرفر بنجاح / Server assigned', 'success')
+                flash('تم تعيين السيرفر للاشتراك بنجاح / Server assigned to subscription', 'success')
                 
     return redirect(url_for('admin_dashboard'))
 
@@ -1095,9 +1121,45 @@ def user_dashboard():
             print(f"Error fetching user doc in dashboard: {e}")
             user_data = {'status': 'pending', 'error': 'db_quota'}
 
-    if 'subscription_expires_at' in user_data and user_data['subscription_expires_at']:
-        if isinstance(user_data['subscription_expires_at'], datetime):
-            user_data['subscription_expires_at'] = user_data['subscription_expires_at'].replace(tzinfo=None)
+    subscriptions = []
+    has_active = False
+    try:
+        server_map = {}
+        with servers_cache_lock:
+            for s_id, s_dict in servers_cache.items():
+                server_map[s_id] = s_dict.get('name', 'Unknown')
+                
+        for doc in db.collection('subscriptions').where('user_id', '==', user_id).stream():
+            sub = doc.to_dict()
+            sub['id'] = doc.id
+            if 'expires_at' in sub and sub['expires_at']:
+                if isinstance(sub['expires_at'], datetime):
+                    sub['expires_at'] = sub['expires_at'].replace(tzinfo=None)
+            
+            if sub.get('server_id'):
+                if sub['server_id'] in server_map:
+                    sub['allocated_server_name'] = server_map[sub['server_id']]
+                else:
+                    s_doc = db.collection('servers').document(sub['server_id']).get()
+                    if s_doc.exists:
+                        s_data = s_doc.to_dict()
+                        sub['allocated_server_name'] = s_data.get('name', 'Unknown')
+                        server_map[sub['server_id']] = sub['allocated_server_name']
+                    else:
+                        sub['allocated_server_name'] = 'Unknown'
+            else:
+                sub['allocated_server_name'] = 'Unknown'
+                
+            if sub.get('status') == 'active':
+                has_active = True
+            subscriptions.append(sub)
+            
+        # Sort so active are first, and latest expiration is first
+        subscriptions.sort(key=lambda x: (0 if x.get('status') == 'active' else 1, x.get('expires_at', datetime.min).timestamp() if isinstance(x.get('expires_at'), datetime) else 0))
+    except Exception as e:
+        print("Error fetching subscriptions:", e)
+        
+    user_data['status'] = 'active' if has_active else ('expired' if subscriptions else user_data.get('status', 'pending'))
             
     email = request.user['email']
     # Security fix: Sign the user_id so it cannot be tampered with or guessed
@@ -1132,58 +1194,7 @@ def user_dashboard():
     except Exception as e:
         print("Error fetching admin messages:", e)
         
-    server = None
-    if user_data.get('status') == 'active' and user_data.get('allocated_server_id'):
-        allocated_server_id = user_data.get('allocated_server_id')
-        with servers_cache_lock:
-            if allocated_server_id in servers_cache:
-                server = servers_cache[allocated_server_id].copy()
-                
-        if not server:
-            try:
-                s_doc = db.collection('servers').document(allocated_server_id).get()
-                if s_doc.exists:
-                    server = s_doc.to_dict()
-            except Exception as e:
-                print("Error fetching server in dashboard:", e)
-            
-    if user_data.get('status') == 'active' and server is None:
-        # Trigger reassignment
-        try:
-            get_subscription(user_id)
-            with users_cache_lock:
-                if user_id in users_cache:
-                    user_data = users_cache[user_id].copy()
-            if user_data.get('status') == 'active' and user_data.get('allocated_server_id'):
-                with servers_cache_lock:
-                    if user_data.get('allocated_server_id') in servers_cache:
-                        server = servers_cache[user_data.get('allocated_server_id')].copy()
-        except Exception as e:
-            print("Error in reassignment dashboard:", e)
-    
-    if 'subscription_expires_at' in user_data and user_data['subscription_expires_at'] and not isinstance(user_data['subscription_expires_at'], datetime):
-        pass
-    if 'subscription_expires_at' in user_data and isinstance(user_data['subscription_expires_at'], datetime):
-        user_data['subscription_expires_at'] = user_data['subscription_expires_at'].replace(tzinfo=None)
-        
-    if server:
-        try:
-            if 'json_config' in server:
-                conf = json.loads(server['json_config'])
-                for ob in conf.get('outbounds', []):
-                    if ob.get('protocol') in ['vless', 'vmess', 'trojan']:
-                        vnext = ob.get('settings', {}).get('vnext', [])
-                        if vnext:
-                            server['ip'] = server.get('ip') or vnext[0].get('address', '')
-                            server['port'] = server.get('port') or vnext[0].get('port', 443)
-                            users = vnext[0].get('users', [])
-                            if users:
-                                server['uuid'] = server.get('uuid') or users[0].get('id', '')
-                        break
-        except Exception as e:
-            print("Error parsing server config for dashboard:", e)
-            
-    return render_template('user_dashboard.html', user_email=email, user=user_data, sub_link=sub_link, messages=messages, admin_msgs=admin_msgs, server=server, now=datetime.utcnow())
+    return render_template('user_dashboard.html', user_email=email, user=user_data, sub_link=sub_link, messages=messages, admin_msgs=admin_msgs, subscriptions=subscriptions, now=datetime.utcnow())
 
 # --- API ROUTES ---
 @app.route('/api/message', methods=['POST'])

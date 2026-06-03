@@ -71,47 +71,86 @@
         </div>
     {% endif %}
 
-    {% if user.status == 'active' %}
-        <div style="margin-top: 2rem;">
-            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">{{ _('ExpiresAt') }}</p>
-            <div id="countdown-timer-widget" style="display: flex; gap: 12px; font-family: 'Space Mono', monospace; margin-bottom: 2.5rem; flex-wrap: wrap;" data-time="{{ user.subscription_expires_at.isoformat() }}Z">
-                <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px 20px; border-radius: 12px; text-align: center; min-width: 80px; backdrop-filter: blur(5px);">
-                    <div id="cd-days" style="font-size: 2rem; font-weight: bold; color: #fff; line-height: 1;">00</div>
-                    <div style="font-size: 0.75rem; color: var(--primary); text-transform: uppercase; margin-top: 5px;">Days</div>
-                </div>
-                <div style="font-size: 2rem; font-weight: bold; color: rgba(255,255,255,0.2); align-self: center; padding-bottom: 20px;">:</div>
-                <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px 20px; border-radius: 12px; text-align: center; min-width: 80px; backdrop-filter: blur(5px);">
-                    <div id="cd-hours" style="font-size: 2rem; font-weight: bold; color: #fff; line-height: 1;">00</div>
-                    <div style="font-size: 0.75rem; color: var(--primary); text-transform: uppercase; margin-top: 5px;">Hours</div>
-                </div>
-                <div style="font-size: 2rem; font-weight: bold; color: rgba(255,255,255,0.2); align-self: center; padding-bottom: 20px;">:</div>
-                <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px 20px; border-radius: 12px; text-align: center; min-width: 80px; backdrop-filter: blur(5px);">
-                    <div id="cd-mins" style="font-size: 2rem; font-weight: bold; color: #fff; line-height: 1;">00</div>
-                    <div style="font-size: 0.75rem; color: var(--primary); text-transform: uppercase; margin-top: 5px;">Mins</div>
-                </div>
-                <div style="font-size: 2rem; font-weight: bold; color: rgba(255,255,255,0.2); align-self: center; padding-bottom: 20px;">:</div>
-                <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px 20px; border-radius: 12px; text-align: center; min-width: 80px; backdrop-filter: blur(5px);">
-                    <div id="cd-secs" style="font-size: 2rem; font-weight: bold; color: #fff; line-height: 1;">00</div>
-                    <div style="font-size: 0.75rem; color: var(--primary); text-transform: uppercase; margin-top: 5px;">Secs</div>
-                </div>
-            </div>
-        </div>
-        
-        {% if server %}
-            <div style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 1.2rem 1.5rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 2.5rem; box-shadow: inset 0 2px 10px rgba(0,0,0,0.2);">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+    {% if subscriptions %}
+        <div style="margin-top: 2rem; display: flex; flex-direction: column; gap: 2rem;">
+        {% for sub in subscriptions %}
+            <div style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 1.5rem; position: relative;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+                        </div>
+                        <div>
+                            <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">{{ _('ConnectionDetails') }}</p>
+                            <p style="margin: 0; font-size: 1.2rem; font-weight: bold; color: #fff; letter-spacing: 0.5px;">{{ sub.allocated_server_name }}</p>
+                        </div>
                     </div>
                     <div>
-                        <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">{{ _('ConnectionDetails') }}</p>
-                        <p style="margin: 0; font-size: 1.2rem; font-weight: bold; color: #fff; letter-spacing: 0.5px;">{{ server.name }}</p>
+                        {% if sub.status == 'active' %}
+                            <span class="badge" style="background: rgba(0, 255, 204, 0.1); border: 1px solid #00ffcc; color: #00ffcc; padding: 4px 12px; border-radius: 50px; font-size: 0.8rem; font-weight: bold; box-shadow: 0 0 10px rgba(0,255,204,0.2);">ACTIVE</span>
+                        {% else %}
+                            <span class="badge" style="background: rgba(255, 71, 87, 0.1); border: 1px solid #ff4757; color: #ff4757; padding: 4px 12px; border-radius: 50px; font-size: 0.8rem; font-weight: bold;">EXPIRED</span>
+                        {% endif %}
                     </div>
                 </div>
-                {% if server.country_code %}
-                    <img src="https://flagcdn.com/32x24/{{ server.country_code }}.png" alt="{{ server.country_code }}" style="border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">
+
+                {% if sub.status == 'active' and sub.expires_at %}
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px;">{{ _('ExpiresAt') }}</p>
+                    <div class="countdown-timer-widget" style="display: flex; gap: 8px; font-family: 'Space Mono', monospace; margin-bottom: 1.5rem; flex-wrap: wrap;" data-time="{{ sub.expires_at.isoformat() }}Z">
+                        <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 8px; text-align: center; min-width: 60px;">
+                            <div class="cd-days" style="font-size: 1.5rem; font-weight: bold; color: #fff; line-height: 1;">00</div>
+                            <div style="font-size: 0.65rem; color: var(--primary); text-transform: uppercase; margin-top: 5px;">Days</div>
+                        </div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: rgba(255,255,255,0.2); align-self: center; padding-bottom: 15px;">:</div>
+                        <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 8px; text-align: center; min-width: 60px;">
+                            <div class="cd-hours" style="font-size: 1.5rem; font-weight: bold; color: #fff; line-height: 1;">00</div>
+                            <div style="font-size: 0.65rem; color: var(--primary); text-transform: uppercase; margin-top: 5px;">Hours</div>
+                        </div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: rgba(255,255,255,0.2); align-self: center; padding-bottom: 15px;">:</div>
+                        <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 8px; text-align: center; min-width: 60px;">
+                            <div class="cd-mins" style="font-size: 1.5rem; font-weight: bold; color: #fff; line-height: 1;">00</div>
+                            <div style="font-size: 0.65rem; color: var(--primary); text-transform: uppercase; margin-top: 5px;">Mins</div>
+                        </div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: rgba(255,255,255,0.2); align-self: center; padding-bottom: 15px;">:</div>
+                        <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 8px; text-align: center; min-width: 60px;">
+                            <div class="cd-secs" style="font-size: 1.5rem; font-weight: bold; color: #fff; line-height: 1;">00</div>
+                            <div style="font-size: 0.65rem; color: var(--primary); text-transform: uppercase; margin-top: 5px;">Secs</div>
+                        </div>
+                    </div>
                 {% endif %}
+
+                <!-- Subscription Link Copy -->
+                <div style="display: flex; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);">
+                    <div style="padding: 10px 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1; font-family: 'Space Mono', monospace; color: #a0a0a0; font-size: 0.85rem;">
+                        {{ sub_link }}&sub={{ sub.id }}
+                    </div>
+                    <button type="button" style="background: rgba(255,255,255,0.05); border: none; border-left: 1px solid rgba(255,255,255,0.1); color: var(--primary); padding: 0 16px; cursor: pointer; font-weight: bold; transition: all 0.2s; display: flex; align-items: center; gap: 8px;" onclick="copySpecificLink('{{ sub_link }}&sub={{ sub.id }}', this)" onmouseover="this.style.background='rgba(0,255,204,0.1)';" onmouseout="this.style.background='rgba(255,255,255,0.05)';">
+                        <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        <span>{{ _('CopyBtn') }}</span>
+                    </button>
+                </div>
             </div>
+        {% endfor %}
+        </div>
+        
+        <script>
+        function copySpecificLink(link, btn) {
+            navigator.clipboard.writeText(link).then(() => {
+                const span = btn.querySelector('span');
+                const orig = span.innerText;
+                span.innerText = '{{ _("Copied") | default("Copied!") }}';
+                btn.style.color = '#fff';
+                btn.style.background = 'rgba(0,255,204,0.2)';
+                setTimeout(() => {
+                    span.innerText = orig;
+                    btn.style.color = 'var(--primary)';
+                    btn.style.background = 'rgba(255,255,255,0.05)';
+                }, 2000);
+            });
+        }
+        </script>
+        
             
             <h3 style="margin-top: 2rem; margin-bottom: 1rem; font-size: 1.3rem;">{{ _('Instructions') }}</h3>
             
@@ -210,16 +249,21 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const timerWidget = document.getElementById("countdown-timer-widget");
-        if (timerWidget) {
-            const expireTime = new Date(timerWidget.getAttribute("data-time")).getTime();
+        const timerWidgets = document.querySelectorAll(".countdown-timer-widget");
+        
+        timerWidgets.forEach(widget => {
+            const expireTime = new Date(widget.getAttribute("data-time")).getTime();
+            const daysEl = widget.querySelector(".cd-days");
+            const hoursEl = widget.querySelector(".cd-hours");
+            const minsEl = widget.querySelector(".cd-mins");
+            const secsEl = widget.querySelector(".cd-secs");
             
             function updateTimer() {
                 const now = new Date().getTime();
                 const distance = expireTime - now;
                 
                 if (distance < 0) {
-                    timerWidget.innerHTML = "<div style='color: var(--danger); font-size: 1.5rem; font-weight: bold; padding: 15px 20px;'>Expired</div>";
+                    widget.innerHTML = "<div style='color: var(--danger); font-size: 1.5rem; font-weight: bold; padding: 15px 20px;'>Expired</div>";
                     return;
                 }
                 
@@ -228,15 +272,15 @@
                 const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
                 const seconds = Math.floor((distance % (1000 * 60)) / 1000);
                 
-                document.getElementById("cd-days").innerText = days.toString().padStart(2, '0');
-                document.getElementById("cd-hours").innerText = hours.toString().padStart(2, '0');
-                document.getElementById("cd-mins").innerText = minutes.toString().padStart(2, '0');
-                document.getElementById("cd-secs").innerText = seconds.toString().padStart(2, '0');
+                if(daysEl) daysEl.innerText = days.toString().padStart(2, '0');
+                if(hoursEl) hoursEl.innerText = hours.toString().padStart(2, '0');
+                if(minsEl) minsEl.innerText = minutes.toString().padStart(2, '0');
+                if(secsEl) secsEl.innerText = seconds.toString().padStart(2, '0');
             }
             
             updateTimer();
             setInterval(updateTimer, 1000);
-        }
+        });
     });
 </script>
 
