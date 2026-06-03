@@ -1441,10 +1441,10 @@ def get_subscription(token):
         current_server = best_server
         user_doc['allocated_subdomain'] = subdomain
 
-    import socket
-    # We must ALWAYS use the subdomain, otherwise users will bypass the DNS revocation
-    # when their subscription expires by saving the raw IP.
-    active_address = user_doc.get('allocated_subdomain') or current_server['original_ip']
+    # We use the raw IP directly to avoid "DNS address could not be found" errors
+    # caused by ISP blocking of DynV6 or slow DNS propagation. The subscription
+    # update mechanism (Poisoned Config) is enough to kick expired users.
+    active_address = current_server['original_ip']
 
     from utils import generate_vless_uri
     from vless_parser import parse_vless_uri
