@@ -192,8 +192,6 @@ def pay():
     
     if user_doc.exists:
         data = user_doc.to_dict()
-        if data.get('status') == 'review' or data.get('has_pending_renewal'):
-            return redirect(url_for('user_dashboard'))
         
     servers = []
     for doc in db.collection('servers').stream():
@@ -220,32 +218,15 @@ def pay():
             filename = f"receipt_{user_id}_{uuid.uuid4().hex[:8]}.{ext}"
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             
-            if user_doc.exists and user_doc.to_dict().get('status') == 'active':
-                old_receipt = user_doc.to_dict().get('renewal_receipt_image')
-                if old_receipt:
-                    try: os.remove(os.path.join(app.config['UPLOAD_FOLDER'], old_receipt))
-                    except OSError: pass
-
-                db.collection('users').document(user_id).update({
-                    'has_pending_renewal': True,
-                    'renewal_receipt_image': filename,
-                    'renewal_requested_server_id': server_id,
-                    'renewal_created_at': datetime.utcnow()
-                })
-            else:
-                if user_doc.exists:
-                    old_receipt = user_doc.to_dict().get('receipt_image')
-                    if old_receipt:
-                        try: os.remove(os.path.join(app.config['UPLOAD_FOLDER'], old_receipt))
-                        except OSError: pass
-                
-                db.collection('users').document(user_id).set({
-                    'email': request.user['email'],
-                    'status': 'review',
-                    'receipt_image': filename,
-                    'requested_server_id': server_id,
-                    'created_at': datetime.utcnow()
-                }, merge=True)
+            # Save the new purchase request in the dedicated collection
+            db.collection('purchase_requests').add({
+                'user_id': user_id,
+                'email': request.user['email'],
+                'server_id': server_id,
+                'receipt_url': filename,
+                'status': 'pending',
+                'created_at': datetime.utcnow()
+            })
             
             flash('تم إرسال الطلب بنجاح. جاري مراجعته من قبل الإدارة. / Request submitted successfully. Under review.', 'success')
             return redirect(url_for('user_dashboard'))
@@ -306,22 +287,23 @@ def admin_dashboard():
         if u.get('allocated_server_id'):
             u['allocated_server_name'] = server_map.get(u['allocated_server_id'], 'Unknown')
             
-    # 1. New users
-    for doc in db.collection('users').where('status', 'in', ['pending', 'review']).stream():
-        u = doc.to_dict()
-        if u.get('status') == 'review':
-            u['id'] = doc.id
-            u['is_renewal'] = False
-            pending_users.append(u)
-            
-    # 2. Renewing users
-    for doc in db.collection('users').where('has_pending_renewal', '==', True).stream():
-        u = doc.to_dict()
-        u['id'] = doc.id
-        u['is_renewal'] = True
-        u['receipt_image'] = u.get('renewal_receipt_image') # Alias for template
-        u['requested_server_id'] = u.get('renewal_requested_server_id')
-        pending_users.append(u)
+    # Fetch pending purchase requests
+    for doc in db.collection('purchase_requests').where('status', '==', 'pending').stream():
+        req = doc.to_dict()
+        req['id'] = doc.id
+        
+        # Attach user data
+        user_doc = db.collection('users').document(req['user_id']).get()
+        if user_doc.exists:
+            req['user'] = user_doc.to_dict()
+            if 'email' not in req:
+                req['email'] = req['user'].get('email')
+        
+        req['receipt_image'] = req.get('receipt_url')
+        req['requested_server_id'] = req.get('server_id')
+        req['is_renewal'] = False # Not strictly needed if they are all just purchase requests
+        
+        pending_users.append(req)
         
     for u in pending_users:
         s_id = u.get('requested_server_id')
@@ -790,144 +772,117 @@ def delete_server(server_id):
     flash('تم حذف السيرفر وجدولة نقل مستخدميه تلقائياً', 'success')
     return redirect(url_for('admin_dashboard'))
 
-@app.route('/admin/approve_user/<user_id>', methods=['POST'])
+@app.route('/admin/approve_request/<request_id>', methods=['POST'])
 @login_required
-def approve_user(user_id):
+def approve_request(request_id):
     if not request.is_admin:
         return "Unauthorized", 403
         
-    user_doc = db.collection('users').document(user_id).get()
-    if not user_doc.exists:
+    req_doc_ref = db.collection('purchase_requests').document(request_id)
+    req_doc = req_doc_ref.get()
+    if not req_doc.exists or req_doc.to_dict().get('status') != 'pending':
         return redirect(url_for('admin_dashboard'))
         
+    req_data = req_doc.to_dict()
+    user_id = req_data['user_id']
+    server_id = req_data['server_id']
+    
+    user_doc_ref = db.collection('users').document(user_id)
+    user_doc = user_doc_ref.get()
+    if not user_doc.exists:
+        return redirect(url_for('admin_dashboard'))
     user_data = user_doc.to_dict()
-    is_renewal = user_data.get('has_pending_renewal', False)
-    server_id = user_data.get('renewal_requested_server_id') if is_renewal else user_data.get('requested_server_id')
+        
     days = 30 # default
     hours = 0
     minutes = 0
     s_data = None
-    
     subdomain = None
-    if server_id:
-        server_doc = db.collection('servers').document(server_id).get()
-        if server_doc.exists:
-            s_data = server_doc.to_dict()
-            days = int(s_data.get('plan_days') or 0)
-            hours = int(s_data.get('plan_hours') or 0)
-            minutes = int(s_data.get('plan_minutes') or 0)
+    
+    server_doc = db.collection('servers').document(server_id).get()
+    if server_doc.exists:
+        s_data = server_doc.to_dict()
+        days = int(s_data.get('plan_days') or 0)
+        hours = int(s_data.get('plan_hours') or 0)
+        minutes = int(s_data.get('plan_minutes') or 0)
+        
+        if not days and not hours and not minutes:
+            days = 30
+        
+        email_val = user_data.get('email', '')
+        if email_val:
+            safe_prefix = email_val.replace('@', '-').replace('.', '-')
+            # Unique subdomain per subscription: prefix-serverid.dynv6.net
+            subdomain = f"{safe_prefix}-{server_id[:6]}.{BASE_ZONE}"
+            # Create DNS record for this specific subscription
+            create_dns_record(subdomain, s_data['original_ip'], DYNV6_TOKEN)
             
-            if not days and not hours and not minutes:
-                days = 30
-            
-            email_val = user_data.get('email', '')
-            if email_val:
-                safe_prefix = email_val.replace('@', '-').replace('.', '-')
-                subdomain = f"{safe_prefix}.{BASE_ZONE}"
-                
-                # Check if this exact subdomain/IP is already allocated
-                old_subdomain = user_data.get('allocated_subdomain')
-                if old_subdomain != subdomain or user_data.get('allocated_server_id') != server_id:
-                    if old_subdomain:
-                        delete_dns_record(old_subdomain, DYNV6_TOKEN)
-                    create_dns_record(subdomain, s_data['original_ip'], DYNV6_TOKEN)
-                
     duration_delta = timedelta(days=days, hours=hours, minutes=minutes)
+    expires_at = datetime.utcnow() + duration_delta
     
-    current_expires_at = user_data.get('subscription_expires_at')
-    if current_expires_at:
-        current_expires_at = current_expires_at.replace(tzinfo=None)
-        
-    if is_renewal and current_expires_at and current_expires_at > datetime.utcnow():
-        # Add to existing time
-        expires_at = current_expires_at + duration_delta
-    else:
-        expires_at = datetime.utcnow() + duration_delta
-    
-    current_count = user_data.get('purchases_count', 0)
-    update_data = {
-        'subscription_expires_at': expires_at,
-        'allocated_server_id': server_id,
-        'status': 'active',
-        'is_in_debt': False,
-        'purchases_count': current_count + 1
-    }
-    
-    if is_renewal:
-        update_data['has_pending_renewal'] = False
-        update_data['renewal_receipt_image'] = None
-        update_data['renewal_requested_server_id'] = None
-        receipt_image = user_data.get('renewal_receipt_image')
-        if receipt_image:
-            try: os.remove(os.path.join(app.config['UPLOAD_FOLDER'], receipt_image))
-            except OSError: pass
-    else:
-        update_data['receipt_image'] = None
-        update_data['requested_server_id'] = None
-        receipt_image = user_data.get('receipt_image')
-        if receipt_image:
-            try: os.remove(os.path.join(app.config['UPLOAD_FOLDER'], receipt_image))
-            except OSError: pass
-        
-    if server_id and s_data:
-        update_data['required_tags'] = s_data.get('tags', [])
+    # Check if server expires before the subscription
+    is_temporary = False
+    if s_data:
         s_expires = s_data.get('expires_at')
         if s_expires:
             s_expires = s_expires.replace(tzinfo=None)
             if s_expires < expires_at:
-                update_data['is_in_debt'] = True
                 debt_delta = expires_at - s_expires
                 db.collection('notifications').add({
-                    'title': 'تنبيه ديون جديدة',
-                    'message': f'المستخدم {user_data.get("email")} يتطلب وقتاً أطول من السيرفر المخصص! لديك دين له بقيمة {debt_delta.days} يوم و {debt_delta.seconds // 3600} ساعة.',
+                    'title': 'تنبيه ديون (السيرفر سينتهي قريباً)',
+                    'message': f'المستخدم {user_data.get("email")} لديه اشتراك يتجاوز عمر السيرفر المختار. نظام النقل التلقائي سيتدخل لاحقاً لنقله لسيرفر جديد ليكمل الـ {debt_delta.days} يوم المتبقية.',
                     'created_at': datetime.utcnow(),
                     'is_read': False,
                     'type': 'debt'
                 })
     
-    if subdomain:
-        update_data['allocated_subdomain'] = subdomain
-        
-    db.collection('users').document(user_id).update(update_data)
+    # Save to the subscriptions collection
+    db.collection('subscriptions').add({
+        'user_id': user_id,
+        'server_id': server_id,
+        'allocated_subdomain': subdomain,
+        'status': 'active',
+        'required_tags': s_data.get('tags', []) if s_data else [],
+        'is_temporary': False,
+        'created_at': datetime.utcnow(),
+        'expires_at': expires_at
+    })
     
-    flash('تم تفعيل الحساب بنجاح / Account activated successfully', 'success')
+    # Delete receipt image
+    receipt_image = req_data.get('receipt_url')
+    if receipt_image:
+        try: os.remove(os.path.join(app.config['UPLOAD_FOLDER'], receipt_image))
+        except OSError: pass
+        
+    # Mark request as approved
+    req_doc_ref.update({'status': 'approved'})
+    
+    # Update user status if they were new
+    if user_data.get('status') != 'active':
+        user_doc_ref.update({'status': 'active'})
+    
+    flash('تم الموافقة على الطلب وإنشاء الاشتراك بنجاح / Request approved successfully', 'success')
     return redirect(url_for('admin_dashboard'))
 
-@app.route('/admin/reject_user/<user_id>', methods=['POST'])
+@app.route('/admin/reject_request/<request_id>', methods=['POST'])
 @login_required
-def reject_user(user_id):
+def reject_request(request_id):
     if not request.is_admin:
         return "Unauthorized", 403
         
-    user_doc = db.collection('users').document(user_id).get()
-    if user_doc.exists:
-        user_data = user_doc.to_dict()
-        is_renewal = user_data.get('has_pending_renewal', False)
-        
-        if is_renewal:
-            receipt_image = user_data.get('renewal_receipt_image')
-            if receipt_image:
-                try: os.remove(os.path.join(app.config['UPLOAD_FOLDER'], receipt_image))
-                except OSError: pass
-            
-            db.collection('users').document(user_id).update({
-                'has_pending_renewal': False,
-                'renewal_receipt_image': None,
-                'renewal_requested_server_id': None
-            })
-        else:
-            receipt_image = user_data.get('receipt_image')
-            if receipt_image:
-                try: os.remove(os.path.join(app.config['UPLOAD_FOLDER'], receipt_image))
-                except OSError: pass
-                
-            db.collection('users').document(user_id).update({
-                'status': 'pending',
-                'receipt_image': None,
-                'requested_server_id': None
-            })
+    req_doc_ref = db.collection('purchase_requests').document(request_id)
+    req_doc = req_doc_ref.get()
     
-    flash('تم رفض الإيصال', 'success')
+    if req_doc.exists:
+        req_data = req_doc.to_dict()
+        receipt_image = req_data.get('receipt_url')
+        if receipt_image:
+            try: os.remove(os.path.join(app.config['UPLOAD_FOLDER'], receipt_image))
+            except OSError: pass
+            
+        req_doc_ref.update({'status': 'rejected'})
+    
+    flash('تم رفض الطلب بنجاح / Request rejected successfully', 'success')
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/delete_user/<user_id>', methods=['POST'])
@@ -956,28 +911,40 @@ def api_pending_requests():
     if not getattr(request, 'is_admin', False):
         return "Unauthorized", 403
         
-    users_ref = db.collection('users')
-    query = users_ref.where('status', 'in', ['pending', 'review']).stream()
+    requests_ref = db.collection('purchase_requests').where('status', '==', 'pending').stream()
     
-    pending_users = []
-    for doc in query:
-        u = doc.to_dict()
-        u['id'] = doc.id
-        # Convert datetime objects to string for JSON serialization
-        for k, v in u.items():
+    pending_list = []
+    for doc in requests_ref:
+        req = doc.to_dict()
+        req['id'] = doc.id
+        
+        # Convert datetime objects to string
+        for k, v in req.items():
             if isinstance(v, datetime):
-                u[k] = v.isoformat()
+                req[k] = v.isoformat()
         
-        # Get server details if applicable
-        if u.get('allocated_server_id'):
-            s_doc = db.collection('servers').document(u['allocated_server_id']).get()
+        # Get server details
+        if req.get('server_id'):
+            s_doc = db.collection('servers').document(req['server_id']).get()
             if s_doc.exists:
-                u['server'] = s_doc.to_dict()
-                u['server']['id'] = s_doc.id
+                req['server'] = s_doc.to_dict()
+                req['server']['id'] = s_doc.id
+                
+        # Get user details for the UI (like email, old stats)
+        user_doc = db.collection('users').document(req['user_id']).get()
+        if user_doc.exists:
+            # We nest it inside 'user' to maintain compatibility if the UI expects flat or nested fields
+            req['user'] = user_doc.to_dict()
+            # Flatten email for easier access
+            if 'email' not in req:
+                req['email'] = req['user'].get('email')
+                
+        # For UI compatibility with old model (it expected receipt_image on user)
+        req['receipt_image'] = req.get('receipt_url')
         
-        pending_users.append(u)
+        pending_list.append(req)
         
-    return jsonify(pending_users)
+    return jsonify(pending_list)
 
 @app.route('/admin/manage_user_sub/<user_id>', methods=['POST'])
 @login_required
@@ -1365,25 +1332,9 @@ def on_servers_snapshot(col_snapshot, changes, read_time):
                 servers_cache.pop(change.document.id, None)
 
 def background_expiry_checker():
-    print("Starting Firestore realtime listeners for background task...")
-    users_watch = None
-    servers_watch = None
+    print("Starting Auto-Migration background worker...")
+    time.sleep(10)
     
-    while True:
-        try:
-            if not users_watch:
-                users_watch = db.collection('users').on_snapshot(on_users_snapshot)
-            if not servers_watch:
-                servers_watch = db.collection('servers').on_snapshot(on_servers_snapshot)
-            
-            # If both succeeded, break out of initialization loop
-            if users_watch and servers_watch:
-                print("Firestore listeners started successfully!")
-                break
-        except Exception as e:
-            print(f"Error starting Firestore listeners (Quota exceeded? Retrying in 5m): {e}")
-            time.sleep(300) # Wait 5 minutes before retrying
-
     while True:
         try:
             now = datetime.utcnow()
@@ -1397,28 +1348,36 @@ def background_expiry_checker():
                     if s_expires and s_expires.replace(tzinfo=None) > now:
                         all_active_servers.append(s)
 
-            with users_cache_lock:
-                current_users = {uid: u.copy() for uid, u in users_cache.items()}
-
-            for user_id, user in current_users.items():
+            for doc in db.collection('subscriptions').where('status', '==', 'active').stream():
                 try:
-                    expires_at = user.get('subscription_expires_at')
+                    sub_id = doc.id
+                    sub = doc.to_dict()
+                    
+                    expires_at = sub.get('expires_at')
                     if expires_at:
-                        expires_at = expires_at.replace(tzinfo=None)
-                        if now > expires_at:
-                            print(f"Background check: User {user.get('email')} expired. Revoking access.")
+                        if expires_at.tzinfo is None:
+                            from datetime import timezone
+                            expires_at = expires_at.replace(tzinfo=timezone.utc)
+                        if datetime.now(timezone.utc) > expires_at:
+                            print(f"Background check: Subscription {sub_id} expired.")
                             update_data = {'status': 'expired'}
-                            if user.get('allocated_subdomain'):
-                                delete_dns_record(user.get('allocated_subdomain'), DYNV6_TOKEN)
-                                update_data['allocated_subdomain'] = None
-                                update_data['allocated_server_id'] = None
-                            
-                            db.collection('users').document(user_id).update(update_data)
+                            if sub.get('allocated_subdomain'):
+                                delete_dns_record(sub.get('allocated_subdomain'), DYNV6_TOKEN)
+                            db.collection('subscriptions').document(sub_id).update(update_data)
                             continue
                             
-                    # Auto-recovery for temporary servers or debts
-                    if user.get('is_temporary_server') or user.get('is_in_debt'):
-                        required_tags = set(user.get('required_tags') or [])
+                    server_dead = True
+                    allocated_server_id = sub.get('server_id')
+                    if allocated_server_id:
+                        for active_s in all_active_servers:
+                            if active_s['id'] == allocated_server_id:
+                                server_dead = False
+                                break
+                                
+                    is_temp = sub.get('is_temporary', False)
+                    
+                    if server_dead or is_temp:
+                        required_tags = set(sub.get('required_tags') or [])
                         candidate_servers = []
                         for s in all_active_servers:
                             s_tags = set(s.get('tags') or [])
@@ -1426,45 +1385,52 @@ def background_expiry_checker():
                                 candidate_servers.append(s)
                                 
                         if candidate_servers:
-                            user_expiry = expires_at if expires_at else now
-                            valid_servers = [s for s in candidate_servers if s['expires_at'].replace(tzinfo=None) >= user_expiry]
+                            best_server = max(candidate_servers, key=lambda s: s['expires_at'].replace(tzinfo=None))
+                            new_temp = False
+                        elif server_dead:
+                            if not all_active_servers:
+                                continue
+                            best_server = max(all_active_servers, key=lambda s: s['expires_at'].replace(tzinfo=None))
+                            new_temp = True
+                        else:
+                            continue
                             
-                            if valid_servers:
-                                best_server = min(valid_servers, key=lambda s: s['expires_at'].replace(tzinfo=None))
-                                new_in_debt = False
-                                new_temp = False
-                            else:
-                                best_server = max(candidate_servers, key=lambda s: s['expires_at'].replace(tzinfo=None))
-                                new_in_debt = True
-                                # If they required tags but we found matching tags, it's no longer temporary (tag-wise), just in debt.
-                                new_temp = False
+                        if best_server['id'] != allocated_server_id:
+                            user_doc = db.collection('users').document(sub.get('user_id')).get()
+                            if user_doc.exists:
+                                user_data = user_doc.to_dict()
+                                safe_prefix = user_data.get('email', '').replace('@', '-').replace('.', '-')
+                                subdomain = f"{safe_prefix}-{best_server['id'][:6]}.{BASE_ZONE}"
                                 
-                            if best_server['id'] != user.get('allocated_server_id') or (user.get('is_temporary_server') and not new_temp) or (user.get('is_in_debt') and not new_in_debt):
-                                safe_prefix = user.get('email', '').replace('@', '-').replace('.', '-')
-                                subdomain = f"{safe_prefix}.{BASE_ZONE}"
+                                old_subdomain = sub.get('allocated_subdomain')
+                                if old_subdomain and old_subdomain != subdomain:
+                                    delete_dns_record(old_subdomain, DYNV6_TOKEN)
+                                create_dns_record(subdomain, best_server['original_ip'], DYNV6_TOKEN)
                                 
-                                # Only update DNS if server changed
-                                if best_server['id'] != user.get('allocated_server_id'):
-                                    old_subdomain = user.get('allocated_subdomain')
-                                    if old_subdomain and old_subdomain != subdomain:
-                                        delete_dns_record(old_subdomain, DYNV6_TOKEN)
-                                    delete_dns_record(subdomain, DYNV6_TOKEN)
-                                    create_dns_record(subdomain, best_server['original_ip'], DYNV6_TOKEN)
-                                        
-                                db.collection('users').document(user_id).update({
-                                    'allocated_server_id': best_server['id'],
+                                db.collection('subscriptions').document(sub_id).update({
+                                    'server_id': best_server['id'],
                                     'allocated_subdomain': subdomain,
-                                    'is_temporary_server': new_temp,
-                                    'is_in_debt': new_in_debt
+                                    'is_temporary': new_temp
                                 })
-                                print(f"Auto-recovered user {user.get('email')} to server {best_server['id']} (temp={new_temp}, debt={new_in_debt})")
+                                
+                                best_exp = best_server['expires_at'].replace(tzinfo=None)
+                                exp_at_naive = expires_at.replace(tzinfo=None) if expires_at else now
+                                if best_exp < exp_at_naive:
+                                    debt_delta = exp_at_naive - best_exp
+                                    db.collection('notifications').add({
+                                        'title': 'نقل تلقائي مع دين',
+                                        'message': f'تم نقل الاشتراك {sub_id} للمستخدم {user_data.get("email")} إلى سيرفر جديد سينتهي قبل اشتراكه! هناك دين بقيمة {debt_delta.days} يوم.',
+                                        'created_at': datetime.utcnow(),
+                                        'is_read': False,
+                                        'type': 'debt'
+                                    })
                 except Exception as e:
-                    print(f"Error processing user {user_id} in background task: {e}")
+                    print(f"Error processing sub {sub_id} in background task: {e}")
                     continue
         except Exception as e:
             print(f"Background expiry checker error: {e}")
             
-        time.sleep(15)
+        time.sleep(60)
 
 def keep_alive():
     """
