@@ -392,10 +392,24 @@
                     <option value="subtract" style="background:#111;">{{ _('ModifySubtract') }}</option>
                 </select>
             </div>
-            <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
-                <input type="number" name="days" class="form-control" placeholder="Days" style="flex: 1;" value="0">
-                <input type="number" name="hours" class="form-control" placeholder="Hours" style="flex: 1;" value="0">
-                <input type="number" name="minutes" class="form-control" placeholder="Mins" style="flex: 1;" value="0">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 1rem;">
+                    <div style="text-align: center;">
+                        <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">{{ _('Days') }}</label>
+                        <input type="number" name="days" class="form-control" style="width: 100%; background: rgba(0,0,0,0.4); border: none; border-bottom: 2px solid rgba(255,255,255,0.1); color: #fff; text-align: center;" value="0" min="0">
+                    </div>
+                    <div style="text-align: center;">
+                        <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">{{ _('Hours') }}</label>
+                        <input type="number" name="hours" class="form-control" style="width: 100%; background: rgba(0,0,0,0.4); border: none; border-bottom: 2px solid rgba(255,255,255,0.1); color: #fff; text-align: center;" value="0" min="0">
+                    </div>
+                    <div style="text-align: center;">
+                        <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">{{ _('Minutes') }}</label>
+                        <input type="number" name="minutes" class="form-control" style="width: 100%; background: rgba(0,0,0,0.4); border: none; border-bottom: 2px solid rgba(255,255,255,0.1); color: #fff; text-align: center;" value="0" min="0">
+                    </div>
+                    <div style="text-align: center;">
+                        <label style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">{{ _('Seconds') }}</label>
+                        <input type="number" name="seconds" class="form-control" style="width: 100%; background: rgba(0,0,0,0.4); border: none; border-bottom: 2px solid rgba(255,255,255,0.1); color: #fff; text-align: center;" value="0" min="0">
+                    </div>
+                </div>
             </div>
             <div style="display:flex; gap:0.8rem; justify-content:flex-end;">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('modify-modal')">Cancel</button>
