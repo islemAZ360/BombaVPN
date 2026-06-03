@@ -1257,242 +1257,84 @@ def api_user_status():
 
 @app.route('/sub/<token>')
 def get_subscription(token):
-    # Security fix: Verify the signed token instead of blindly trusting raw user_id
+    # Security fix: Verify the signed token
     try:
         user_id = sub_serializer.loads(token)
     except Exception:
-        return "Invalid subscription token. Please copy the new link from your dashboard.", 403
+        return "Invalid subscription token.", 403
         
-    user_doc = None
+    subs_ref = db.collection('subscriptions').where('user_id', '==', user_id).stream()
+    subs = list(subs_ref)
     
-    with users_cache_lock:
-        if user_id in users_cache:
-            user_doc = users_cache[user_id].copy()
-            
-    if not user_doc:
-        try:
-            doc = db.collection('users').document(user_id).get()
-            if not doc.exists:
-                return "", 200
-            user_doc = doc.to_dict()
-        except Exception as e:
-            print(f"Error in sub route for user {user_id}: {e}")
-            import base64
-            err_link = "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:80?type=tcp&security=none#⚠️_Database_Quota_Exceeded_-_Please_Wait"
-            return base64.b64encode(err_link.encode('utf-8')).decode('utf-8'), 200, {
-                'Content-Type': 'text/plain; charset=utf-8',
-                'profile-update-interval': '1'
-            }
-        
-    if user_doc.get('status') != 'active':
-        # Return a poisoned subscription for non-active users
-        # This overwrites their profile with a fake server, cutting their connection
-        import base64
-        poisoned_link = "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:80?type=tcp&security=none#❌_Your_Subscription_Has_Expired_-_Please_Renew"
-        b64_content = base64.b64encode(poisoned_link.encode('utf-8')).decode('utf-8')
-        return b64_content, 200, {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'profile-update-interval': '0.25',
-            'profile-web-page-url': 'https://bombavpn.onrender.com'
-        }
-        
-    expires_at = user_doc.get('subscription_expires_at')
-    if expires_at:
-        expires_at = expires_at.replace(tzinfo=None)
-        
-    if expires_at and datetime.utcnow() > expires_at:
-        update_data = {'status': 'expired'}
-        if user_doc.get('allocated_subdomain'):
-            delete_dns_record(user_doc['allocated_subdomain'], DYNV6_TOKEN)
-            update_data['allocated_subdomain'] = None
-            update_data['allocated_server_id'] = None
-        db.collection('users').document(user_id).update(update_data)
-        
-        # Immediate poisoning upon expiry detection
-        import base64
-        poisoned_link = "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:80?type=tcp&security=none#❌_Your_Subscription_Has_Expired_-_Please_Renew"
-        b64_content = base64.b64encode(poisoned_link.encode('utf-8')).decode('utf-8')
-        return b64_content, 200, {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'profile-update-interval': '0.25',
-            'profile-web-page-url': 'https://bombavpn.onrender.com'
-        }
-        
-    allocated_server_id = user_doc.get('allocated_server_id')
-    current_server = None
-    if allocated_server_id:
-        with servers_cache_lock:
-            if allocated_server_id in servers_cache:
-                current_server = servers_cache[allocated_server_id].copy()
-                
-        if not current_server:
-            try:
-                server_doc = db.collection('servers').document(allocated_server_id).get()
-                if server_doc.exists:
-                    current_server = server_doc.to_dict()
-            except Exception:
-                pass
-                
-        if current_server:
-            s_expires = current_server.get('expires_at')
-            if s_expires:
-                s_expires = s_expires.replace(tzinfo=None)
-            if s_expires and datetime.utcnow() > s_expires:
-                current_server = None
-                
-    allocated_subdomain = user_doc.get('allocated_subdomain')
-    if current_server and not allocated_subdomain:
-        safe_prefix = user_doc.get('email', '').replace('@', '-').replace('.', '-')
-        allocated_subdomain = f"{safe_prefix}.{BASE_ZONE}"
-        delete_dns_record(allocated_subdomain, DYNV6_TOKEN)
-        create_dns_record(allocated_subdomain, current_server['original_ip'], DYNV6_TOKEN)
-        db.collection('users').document(user_id).update({
-            'allocated_subdomain': allocated_subdomain
-        })
-        user_doc['allocated_subdomain'] = allocated_subdomain
-                
-    if not current_server:
-        if user_doc.get('allocated_subdomain'):
-            delete_dns_record(user_doc['allocated_subdomain'], DYNV6_TOKEN)
-            
-        now = datetime.utcnow()
-        required_tags = set(user_doc.get('required_tags') or [])
-        user_expiry = user_doc.get('subscription_expires_at')
-        if user_expiry and isinstance(user_expiry, datetime):
-            user_expiry = user_expiry.replace(tzinfo=None)
-        else:
-            user_expiry = now
-
-        candidate_servers = []
-        all_active = []
-        
-        with servers_cache_lock:
-            for s_id, s_dict in servers_cache.items():
-                s = s_dict.copy()
-                s['id'] = s_id
-                s_exp = s.get('expires_at')
-                if s_exp and s_exp.replace(tzinfo=None) > now:
-                    all_active.append(s)
-                    s_tags = set(s.get('tags') or [])
-                    if required_tags and required_tags.issubset(s_tags):
-                        candidate_servers.append(s)
-                    elif not required_tags:
-                        candidate_servers.append(s)
-                        
-        # Fallback if cache is empty
-        if not all_active:
-            try:
-                for doc in db.collection('servers').where('expires_at', '>', now).stream():
-                    s = doc.to_dict()
-                    s['id'] = doc.id
-                    all_active.append(s)
-                    s_tags = set(s.get('tags') or [])
-                    if required_tags and required_tags.issubset(s_tags):
-                        candidate_servers.append(s)
-                    elif not required_tags:
-                        candidate_servers.append(s)
-            except Exception as e:
-                print(f"Error fetching servers fallback in sub: {e}")
-                
-        is_temporary = False
-        if not candidate_servers and required_tags:
-            candidate_servers = all_active
-            is_temporary = True
-            if candidate_servers:
-                # Add notification
-                db.collection('notifications').add({
-                    'title': 'سيرفرات غير متوفرة',
-                    'message': f'نفدت سيرفرات ({" ".join(required_tags)})! تم إعطاء المستخدم {user_doc.get("email")} سيرفراً مؤقتاً.',
-                    'created_at': datetime.utcnow(),
-                    'is_read': False,
-                    'type': 'out_of_stock'
-                })
-            
-        if not candidate_servers:
-            return "", 200
-            
-        valid_servers = []
-        for s in candidate_servers:
-            s_exp = s['expires_at'].replace(tzinfo=None)
-            if s_exp >= user_expiry:
-                valid_servers.append(s)
-                
-        if valid_servers:
-            best_server = min(valid_servers, key=lambda s: s['expires_at'].replace(tzinfo=None))
-        else:
-            best_server = max(candidate_servers, key=lambda s: s['expires_at'].replace(tzinfo=None))
-        
-        safe_prefix = user_doc.get('email', '').replace('@', '-').replace('.', '-')
-        subdomain = f"{safe_prefix}.{BASE_ZONE}"
-        
-        delete_dns_record(subdomain, DYNV6_TOKEN)
-        create_dns_record(subdomain, best_server['original_ip'], DYNV6_TOKEN)
-        
-        db.collection('users').document(user_id).update({
-            'allocated_server_id': best_server['id'],
-            'allocated_subdomain': subdomain,
-            'is_temporary_server': is_temporary
-        })
-        
-        # Check debt
-        best_exp = best_server['expires_at'].replace(tzinfo=None)
-        if best_exp < user_expiry:
-            db.collection('users').document(user_id).update({'is_in_debt': True})
-            debt_delta = user_expiry - best_exp
-            db.collection('notifications').add({
-                'title': 'ديون جديدة لمستخدم',
-                'message': f'المستخدم {user_doc.get("email")} لم يجد سيرفراً يغطي مدته بالكامل (نقل تلقائي)! لديك دين له بقيمة {debt_delta.days} يوم و {debt_delta.seconds // 3600} ساعة.',
-                'created_at': datetime.utcnow(),
-                'is_read': False,
-                'type': 'debt'
-            })
-        else:
-            db.collection('users').document(user_id).update({'is_in_debt': False})
-            
-        current_server = best_server
-        user_doc['allocated_subdomain'] = subdomain
-
-    # We use the raw IP directly to avoid "DNS address could not be found" errors
-    # caused by ISP blocking of DynV6 or slow DNS propagation. The subscription
-    # update mechanism (Poisoned Config) is enough to kick expired users.
-    active_address = current_server['original_ip']
-
+    combined_links = []
+    has_active = False
+    
     from utils import generate_vless_uri
-    from vless_parser import parse_vless_uri
-    import base64
     import re
+    import base64
+    from datetime import datetime, timezone
+    from dns_manager import delete_dns_record
     
-    # === FALLBACK: vless:// URI (Standard Subscription Format) ===
-    vless_uri = None
-    if current_server.get('vless_link'):
-        vless_uri = re.sub(r'(@)([^:?#]+)', r'\g<1>' + active_address, current_server['vless_link'], count=1)
-    elif current_server.get('json_config'):
-        vless_uri = generate_vless_uri(current_server['json_config'], active_address)
+    now = datetime.now(timezone.utc)
     
-    if vless_uri:
-        b64_content = base64.b64encode(vless_uri.encode('utf-8')).decode('utf-8')
-        return b64_content, 200, {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'profile-update-interval': '0.25',
-            'profile-web-page-url': 'https://bombavpn.onrender.com',
-            'subscription-userinfo': f'upload=0; download=0; total=0; expire={int(expires_at.timestamp()) if expires_at else 0}'
-        }
-    else:
-        if vless_uri:
-            b64_content = base64.b64encode(vless_uri.encode('utf-8')).decode('utf-8')
-            return b64_content, 200, {
-                'Content-Type': 'text/plain; charset=utf-8',
-                'profile-update-interval': '0.25',
-                'profile-web-page-url': 'https://bombavpn.onrender.com'
-            }
-        else:
-            # Absolute last fallback: raw JSON with address replaced
-            modified_json = modify_json_address(current_server['json_config'], active_address)
-            return modified_json, 200, {
-                'Content-Type': 'application/json',
-                'profile-update-interval': '0.25',
-                'profile-web-page-url': 'https://bombavpn.onrender.com'
-            }
+    for sub_doc in subs:
+        sub_data = sub_doc.to_dict()
+        server_id = sub_data.get('server_id')
+        subdomain = sub_data.get('allocated_subdomain')
+        status = sub_data.get('status')
+        expires_at = sub_data.get('expires_at')
+        
+        is_expired = False
+        if status == 'expired':
+            is_expired = True
+        elif expires_at:
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
+            if expires_at < now:
+                is_expired = True
+                if status != 'expired':
+                    db.collection('subscriptions').document(sub_doc.id).update({'status': 'expired'})
+                    if subdomain:
+                        delete_dns_record(subdomain, DYNV6_TOKEN)
+                
+        if server_id:
+            server_doc = db.collection('servers').document(server_id).get()
+            if server_doc.exists:
+                server = server_doc.to_dict()
+                
+                # Critical Bug Fix: Use Dynv6 subdomain to enable kicking users, NOT original_ip
+                # For expired servers, use 127.0.0.1 to poison the exact server name on the user's phone
+                if is_expired:
+                    active_address = "127.0.0.1"
+                else:
+                    active_address = subdomain if subdomain else server.get('original_ip')
+                    has_active = True
+                
+                vless_uri = None
+                if server.get('vless_link'):
+                    vless_uri = re.sub(r'(@)([^:?#]+)', r'\g<1>' + active_address, server['vless_link'], count=1)
+                elif server.get('json_config'):
+                    vless_uri = generate_vless_uri(server['json_config'], active_address)
+                    
+                if vless_uri:
+                    combined_links.append(vless_uri)
+
+    if not has_active:
+        poisoned_link = "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:80?type=tcp&security=none#❌_All_Subscriptions_Expired_-_Please_Renew"
+        combined_links.insert(0, poisoned_link)
+        
+    if not combined_links:
+        poisoned_link = "vless://00000000-0000-0000-0000-000000000000@127.0.0.1:80?type=tcp&security=none#⚠️_No_Servers_Found"
+        combined_links.append(poisoned_link)
+        
+    combined_text = "\n".join(combined_links)
+    encoded_link = base64.b64encode(combined_text.encode('utf-8')).decode('utf-8')
+    
+    return encoded_link, 200, {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'profile-update-interval': '1' if has_active else '0.25',
+        'profile-web-page-url': 'https://bombavpn.onrender.com'
+    }
 
 
 import threading
