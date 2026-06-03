@@ -121,7 +121,10 @@ TRANSLATIONS = {
         'DeleteAll': 'Delete All',
         'ModifyAdd': 'Add Time',
         'ModifySet': 'Set Remaining Time',
-        'ModifySubtract': 'Subtract Time'
+        'ModifySubtract': 'Subtract Time',
+        'ImportantTips': 'Important Payment Tips:',
+        'TipExactAmount': 'Make sure to transfer the <strong>exact amount required</strong> to avoid delays in activating your subscription.',
+        'TipClearReceipt': 'Take a <strong>clear picture of the transfer receipt</strong> after completing the payment.'
     },
     'ar': {
         'Login': 'تسجيل الدخول',
@@ -248,7 +251,10 @@ TRANSLATIONS = {
         'DeleteAll': 'حذف الكل',
         'ModifyAdd': 'إضافة وقت',
         'ModifySet': 'تحديد وقت متبقي',
-        'ModifySubtract': 'خصم وقت'
+        'ModifySubtract': 'خصم وقت',
+        'ImportantTips': 'نصائح هامة للدفع:',
+        'TipExactAmount': 'تأكد من تحويل <strong>المبلغ المطلوب بالضبط</strong> لتجنب تأخير تفعيل اشتراكك.',
+        'TipClearReceipt': 'قم بالتقاط <strong>صورة واضحة لوصل التحويل (Receipt)</strong> بعد إتمام الدفع.'
     },
     'ru': {
         'Login': 'Вход',
@@ -375,6 +381,9 @@ TRANSLATIONS = {
         'DeleteAll': 'Удалить все',
         'ModifyAdd': 'Добавить время',
         'ModifySet': 'Установить оставшееся время',
-        'ModifySubtract': 'Вычесть время'
+        'ModifySubtract': 'Вычесть время',
+        'ImportantTips': 'Важные советы по оплате:',
+        'TipExactAmount': 'Убедитесь, что переводите <strong>точную требуемую сумму</strong>, чтобы избежать задержек в активации подписки.',
+        'TipClearReceipt': 'Сделайте <strong>четкое фото чека о переводе</strong> после завершения оплаты.'
     }
 }

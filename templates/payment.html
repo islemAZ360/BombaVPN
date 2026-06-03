@@ -47,11 +47,11 @@
             <div id="modal-plan-duration" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;"></div>
         </div>
         
-        <div class="alert alert-warning" style="text-align: right; padding: 10px; font-size: 0.85rem; margin-bottom: 1.5rem; border-radius: 8px;">
-            <strong style="display: block; margin-bottom: 8px; color: var(--warning);">نصائح هامة للدفع (Important Tips):</strong>
-            <ul style="margin: 0; padding-right: 20px; list-style-type: disc;">
-                <li style="margin-bottom: 4px;">تأكد من تحويل <strong>المبلغ المطلوب بالضبط</strong> لتجنب تأخير تفعيل اشتراكك.</li>
-                <li style="margin-bottom: 4px;">قم بالتقاط <strong>صورة واضحة لوصل التحويل (Receipt)</strong> بعد إتمام الدفع.</li>
+        <div class="alert alert-warning" style="text-align: {{ dir }}; padding: 10px; font-size: 0.85rem; margin-bottom: 1.5rem; border-radius: 8px;">
+            <strong style="display: block; margin-bottom: 8px; color: var(--warning);">{{ _('ImportantTips') }}</strong>
+            <ul style="margin: 0; padding-{{ 'right' if dir == 'rtl' else 'left' }}: 20px; list-style-type: disc;">
+                <li style="margin-bottom: 4px;">{{ _('TipExactAmount') | safe }}</li>
+                <li style="margin-bottom: 4px;">{{ _('TipClearReceipt') | safe }}</li>
                 <li style="margin-bottom: 4px;">{{ _('ScanQR') }}</li>
             </ul>
         </div>
