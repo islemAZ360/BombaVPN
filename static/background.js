@@ -5,25 +5,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const ctx = canvas.getContext('2d', { alpha: false }); 
 
     let width, height, centerX, centerY;
-    let nodes = [];
+    let stars = [];
     let planets = [];
     let nebulas = [];
-    let dataStreams = [];
-    let radarRadius = 0;
     let lightningFlash = 0;
     
     // Parallax & Warp Speed controls
     let mouse = { screenX: -1000, screenY: -1000, targetX: 0, targetY: 0, currentX: 0, currentY: 0 };
     let isWarping = false;
-    let warpSpeed = 1; // Base speed
+    let warpSpeed = 1; 
     
     const colors = {
-        bg: '#0a0e1a',
-        neonGreen: 'rgba(0, 255, 204, 1)',
-        neonGreenFaint: 'rgba(0, 255, 204, 0.1)',
-        cyan: 'rgba(0, 204, 255, 0.3)',
-        nebula1: 'rgba(0, 60, 80, 0.15)',
-        nebula2: 'rgba(0, 255, 204, 0.05)'
+        bg: '#05070d', // Deepest space black/blue
+        starBase: '255, 255, 255',
+        starBlue: '200, 220, 255',
+        starYellow: '255, 240, 200',
+        nebula1: 'rgba(20, 30, 70, 0.25)', // Deep blue nebula
+        nebula2: 'rgba(60, 20, 50, 0.15)', // Deep purple nebula
+        nebula3: 'rgba(10, 40, 60, 0.2)'
     };
 
     function resize() {
@@ -36,66 +35,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('resize', resize);
     
-    // Mouse Interaction
     window.addEventListener('mousemove', (e) => {
         mouse.screenX = e.clientX;
         mouse.screenY = e.clientY;
-        mouse.targetX = (e.clientX - centerX) * 0.5;
-        mouse.targetY = (e.clientY - centerY) * 0.5;
+        mouse.targetX = (e.clientX - centerX) * 0.3; // subtle parallax
+        mouse.targetY = (e.clientY - centerY) * 0.3;
     });
 
     window.addEventListener('mouseout', () => {
-        mouse.screenX = -1000;
-        mouse.screenY = -1000;
         mouse.targetX = 0;
         mouse.targetY = 0;
-        isWarping = false;
     });
 
-    // window.addEventListener('mousedown', () => isWarping = true);
-    // window.addEventListener('mouseup', () => isWarping = false);
-
-    // Touch Interaction
     window.addEventListener('touchmove', (e) => {
         if(e.touches.length > 0) {
             mouse.screenX = e.touches[0].clientX;
             mouse.screenY = e.touches[0].clientY;
-            mouse.targetX = (e.touches[0].clientX - centerX) * 0.5;
-            mouse.targetY = (e.touches[0].clientY - centerY) * 0.5;
+            mouse.targetX = (e.touches[0].clientX - centerX) * 0.3;
+            mouse.targetY = (e.touches[0].clientY - centerY) * 0.3;
         }
     }, { passive: true });
 
-    // window.addEventListener('touchstart', () => isWarping = true, { passive: true });
     window.addEventListener('touchend', () => {
-        mouse.screenX = -1000;
-        mouse.screenY = -1000;
         mouse.targetX = 0;
         mouse.targetY = 0;
-        isWarping = false;
     });
 
-    class Node {
+    class Star {
         constructor() {
-            this.x = Math.random() * width;
-            this.y = Math.random() * height;
-            this.z = Math.random() * 2 + 0.8; 
-            this.vx = (Math.random() - 0.5) * 0.2;
-            this.vy = (Math.random() - 0.5) * 0.2;
+            this.x = Math.random() * width * 1.2 - width * 0.1;
+            this.y = Math.random() * height * 1.2 - height * 0.1;
+            this.z = Math.random() * 3 + 0.5; // Depth
             this.radius = (Math.random() * 1.5 + 0.5) / this.z;
-            this.baseAlpha = Math.random() * 0.5 + 0.2;
+            this.vx = (Math.random() - 0.5) * 0.05;
+            this.vy = (Math.random() - 0.5) * 0.05;
+            this.baseAlpha = Math.random() * 0.8 + 0.2;
+            this.twinkleSpeed = Math.random() * 0.02 + 0.01;
+            this.twinklePhase = Math.random() * Math.PI * 2;
+            
+            const colorR = Math.random();
+            if (colorR > 0.8) this.color = colors.starBlue;
+            else if (colorR > 0.6) this.color = colors.starYellow;
+            else this.color = colors.starBase;
         }
 
         update() {
-            // Apply warp speed multiplier
             this.x += (this.vx / this.z) * warpSpeed;
             this.y += (this.vy / this.z) * warpSpeed;
+            this.twinklePhase += this.twinkleSpeed;
 
-            // Warp effect: pull towards edges when fast
             if (warpSpeed > 2) {
                 let dx = this.x - centerX;
                 let dy = this.y - centerY;
-                this.x += dx * 0.01 * warpSpeed;
-                this.y += dy * 0.01 * warpSpeed;
+                this.x += dx * 0.005 * warpSpeed;
+                this.y += dy * 0.005 * warpSpeed;
             }
 
             if (this.x < -100) this.x = width + 100;
@@ -107,30 +100,31 @@ document.addEventListener('DOMContentLoaded', () => {
         draw(px, py) {
             const drawX = this.x + px / this.z;
             const drawY = this.y + py / this.z;
+            
+            const currentAlpha = this.baseAlpha * (0.5 + 0.5 * Math.sin(this.twinklePhase));
 
-            ctx.fillStyle = `rgba(255, 255, 255, ${this.baseAlpha})`;
             ctx.beginPath();
             
-            // Stretch nodes into lines during warp speed
             if (warpSpeed > 2) {
-                let stretchX = (drawX - centerX) * 0.05 * warpSpeed;
-                let stretchY = (drawY - centerY) * 0.05 * warpSpeed;
+                let stretchX = (drawX - centerX) * 0.02 * warpSpeed;
+                let stretchY = (drawY - centerY) * 0.02 * warpSpeed;
                 ctx.moveTo(drawX, drawY);
                 ctx.lineTo(drawX - stretchX, drawY - stretchY);
-                ctx.strokeStyle = `rgba(0, 255, 204, ${this.baseAlpha})`;
+                ctx.strokeStyle = `rgba(${this.color}, ${currentAlpha})`;
                 ctx.lineWidth = this.radius;
                 ctx.stroke();
             } else {
-                // Glowing synapses (Neural Network style)
-                ctx.fillStyle = `rgba(0, 255, 204, ${this.baseAlpha * 0.4})`;
-                ctx.beginPath();
-                ctx.arc(drawX, drawY, this.radius * 3.5, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.fillStyle = `rgba(255, 255, 255, ${this.baseAlpha})`;
-                ctx.beginPath();
+                ctx.fillStyle = `rgba(${this.color}, ${currentAlpha})`;
                 ctx.arc(drawX, drawY, this.radius, 0, Math.PI * 2);
                 ctx.fill();
+                
+                // Add soft glow for bigger stars
+                if (this.radius > 0.8) {
+                    ctx.beginPath();
+                    ctx.fillStyle = `rgba(${this.color}, ${currentAlpha * 0.3})`;
+                    ctx.arc(drawX, drawY, this.radius * 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
         }
     }
@@ -139,15 +133,19 @@ document.addEventListener('DOMContentLoaded', () => {
         constructor() {
             this.x = Math.random() * width;
             this.y = Math.random() * height;
-            this.radius = Math.random() * 600 + 300;
-            this.vx = (Math.random() - 0.5) * 0.05;
-            this.vy = (Math.random() - 0.5) * 0.05;
-            this.z = 5;
-            this.color = Math.random() > 0.5 ? colors.nebula1 : colors.nebula2;
+            this.radius = Math.random() * 800 + 500;
+            this.vx = (Math.random() - 0.5) * 0.02;
+            this.vy = (Math.random() - 0.5) * 0.02;
+            this.z = Math.random() * 2 + 5; // Far away
+            
+            const r = Math.random();
+            if(r > 0.6) this.color = colors.nebula1;
+            else if(r > 0.3) this.color = colors.nebula2;
+            else this.color = colors.nebula3;
         }
         update() {
-            this.x += this.vx * (warpSpeed * 0.2);
-            this.y += this.vy * (warpSpeed * 0.2);
+            this.x += this.vx * warpSpeed * 0.1;
+            this.y += this.vy * warpSpeed * 0.1;
             if (this.x < -this.radius) this.x = width + this.radius;
             if (this.x > width + this.radius) this.x = -this.radius;
             if (this.y < -this.radius) this.y = height + this.radius;
@@ -159,76 +157,44 @@ document.addEventListener('DOMContentLoaded', () => {
             let grad = ctx.createRadialGradient(drawX, drawY, 0, drawX, drawY, this.radius);
             grad.addColorStop(0, this.color);
             grad.addColorStop(1, 'rgba(0,0,0,0)');
+            
+            ctx.globalCompositeOperation = 'screen';
             ctx.fillStyle = grad;
             ctx.beginPath();
             ctx.arc(drawX, drawY, this.radius, 0, Math.PI * 2);
             ctx.fill();
+            ctx.globalCompositeOperation = 'source-over';
         }
     }
 
     const planetImages = [];
-    const planetGlows = [
-        'rgba(0, 255, 204, 0.5)', 
-        'rgba(0, 204, 255, 0.5)', 
-        'rgba(255, 100, 200, 0.3)', 
-        'rgba(100, 150, 255, 0.3)',
-        'rgba(255, 100, 50, 0.4)',  // Red gas
-        'rgba(150, 255, 255, 0.4)', // Ice crystal
-        'rgba(100, 255, 150, 0.4)', // Shattered lava
-        'rgba(200, 50, 255, 0.4)',  // Purple ring
-        'rgba(50, 255, 50, 0.4)'    // Toxic green
-    ];
-
     for (let i = 0; i < 9; i++) {
         const img = new Image();
         img.src = `/static/images/planets/planet_${i}.png`; 
         planetImages.push(img);
     }
     
-    const extraImages = {};
-    const extraKeys = ['nebula_cloud', 'space_station', 'astronaut', 'crystal_asteroids'];
-    extraKeys.forEach(k => {
-        const img = new Image();
-        img.src = `/static/images/planets/${k}.png`;
-        extraImages[k] = img;
-    });
-    
-    const sunImage = new Image();
-    sunImage.src = '/static/images/planets/sun.png';
-
-    const blackHoleImage = new Image();
-    blackHoleImage.src = '/static/images/planets/blackhole.png';
-
-    const galaxyImage = new Image();
-    galaxyImage.src = '/static/images/planets/galaxy.png';
-
     class Planet {
         constructor(imgIndex) {
             this.reset();
             this.image = planetImages[imgIndex];
-            this.glowColor = planetGlows[imgIndex];
-            this.glitchTimer = 0;
         }
         reset() {
             const isLeftEdge = Math.random() > 0.5;
             this.x = isLeftEdge ? Math.random() * (width * 0.2) : width - Math.random() * (width * 0.2);
             this.y = Math.random() * height;
-            this.z = Math.random() * 1.5 + 0.6; 
-            this.radius = (Math.random() * 50 + 20) / this.z; 
-            this.vx = (Math.random() - 0.5) * 0.1;
-            this.vy = (Math.random() - 0.5) * 0.1;
+            this.z = Math.random() * 2 + 2; 
+            this.radius = (Math.random() * 80 + 30) / this.z; 
+            this.vx = (Math.random() - 0.5) * 0.05;
+            this.vy = (Math.random() - 0.5) * 0.05;
             this.rotation = Math.random() * Math.PI * 2;
-            this.rotationSpeed = (Math.random() - 0.5) * 0.002;
+            this.rotationSpeed = (Math.random() - 0.5) * 0.001;
         }
         update() {
             this.x += (this.vx / this.z) * (warpSpeed > 1 ? warpSpeed * 0.5 : 1);
             this.y += (this.vy / this.z) * (warpSpeed > 1 ? warpSpeed * 0.5 : 1);
             this.rotation += this.rotationSpeed * warpSpeed;
             
-            // Random Hologram Glitch trigger
-            if (Math.random() < 0.002) this.glitchTimer = 15;
-            if (this.glitchTimer > 0) this.glitchTimer--;
-
             if (this.x < -this.radius * 2) this.x = width + this.radius * 2;
             if (this.x > width + this.radius * 2) this.x = -this.radius * 2;
             if (this.y < -this.radius * 2) this.y = height + this.radius * 2;
@@ -243,162 +209,33 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.save();
             ctx.translate(drawX, drawY);
             
-            // Glow
+            // Atmospheric subtle glow
             ctx.globalCompositeOperation = 'screen';
-            let grad = ctx.createRadialGradient(0, 0, this.radius * 0.5, 0, 0, this.radius * 1.6);
-            grad.addColorStop(0, this.glowColor);
+            let grad = ctx.createRadialGradient(0, 0, this.radius * 0.8, 0, 0, this.radius * 1.3);
+            grad.addColorStop(0, 'rgba(50, 100, 200, 0.2)');
             grad.addColorStop(1, 'rgba(0,0,0,0)');
             ctx.fillStyle = grad;
             ctx.beginPath();
-            ctx.arc(0, 0, this.radius * 1.6, 0, Math.PI * 2);
+            ctx.arc(0, 0, this.radius * 1.3, 0, Math.PI * 2);
             ctx.fill();
             
             ctx.globalCompositeOperation = 'source-over';
             ctx.rotate(this.rotation);
+            ctx.globalAlpha = 0.8; // Blend slightly with space
             
-            // Hologram Glitch Effect
-            if (this.glitchTimer > 0 && Math.random() > 0.3) {
-                let offset = (Math.random() - 0.5) * 10;
-                ctx.globalAlpha = 0.7;
-                // Cyan split
-                ctx.drawImage(this.image, -this.radius + offset, -this.radius, this.radius * 2, this.radius * 2);
-                // Red/Green split
-                ctx.globalCompositeOperation = 'screen';
-                ctx.drawImage(this.image, -this.radius - offset, -this.radius + offset/2, this.radius * 2, this.radius * 2);
-            } else {
-                ctx.drawImage(this.image, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
-            }
+            ctx.drawImage(this.image, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
             
-            ctx.restore();
-        }
-    }
-
-    class FloatingObject {
-        constructor(imgKey, sizeScale, speedScale, rotationSpeed) {
-            this.imgKey = imgKey;
-            this.reset(sizeScale, speedScale, rotationSpeed);
-            // scatter initial y position so they don't all start at bottom
-            this.y = Math.random() * height;
-        }
-        reset(sizeScale, speedScale, rotationSpeed) {
-            this.sizeScale = sizeScale || 1;
-            this.x = Math.random() * width;
-            this.y = height + 100;
-            this.z = Math.random() * 2 + 1;
-            this.radius = Math.min(width, height) * 0.05 * this.sizeScale / this.z;
-            this.speed = (Math.random() * 0.2 + 0.1) * (speedScale || 1);
-            this.rotation = Math.random() * Math.PI * 2;
-            this.rotSpeed = ((Math.random() - 0.5) * 0.01) * (rotationSpeed || 1);
-        }
-        update() {
-            this.y -= (this.speed / this.z) * (warpSpeed * 0.5);
-            this.rotation += this.rotSpeed * warpSpeed;
-            if (this.y < -this.radius * 2) {
-                this.reset(this.sizeScale, this.speed / (this.speedScale||1), this.rotSpeed / (this.rotationSpeed||1));
-            }
-        }
-        draw(px, py) {
-            const img = extraImages[this.imgKey];
-            if (!img.complete || img.naturalWidth === 0) return;
-            const drawX = this.x + px / this.z;
-            const drawY = this.y + py / this.z;
-            
-            ctx.save();
-            ctx.translate(drawX, drawY);
-            ctx.rotate(this.rotation);
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.drawImage(img, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
-            ctx.restore();
-        }
-    }
-
-    class Sun {
-        constructor() {
-            this.x = width * 0.9;
-            this.y = height * 0.1;
-            this.radius = Math.min(width, height) * 0.12;
-            this.z = 5; // Reduced z for stronger parallax
-        }
-        update() {}
-        draw(px, py) {
-            if (!sunImage.complete || sunImage.naturalWidth === 0) return;
-            const drawX = this.x + px / this.z;
-            const drawY = this.y + py / this.z;
-            
-            ctx.save();
-            ctx.translate(drawX, drawY);
-            ctx.globalCompositeOperation = 'screen';
-            
-            // Draw realistic sun image
-            ctx.drawImage(sunImage, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
-            
-            // Extra outer glow
-            let grad = ctx.createRadialGradient(0, 0, this.radius * 0.5, 0, 0, this.radius * 3);
-            grad.addColorStop(0, 'rgba(255, 200, 50, 0)');
-            grad.addColorStop(0.3, 'rgba(255, 120, 20, 0.5)');
-            grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            
-            ctx.fillStyle = grad;
+            // Add shadow overlay for realistic lighting
+            ctx.rotate(-this.rotation); // unrotate for shadow
+            let shadowGrad = ctx.createLinearGradient(-this.radius, -this.radius, this.radius, this.radius);
+            shadowGrad.addColorStop(0, 'rgba(0,0,0,0)');
+            shadowGrad.addColorStop(0.5, 'rgba(0,0,0,0.3)');
+            shadowGrad.addColorStop(1, 'rgba(0,0,0,0.9)');
+            ctx.fillStyle = shadowGrad;
             ctx.beginPath();
-            ctx.arc(0, 0, this.radius * 3, 0, Math.PI * 2);
+            ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
             ctx.fill();
-            
-            ctx.restore();
-        }
-    }
 
-    class BlackHole {
-        constructor() {
-            this.x = width * 0.1;
-            this.y = height * 0.9;
-            this.radius = Math.min(width, height) * 0.15;
-            this.z = 4; // Reduced z for stronger parallax
-            this.rotation = 0;
-        }
-        update() {
-            this.rotation += 0.005 * warpSpeed; // Slow rotation
-        }
-        draw(px, py) {
-            if (!blackHoleImage.complete || blackHoleImage.naturalWidth === 0) return;
-            const drawX = this.x + px / this.z;
-            const drawY = this.y + py / this.z;
-            
-            ctx.save();
-            ctx.translate(drawX, drawY);
-            ctx.globalCompositeOperation = 'screen';
-            
-            ctx.rotate(this.rotation);
-            // Draw realistic black hole image
-            ctx.drawImage(blackHoleImage, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
-            
-            ctx.restore();
-        }
-    }
-
-    class Galaxy {
-        constructor() {
-            this.x = width * 0.7;
-            this.y = height * 0.8;
-            this.radius = Math.min(width, height) * 0.35; // Massive
-            this.z = 6; // Reduced z for stronger parallax
-            this.rotation = Math.PI / 4;
-        }
-        update() {
-            this.rotation -= 0.001 * warpSpeed; // Extremely slow majestic rotation
-        }
-        draw(px, py) {
-            if (!galaxyImage.complete || galaxyImage.naturalWidth === 0) return;
-            const drawX = this.x + px / this.z;
-            const drawY = this.y + py / this.z;
-            
-            ctx.save();
-            ctx.translate(drawX, drawY);
-            ctx.globalCompositeOperation = 'screen';
-            
-            ctx.rotate(this.rotation);
-            ctx.globalAlpha = 0.6; // Slightly transparent to look like background
-            ctx.drawImage(galaxyImage, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
-            
             ctx.restore();
         }
     }
@@ -407,23 +244,14 @@ document.addEventListener('DOMContentLoaded', () => {
         constructor() { this.reset(); }
         reset() {
             this.active = false;
-            if (Math.random() < 0.005) { 
+            if (Math.random() < 0.003) { // rarer, more realistic
                 this.active = true;
                 this.x = Math.random() * width * 1.5;
                 this.y = -100;
-                this.length = Math.random() * 300 + 150; 
-                this.speed = Math.random() * 25 + 15; 
-                this.angle = Math.PI / 4 + (Math.random() - 0.5) * 0.2; 
+                this.length = Math.random() * 200 + 100; 
+                this.speed = Math.random() * 20 + 10; 
+                this.angle = Math.PI / 4 + (Math.random() - 0.5) * 0.1; 
                 this.opacity = Math.random() * 0.5 + 0.5;
-                
-                const colorsArr = [
-                    {head: '255, 255, 255', core: '0, 255, 204', tail: '0, 150, 255'}, // Cyan/Blue
-                    {head: '255, 255, 255', core: '100, 255, 100', tail: '0, 200, 50'}, // Green (Magnesium)
-                    {head: '255, 255, 255', core: '255, 200, 50', tail: '255, 50, 0'},  // Fire (Iron)
-                    {head: '255, 255, 255', core: '200, 100, 255', tail: '100, 0, 255'} // Purple/Magenta
-                ];
-                this.colorTheme = colorsArr[Math.floor(Math.random() * colorsArr.length)];
-                this.flicker = 0;
             }
         }
         update() {
@@ -437,208 +265,65 @@ document.addEventListener('DOMContentLoaded', () => {
             const drawX = this.x + px * 0.2;
             const drawY = this.y + py * 0.2;
             
-            this.flicker = Math.random() * 0.3 - 0.15;
-            let currentOpacity = Math.max(0, Math.min(1, this.opacity + this.flicker));
-            
             const tailX = drawX + Math.cos(this.angle) * this.length;
             const tailY = drawY - Math.sin(this.angle) * this.length;
             
             ctx.save();
             ctx.globalCompositeOperation = 'screen';
             
-            // 1. Outer wide faint trail (Atmospheric burn)
             let gradOuter = ctx.createLinearGradient(drawX, drawY, tailX, tailY);
-            gradOuter.addColorStop(0, `rgba(${this.colorTheme.core}, ${currentOpacity * 0.4})`);
-            gradOuter.addColorStop(0.3, `rgba(${this.colorTheme.tail}, ${currentOpacity * 0.1})`);
+            gradOuter.addColorStop(0, `rgba(200, 230, 255, ${this.opacity * 0.8})`);
+            gradOuter.addColorStop(0.1, `rgba(100, 180, 255, ${this.opacity * 0.4})`);
             gradOuter.addColorStop(1, 'rgba(0, 0, 0, 0)');
             
             ctx.strokeStyle = gradOuter;
-            ctx.lineWidth = 15;
-            ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.moveTo(drawX, drawY);
-            ctx.lineTo(tailX, tailY);
-            ctx.stroke();
-
-            // 2. Inner bright core trail
-            let gradInner = ctx.createLinearGradient(drawX, drawY, tailX, tailY);
-            gradInner.addColorStop(0, `rgba(${this.colorTheme.head}, ${currentOpacity})`);
-            gradInner.addColorStop(0.1, `rgba(${this.colorTheme.core}, ${currentOpacity * 0.8})`);
-            gradInner.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            
-            ctx.strokeStyle = gradInner;
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 2;
             ctx.lineCap = 'round';
             ctx.beginPath();
             ctx.moveTo(drawX, drawY);
             ctx.lineTo(tailX, tailY);
             ctx.stroke();
             
-            // 3. Nucleus (Glowing Head)
-            let headGrad = ctx.createRadialGradient(drawX, drawY, 0, drawX, drawY, 20);
-            headGrad.addColorStop(0, `rgba(255, 255, 255, ${currentOpacity})`);
-            headGrad.addColorStop(0.2, `rgba(${this.colorTheme.head}, ${currentOpacity * 0.9})`);
-            headGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            
-            ctx.fillStyle = headGrad;
+            // Glowing head
+            ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
             ctx.beginPath();
-            ctx.arc(drawX, drawY, 20, 0, Math.PI * 2);
+            ctx.arc(drawX, drawY, 2, 0, Math.PI * 2);
             ctx.fill();
             
             ctx.restore();
         }
     }
 
-    class LightningBolt {
-        constructor(x, y) {
-            this.segments = [];
-            this.alpha = 1.0;
-            this.generate(x, y, 0);
-        }
-        
-        generate(startX, startY, depth) {
-            let x = startX;
-            let y = startY;
-            let path = [{x, y}];
-            while(y < height && path.length < 50) {
-                x += (Math.random() - 0.5) * 80;
-                y += Math.random() * 60 + 20;
-                path.push({x, y});
-                if (Math.random() < 0.2 && depth < 2) {
-                    this.segments.push(this.createBranch(x, y, depth + 1));
-                }
-            }
-            this.segments.push(path);
-        }
+    let sunImage = new Image(); sunImage.src = '/static/images/planets/sun.png';
+    let galaxyImage = new Image(); galaxyImage.src = '/static/images/planets/galaxy.png';
+    let blackHoleImage = new Image(); blackHoleImage.src = '/static/images/planets/blackhole.png';
 
-        createBranch(startX, startY, depth) {
-            let x = startX;
-            let y = startY;
-            let path = [{x, y}];
-            let length = Math.random() * 200 + 100;
-            let currentLength = 0;
-            let angle = (Math.random() - 0.5) * Math.PI * 0.8; 
-            
-            while(currentLength < length) {
-                let dist = Math.random() * 40 + 10;
-                currentLength += dist;
-                x += Math.sin(angle) * dist + (Math.random() - 0.5) * 30;
-                y += Math.cos(angle) * dist + Math.random() * 20;
-                path.push({x, y});
-            }
-            return path;
-        }
-
-        draw() {
-            ctx.save();
-            ctx.globalCompositeOperation = 'screen';
-            
-            ctx.beginPath();
-            for (let path of this.segments) {
-                ctx.moveTo(path[0].x, path[0].y);
-                for (let i = 1; i < path.length; i++) {
-                    ctx.lineTo(path[i].x, path[i].y);
-                }
-            }
-            
-            ctx.strokeStyle = `rgba(0, 204, 255, ${this.alpha * 0.2})`;
-            ctx.lineWidth = 15;
-            ctx.stroke();
-
-            ctx.strokeStyle = `rgba(0, 255, 204, ${this.alpha * 0.5})`;
-            ctx.lineWidth = 6;
-            ctx.stroke();
-            
-            ctx.strokeStyle = `rgba(255, 255, 255, ${this.alpha})`;
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            ctx.restore();
-            this.alpha -= 0.05;
-        }
-    }
-
-    let activeLightnings = [];
-    let sun, blackHole, galaxy;
+    let sun = { x: width * 0.8, y: height * 0.15, radius: Math.min(width, height) * 0.15, z: 8 };
+    let galaxyObj = { x: width * 0.2, y: height * 0.8, radius: Math.min(width, height) * 0.4, z: 10, rot: 0 };
     let shootingStars = [];
-    let floatingObjects = [];
 
     function initElements() {
-        nodes = [];
+        stars = [];
         planets = [];
         nebulas = [];
         shootingStars = [];
-        floatingObjects = [];
-        sun = new Sun();
-        blackHole = new BlackHole();
-        galaxy = new Galaxy();
 
         const area = width * height;
-        const numNodes = Math.min(Math.floor(area / 12000), 80); 
+        const numStars = Math.min(Math.floor(area / 3000), 500); // Many more stars for realism
         
-        for (let i = 0; i < numNodes; i++) nodes.push(new Node());
-        for (let i = 0; i < 4; i++) nebulas.push(new Nebula());
+        for (let i = 0; i < numStars; i++) stars.push(new Star());
+        for (let i = 0; i < 5; i++) nebulas.push(new Nebula());
+        for (let i = 0; i < 4; i++) planets.push(new Planet(i % 9)); 
+        for (let i = 0; i < 3; i++) shootingStars.push(new ShootingStar());
         
-        // Reduced planets count for a cleaner space view
-        for (let i = 0; i < 6; i++) planets.push(new Planet(i % 9)); 
-        
-        for (let i = 0; i < 4; i++) shootingStars.push(new ShootingStar());
-
-        // Add diverse floating objects
-        floatingObjects.push(new FloatingObject('nebula_cloud', 4, 0.5, 0.2)); // Large, slow
-        floatingObjects.push(new FloatingObject('space_station', 1.5, 0.8, 0.5));
-        floatingObjects.push(new FloatingObject('astronaut', 0.5, 1.2, 2.0)); // Small, faster, spins more
-        floatingObjects.push(new FloatingObject('crystal_asteroids', 1.2, 0.9, 1.0));
-    }
-
-    function drawRadar() {
-        radarRadius += 2 * warpSpeed;
-        const maxRadius = Math.max(width, height);
-        
-        if (radarRadius > maxRadius) radarRadius = 0;
-
-        const opacity = 0.05 * (1 - radarRadius / maxRadius);
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radarRadius, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(0, 255, 204, ${opacity})`;
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        sun = { x: width * 0.85, y: height * 0.15, radius: Math.min(width, height) * 0.15, z: 8 };
+        galaxyObj = { x: width * 0.2, y: height * 0.85, radius: Math.min(width, height) * 0.4, z: 10, rot: 0 };
     }
 
     function animate() {
-        // Reset composite operation to avoid leaking 'screen' mode into the background fill
         ctx.globalCompositeOperation = 'source-over';
-
-        // Deep background
         ctx.fillStyle = colors.bg;
         ctx.fillRect(0, 0, width, height);
-
-        // Lightning flash effect (Extremely rare, approx once every 5 minutes)
-        if (Math.random() < 0.00005) {
-            lightningFlash = 1.0;
-            activeLightnings.push(new LightningBolt(Math.random() * width, 0));
-        }
-        if (lightningFlash > 0) {
-            ctx.fillStyle = `rgba(180, 230, 255, ${lightningFlash * 0.1})`;
-            ctx.fillRect(0, 0, width, height);
-            lightningFlash -= 0.04;
-            // Secondary strike
-            if (Math.random() < 0.1 && lightningFlash < 0.5) {
-                lightningFlash = 0.7;
-                activeLightnings.push(new LightningBolt(Math.random() * width, 0));
-            }
-        }
-        
-        for (let i = activeLightnings.length - 1; i >= 0; i--) {
-            activeLightnings[i].draw();
-            if (activeLightnings[i].alpha <= 0) {
-                activeLightnings.splice(i, 1);
-            }
-        }
-
-        // Smooth Warp Speed transition
-        const targetWarp = isWarping ? 12 : 1;
-        warpSpeed += (targetWarp - warpSpeed) * 0.05;
 
         mouse.currentX += (mouse.targetX - mouse.currentX) * 0.05;
         mouse.currentY += (mouse.targetY - mouse.currentY) * 0.05;
@@ -646,80 +331,61 @@ document.addEventListener('DOMContentLoaded', () => {
         const px = mouse.currentX * -1;
         const py = mouse.currentY * -1;
 
-        // 1. Nebulas
+        // Draw Nebulas (Deep background)
         for (let n of nebulas) { n.update(); n.draw(px, py); }
 
-        // 2. Radar Sweep
-        drawRadar();
+        // Draw Galaxy
+        if (galaxyImage.complete && galaxyImage.naturalWidth > 0) {
+            ctx.save();
+            const gX = galaxyObj.x + px / galaxyObj.z;
+            const gY = galaxyObj.y + py / galaxyObj.z;
+            ctx.translate(gX, gY);
+            galaxyObj.rot -= 0.0005;
+            ctx.rotate(galaxyObj.rot);
+            ctx.globalCompositeOperation = 'screen';
+            ctx.globalAlpha = 0.4;
+            ctx.drawImage(galaxyImage, -galaxyObj.radius, -galaxyObj.radius, galaxyObj.radius*2, galaxyObj.radius*2);
+            ctx.restore();
+        }
 
-        // 2.5 Far Background Celestial Bodies (Must be drawn BEFORE planets)
-        if(galaxy) { galaxy.update(); galaxy.draw(px, py); }
-        if(sun) { sun.update(); sun.draw(px, py); }
-        if(blackHole) { blackHole.update(); blackHole.draw(px, py); }
+        // Draw Stars
+        for (let s of stars) {
+            s.update();
+            s.draw(px, py);
+        }
 
-        // 3. Network Nodes & Connections
-        ctx.globalCompositeOperation = 'screen';
-        if (warpSpeed < 3) {
-            for (let i = 0; i < nodes.length; i++) {
-                const n1 = nodes[i];
-                n1.update(); // Update positions once here
-                const x1 = n1.x + px / n1.z;
-                const y1 = n1.y + py / n1.z;
-    
-                for (let j = i + 1; j < nodes.length; j++) {
-                    const n2 = nodes[j];
-                    const x2 = n2.x + px / n2.z;
-                    const y2 = n2.y + py / n2.z;
-    
-                    const distSq = (x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2);
-                    if (distSq < 15000) { 
-                        const opacity = 1 - (Math.sqrt(distSq) / 122.5); // Dynamic opacity
-                        ctx.beginPath();
-                        ctx.moveTo(x1, y1);
-                        ctx.lineTo(x2, y2);
-                        ctx.strokeStyle = `rgba(0, 255, 204, ${opacity * 0.6})`;
-                        ctx.lineWidth = opacity * 1.5;
-                        ctx.stroke();
-                    }
-                }
-            }
+        // Draw Sun
+        if (sunImage.complete && sunImage.naturalWidth > 0) {
+            ctx.save();
+            const sX = sun.x + px / sun.z;
+            const sY = sun.y + py / sun.z;
+            ctx.translate(sX, sY);
+            ctx.globalCompositeOperation = 'screen';
+            ctx.drawImage(sunImage, -sun.radius, -sun.radius, sun.radius*2, sun.radius*2);
             
-            // Mouse connection in a separate path
-            if (mouse.screenX !== -1000 && mouse.screenY !== -1000) {
-                ctx.beginPath();
-                for (let i = 0; i < nodes.length; i++) {
-                    const n1 = nodes[i];
-                    const x1 = n1.x + px / n1.z;
-                    const y1 = n1.y + py / n1.z;
-                    const mDistSq = (x1 - mouse.screenX)*(x1 - mouse.screenX) + (y1 - mouse.screenY)*(y1 - mouse.screenY);
-                    if (mDistSq < 30000) {
-                        const mOpacity = 1 - (Math.sqrt(mDistSq) / 173);
-                        ctx.moveTo(x1, y1);
-                        ctx.lineTo(mouse.screenX, mouse.screenY);
-                        ctx.strokeStyle = `rgba(0, 255, 204, ${mOpacity * 0.8})`;
-                        ctx.stroke();
-                        ctx.beginPath(); // Reset for next line
-                    }
-                }
-            }
-        } else {
-            // If warp speed is high, still update nodes
-            for (let i = 0; i < nodes.length; i++) {
-                nodes[i].update();
-            }
+            // Sun glow
+            let grad = ctx.createRadialGradient(0, 0, sun.radius * 0.5, 0, 0, sun.radius * 2.5);
+            grad.addColorStop(0, 'rgba(255, 230, 150, 0)');
+            grad.addColorStop(0.2, 'rgba(255, 150, 50, 0.4)');
+            grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(0, 0, sun.radius * 2.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
         }
 
-        // Step 3.2: Draw the nodes (circles)
-        for (let i = 0; i < nodes.length; i++) {
-            nodes[i].draw(px, py);
+        // Draw Planets
+        for (let p of planets) { 
+            p.update(); 
+            p.draw(px, py); 
         }
-
-        // 4. Planets and Floating Objects (Drawn after background)
-        for (let p of planets) { p.update(); p.draw(px, py); }
-        for (let obj of floatingObjects) { obj.update(); obj.draw(px, py); }
         
-        // 5. Foreground Effects (Shooting Stars & Lightning)
-        for (let s of shootingStars) { s.update(); s.draw(px, py); }
+        // Draw Shooting Stars
+        for (let s of shootingStars) { 
+            s.update(); 
+            s.draw(px, py); 
+        }
 
         requestAnimationFrame(animate);
     }
