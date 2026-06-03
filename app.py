@@ -1139,23 +1139,29 @@ def user_dashboard():
     
     messages = []
     try:
-        for doc in db.collection('messages').where('user_id', '==', user_id).order_by('created_at').stream():
+        for doc in db.collection('messages').where('user_id', '==', user_id).stream():
             msg = doc.to_dict()
             msg['id'] = doc.id
             if 'created_at' in msg and msg['created_at']:
                 msg['created_at'] = msg['created_at'].replace(tzinfo=None)
+            else:
+                msg['created_at'] = datetime.min
             messages.append(msg)
+        messages.sort(key=lambda x: x.get('created_at', datetime.min))
     except Exception as e:
         print("Error fetching messages:", e)
         
     admin_msgs = []
     try:
-        for doc in db.collection('admin_messages').where('user_id', '==', user_id).order_by('created_at', direction=firestore.Query.DESCENDING).stream():
+        for doc in db.collection('admin_messages').where('user_id', '==', user_id).stream():
             msg = doc.to_dict()
             msg['id'] = doc.id
             if 'created_at' in msg and msg['created_at']:
                 msg['created_at'] = msg['created_at'].replace(tzinfo=None)
+            else:
+                msg['created_at'] = datetime.min
             admin_msgs.append(msg)
+        admin_msgs.sort(key=lambda x: x.get('created_at', datetime.min), reverse=True)
     except Exception as e:
         print("Error fetching admin messages:", e)
         
