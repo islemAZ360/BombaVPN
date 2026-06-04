@@ -1457,7 +1457,7 @@ def get_subscription(token):
                 elif server.get('json_config'):
                     vless_uri = generate_vless_uri(server['json_config'], active_address)
                     
-                if vless_uri:
+                if vless_uri and not is_expired:
                     combined_links.append(vless_uri)
 
     if not has_active:
