@@ -41,7 +41,13 @@ def page_not_found(e):
     return render_template('404.html'), 404
 
 @app.errorhandler(500)
-def internal_server_error(e):
+@app.errorhandler(Exception)
+def handle_exception(e):
+    import traceback
+    with open(r'C:\Users\1\OneDrive\Desktop\my own projects\test\BombaVPN\bomba_error.log', 'a', encoding='utf-8') as f:
+        f.write("EXCEPTION CAUGHT:\n")
+        f.write(traceback.format_exc())
+        f.write(str(e) + "\n\n")
     return render_template('500.html'), 500
 
 
@@ -129,6 +135,13 @@ thread_lock = threading.Lock()
 
 @app.before_request
 def start_background_thread():
+    import datetime
+    try:
+        with open('debug_log.txt', 'a', encoding='utf-8') as f:
+            f.write(f"[{datetime.datetime.now()}] REQUEST HIT: {request.method} {request.url}\n")
+    except:
+        pass
+
     global thread_started
     if not thread_started:
         with thread_lock:
@@ -1112,6 +1125,50 @@ def manage_subscription(sub_id):
                     'status': 'active'
                 })
                 flash('تم تعيين السيرفر للاشتراك بنجاح / Server assigned to subscription', 'success')
+                
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/manage_user_sub/<user_id>', methods=['POST'])
+@login_required
+def manage_user_sub(user_id):
+    if not request.is_admin: return "Unauthorized", 403
+    action = request.form.get('action')
+    sub_id = request.form.get('sub_id')
+    
+    if sub_id:
+        return manage_subscription(sub_id)
+        
+    if action == 'assign':
+        server_id = request.form.get('server_id')
+        if server_id:
+            s_doc = db.collection('servers').document(server_id).get()
+            if s_doc.exists:
+                user_doc = db.collection('users').document(user_id).get()
+                user_data = user_doc.to_dict() if user_doc.exists else {}
+                
+                new_sub_ref = db.collection('subscriptions').document()
+                sub_id_new = new_sub_ref.id
+                
+                s_data = s_doc.to_dict()
+                email_val = user_data.get('email', f'user-{user_id}')
+                subdomain = f"{email_val.replace('@', '-').replace('.', '-')}-{sub_id_new[:4]}.{BASE_ZONE}"
+                
+                create_dns_record(subdomain, s_data['original_ip'], DYNV6_TOKEN)
+                
+                plan_days = int(s_data.get('plan_days', 0))
+                plan_hours = int(s_data.get('plan_hours', 0))
+                plan_minutes = int(s_data.get('plan_minutes', 0))
+                duration = timedelta(days=plan_days, hours=plan_hours, minutes=plan_minutes)
+                
+                new_sub_ref.set({
+                    'user_id': user_id,
+                    'server_id': server_id,
+                    'allocated_subdomain': subdomain,
+                    'status': 'active',
+                    'created_at': datetime.now(timezone.utc),
+                    'expires_at': datetime.now(timezone.utc) + duration
+                })
+                flash('تم تعيين السيرفر كمشترك جديد بنجاح / New subscription assigned', 'success')
                 
     return redirect(url_for('admin_dashboard'))
 
