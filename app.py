@@ -1017,20 +1017,36 @@ def reject_request(request_id):
 @login_required
 def delete_user(user_id):
     if not request.is_admin: return "Unauthorized", 403
-    user_doc = db.collection('users').document(user_id).get()
-    if user_doc.exists:
-        data = user_doc.to_dict()
-        sub = data.get('allocated_subdomain')
-        if sub: delete_dns_record(sub, DYNV6_TOKEN)
+    
+    # 1. Delete all subscriptions and their DNS records
+    subs = db.collection('subscriptions').where('user_id', '==', user_id).stream()
+    for sub_doc in subs:
+        sub_data = sub_doc.to_dict()
+        subdomain = sub_data.get('allocated_subdomain')
+        if subdomain:
+            delete_dns_record(subdomain, DYNV6_TOKEN)
+        db.collection('subscriptions').document(sub_doc.id).delete()
+        
+    # 2. Delete all purchase requests
+    reqs = db.collection('purchase_requests').where('user_id', '==', user_id).stream()
+    for req_doc in reqs:
+        db.collection('purchase_requests').document(req_doc.id).delete()
+        
+    # 3. Delete all messages
+    msgs = db.collection('messages').where('user_id', '==', user_id).stream()
+    for msg_doc in msgs:
+        db.collection('messages').document(msg_doc.id).delete()
+
+    # 4. Delete the user document
     db.collection('users').document(user_id).delete()
     
-    # Delete from Firebase Auth as well
+    # 5. Delete from Firebase Auth
     try:
         firebase_auth.delete_user(user_id)
     except Exception as e:
         print(f"Error deleting user from Firebase Auth: {e}")
         
-    flash('تم حذف المستخدم نهائياً / User deleted completely', 'success')
+    flash('تم حذف المستخدم وجميع بياناته نهائياً / User and all data deleted completely', 'success')
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/api/admin/pending_requests')
