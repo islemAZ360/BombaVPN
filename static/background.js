@@ -13,12 +13,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const ctx = canvas.getContext('2d', { alpha: false });
     const TWO_PI = Math.PI * 2;
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // حد أقصى لكثافة البكسل: على شاشات DPI عالية يصبح الـcanvas ضخماً ويُبطّئ كل blend.
+    // 1.0 = حجم CSS الفعلي (الأسرع ويمنع اللاج).
+    const DPR = 1; // تم إرجاعها إلى 1 لتسريع الأداء ومنع اللاج
 
     let width, height, centerX, centerY;
     let stars = [], nebulas = [], planets = [], shootingStars = [];
     let blackHoleObj, astronaut, sun, galaxyObj;
     let bgSprite = null, vignetteSprite = null;
-    let zSortedDrawList = null; // قائمة عناصر مُرتّبة حسب العمق (تُبنى مرة بدل كل إطار)
+    let zSortedDrawList = null; 
     let running = true;
 
     let mouse = { screenX: -9999, screenY: -9999, targetX: 0, targetY: 0, currentX: 0, currentY: 0 };
@@ -33,10 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
         white:  '235, 245, 255'
     };
     const STAR_COLORS = ['#ffffff', '#ffffff', '#eaf6ff', '#a9f7ec', '#a9d0ff', '#ffe6c2'];
-    const SHADE_BASE_ANGLE = Math.atan2(-1, -1); // اتجاه النقطة المضيئة في sprite التظليل
+    const SHADE_BASE_ANGLE = 0; // زاوية الظل معدلة لليمين
 
     /* ===================== صور الأصول ===================== */
-    const PLANET_IMG_COUNT = 9; // تحميل كل صور الكواكب (0-8)
+    const PLANET_IMG_COUNT = 9;
     const planetImages = [];
     for (let i = 0; i < PLANET_IMG_COUNT; i++) {
         const img = new Image();
@@ -50,10 +53,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const nebulaImage = new Image();     nebulaImage.src = '/static/images/planets/nebula_cloud.png';
 
     /* ===================== sprites مُسبقة الرسم ===================== */
-    // توهج شعاعي ناعم لكل لون (يُرسم مرة، يُعاد استخدامه عبر drawImage)
     const glowSprites = {};
     function buildGlowSprite(rgb, maxAlpha) {
-        const size = 256;
+        const size = 128; // تقليل الحجم للأداء
         const c = document.createElement('canvas');
         c.width = c.height = size;
         const g = c.getContext('2d');
@@ -67,10 +69,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return c;
     }
 
-    // sprite تظليل كروي ثلاثي الأبعاد (نقطة الضوء أعلى-يسار، يُدار لاحقاً نحو الشمس)
+    // sprite تظليل كروي ثلاثي الأبعاد محسّن وواقعي
     let shadeSprite = null;
     function buildShadeSprite() {
-        const size = 256;
+        const size = 512;
         const c = document.createElement('canvas');
         c.width = c.height = size;
         const g = c.getContext('2d');
@@ -78,14 +80,25 @@ document.addEventListener('DOMContentLoaded', () => {
         g.beginPath();
         g.arc(size / 2, size / 2, size / 2, 0, TWO_PI);
         g.clip();
-        const lx = size * 0.34, ly = size * 0.34;
-        const grad = g.createRadialGradient(lx, ly, size * 0.04, lx, ly, size * 1.15);
-        grad.addColorStop(0.0, 'rgba(4,8,20,0)');
-        grad.addColorStop(0.42, 'rgba(4,8,18,0.10)');
-        grad.addColorStop(0.78, 'rgba(2,5,12,0.55)');
-        grad.addColorStop(1.0, 'rgba(1,2,7,0.88)');
+        
+        // الضوء يأتي من اليمين (الزاوية 0). اليسار مظلم.
+        const grad = g.createLinearGradient(0, size/2, size, size/2);
+        grad.addColorStop(0, 'rgba(0, 0, 0, 0.98)'); // الجانب المظلم جداً
+        grad.addColorStop(0.35, 'rgba(0, 0, 0, 0.85)');
+        grad.addColorStop(0.60, 'rgba(0, 0, 0, 0.35)');
+        grad.addColorStop(0.85, 'rgba(0, 0, 0, 0.0)');  // الجانب المضيء
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        
         g.fillStyle = grad;
         g.fillRect(0, 0, size, size);
+        
+        // حواف مظلمة واقعية (Ambient Occlusion)
+        const grad2 = g.createRadialGradient(size/2, size/2, size * 0.35, size/2, size/2, size/2);
+        grad2.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        grad2.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
+        g.fillStyle = grad2;
+        g.fillRect(0, 0, size, size);
+        
         g.restore();
         return c;
     }
@@ -347,15 +360,16 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.drawImage(this.image, -r, -r, r * 2, r * 2);
             ctx.restore();
 
-            // تظليل كروي ثابت تجاه الشمس (لا يدور مع السطح)
+            // تظليل كروي واقعي (يتجه نحو الشمس)
             const lightAngle = Math.atan2(sun.y - this.y, sun.x - this.x);
             ctx.save();
             ctx.translate(dx, dy);
-            ctx.rotate(lightAngle - SHADE_BASE_ANGLE);
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.globalAlpha = 0.92 * a;
+            ctx.rotate(lightAngle); // تدوير الظل لتكون جهته المضيئة نحو الشمس
+            ctx.globalCompositeOperation = 'multiply'; // وضع multiply لدمج الظل بواقعية
+            ctx.globalAlpha = a;
             ctx.drawImage(shadeSprite, -r, -r, r * 2, r * 2);
-            // بريق على الجهة المضيئة
+            
+            // بريق خفيف على الجهة المضيئة (Specularity)
             const sr = r * 0.5;
             ctx.globalCompositeOperation = 'screen';
             ctx.globalAlpha = 0.5 * a;
@@ -403,7 +417,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.lineTo(tailX, tailY);
             ctx.stroke();
             ctx.globalAlpha = this.opacity * 0.9;
-            ctx.drawImage(glowSprites.white, dx - 8, dy - 8, 16, 16);
+            // استخدام Math.round لمنع مشاكل Sub-pixel rendering التي تسبب بطء
+            ctx.drawImage(glowSprites.white, Math.round(dx - 8), Math.round(dy - 8), 16, 16);
         }
     }
 
@@ -531,13 +546,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function resize() {
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = window.innerHeight;
+        // أبعاد منطقية (CSS) للمسطح المستخدم في كل العمليات الحسابية
+        width = window.innerWidth;
+        height = window.innerHeight;
+        // أبعاد بكسل فعلية للـcanvas (مقيّدة بـDPR)
+        canvas.width = Math.round(width * DPR);
+        canvas.height = Math.round(height * DPR);
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+        // كل الإحداثيات المنطقية تُترجم تلقائياً عبر setTransform
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
         centerX = width / 2;
         centerY = height / 2;
         buildStaticLayers();
         initElements();
-        if (prefersReduced || !running) renderFrame(); // إطار ثابت عند الحاجة
+        if (prefersReduced || !running) renderFrame();
     }
 
     /* ===================== الرسم ===================== */
