@@ -17,3 +17,6 @@ firebase-adminsdk.json
 instance/
 static/uploads/*
 !static/uploads/.gitkeep
+
+# Executables (should never be in a web project)
+*.exe

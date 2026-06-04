@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let width, height, centerX, centerY;
     let stars = [], nebulas = [], planets = [], shootingStars = [], networkNodes = [];
     let blackHoleObj, astronaut, sun, galaxyObj;
-    let bgGrad = null, vignetteGrad = null;
+    let bgSprite = null, vignetteSprite = null;
     let running = true;
 
     let mouse = { screenX: -9999, screenY: -9999, targetX: 0, targetY: 0, currentX: 0, currentY: 0 };
@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return c;
     }
 
-    // توهج شمسي مخصّص متعدد الطبقات (كورونا + قلب ساطع + أشعة)
+    // توهج شمسي مخصّص (كورونا ناعمة + قلب ساطع — بدون أشعة صليبية)
     let sunGlowSprite = null;
     function buildSunGlowSprite() {
         const size = 512;
@@ -114,40 +114,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const g = c.getContext('2d');
         const cx = size / 2, cy = size / 2;
 
-        // الطبقة 1: كورونا واسعة دافئة
-        let grad1 = g.createRadialGradient(cx, cy, 0, cx, cy, size * 0.5);
+        // كورونا واسعة دافئة
+        const grad1 = g.createRadialGradient(cx, cy, 0, cx, cy, size * 0.5);
         grad1.addColorStop(0, 'rgba(255, 240, 200, 0.95)');
-        grad1.addColorStop(0.08, 'rgba(255, 200, 100, 0.75)');
-        grad1.addColorStop(0.25, 'rgba(255, 140, 40, 0.35)');
-        grad1.addColorStop(0.55, 'rgba(255, 100, 20, 0.10)');
+        grad1.addColorStop(0.08, 'rgba(255, 200, 100, 0.70)');
+        grad1.addColorStop(0.22, 'rgba(255, 150, 50, 0.32)');
+        grad1.addColorStop(0.50, 'rgba(255, 100, 20, 0.08)');
         grad1.addColorStop(1, 'rgba(255, 60, 0, 0)');
         g.fillStyle = grad1;
         g.fillRect(0, 0, size, size);
 
-        // الطبقة 2: هالة بيضاء مركزية ساطعة
-        let grad2 = g.createRadialGradient(cx, cy, 0, cx, cy, size * 0.15);
+        // هالة بيضاء مركزية ساطعة
+        const grad2 = g.createRadialGradient(cx, cy, 0, cx, cy, size * 0.14);
         grad2.addColorStop(0, 'rgba(255, 255, 255, 1)');
-        grad2.addColorStop(0.4, 'rgba(255, 255, 230, 0.7)');
+        grad2.addColorStop(0.5, 'rgba(255, 255, 230, 0.55)');
         grad2.addColorStop(1, 'rgba(255, 220, 160, 0)');
         g.globalCompositeOperation = 'screen';
         g.fillStyle = grad2;
         g.beginPath();
-        g.arc(cx, cy, size * 0.15, 0, TWO_PI);
+        g.arc(cx, cy, size * 0.14, 0, TWO_PI);
         g.fill();
-
-        // الطبقة 3: أشعة ضوئية متقاطعة (lens flare)
-        g.globalCompositeOperation = 'screen';
-        g.strokeStyle = 'rgba(255, 230, 180, 0.3)';
-        g.lineWidth = 2.5;
-        g.lineCap = 'round';
-        const rayLen = size * 0.42;
-        for (let a = 0; a < 4; a++) {
-            const angle = (a / 4) * Math.PI + Math.PI / 8;
-            g.beginPath();
-            g.moveTo(cx - Math.cos(angle) * rayLen, cy - Math.sin(angle) * rayLen);
-            g.lineTo(cx + Math.cos(angle) * rayLen, cy + Math.sin(angle) * rayLen);
-            g.stroke();
-        }
 
         return c;
     }
@@ -283,18 +269,15 @@ document.addEventListener('DOMContentLoaded', () => {
         constructor(i) {
             this.x = Math.random() * width;
             this.y = Math.random() * height;
-            this.radius = Math.random() * 420 + 360;
-            this.vx = (Math.random() - 0.5) * 0.014;
-            this.vy = (Math.random() - 0.5) * 0.014;
+            this.radius = Math.random() * 380 + 320;
+            this.vx = (Math.random() - 0.5) * 0.012;
+            this.vy = (Math.random() - 0.5) * 0.012;
             this.spriteIndex = i % 3;
-            this.alpha = Math.random() * 0.16 + 0.14;
-            this.rot = Math.random() * TWO_PI;
-            this.rotSpeed = (Math.random() - 0.5) * 0.00018;
+            this.alpha = Math.random() * 0.14 + 0.12;
         }
         update() {
             this.x += this.vx;
             this.y += this.vy;
-            this.rot += this.rotSpeed;
             const r = this.radius;
             if (this.x < -r) this.x = width + r;
             if (this.x > width + r) this.x = -r;
@@ -304,15 +287,11 @@ document.addEventListener('DOMContentLoaded', () => {
         draw(px, py) {
             const sprite = nebulaSprites[this.spriteIndex];
             if (!sprite) return;
-            const dx = this.x + px * 0.04;
-            const dy = this.y + py * 0.04;
-            ctx.save();
+            const dx = this.x + px * 0.04 - this.radius;
+            const dy = this.y + py * 0.04 - this.radius;
             ctx.globalCompositeOperation = 'screen';
             ctx.globalAlpha = this.alpha;
-            ctx.translate(dx, dy);
-            ctx.rotate(this.rot);
-            ctx.drawImage(sprite, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
-            ctx.restore();
+            ctx.drawImage(sprite, dx, dy, this.radius * 2, this.radius * 2);
         }
     }
 
@@ -414,22 +393,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const dy = this.y + py * 0.08;
             const tailX = dx + Math.cos(this.angle) * this.length;
             const tailY = dy - Math.sin(this.angle) * this.length;
-            ctx.save();
             ctx.globalCompositeOperation = 'screen';
-            const grad = ctx.createLinearGradient(dx, dy, tailX, tailY);
-            grad.addColorStop(0, `rgba(${this.tint},${this.opacity})`);
-            grad.addColorStop(1, `rgba(${this.tint},0)`);
-            ctx.strokeStyle = grad;
-            ctx.lineWidth = 2;
-            ctx.lineCap = 'round';
+            ctx.globalAlpha = this.opacity;
+            ctx.strokeStyle = `rgba(${this.tint},0.7)`;
+            ctx.lineWidth = 1.5;
             ctx.beginPath();
             ctx.moveTo(dx, dy);
             ctx.lineTo(tailX, tailY);
             ctx.stroke();
-            // رأس لامع
-            ctx.globalAlpha = this.opacity;
-            ctx.drawImage(glowSprites.white, dx - 9, dy - 9, 18, 18);
-            ctx.restore();
+            ctx.globalAlpha = this.opacity * 0.9;
+            ctx.drawImage(glowSprites.white, dx - 8, dy - 8, 16, 16);
         }
     }
 
@@ -518,11 +491,11 @@ document.addEventListener('DOMContentLoaded', () => {
         stars = []; nebulas = []; planets = []; shootingStars = []; networkNodes = [];
 
         const area = width * height;
-        const numStars = Math.min(Math.floor(area / 4200), 340);
-        const numNodes = Math.min(Math.floor(area / 32000), 26);
+        const numStars = Math.min(Math.floor(area / 5500), 280);
+        const numNodes = Math.min(Math.floor(area / 36000), 22);
 
         for (let i = 0; i < numStars; i++) stars.push(new Star());
-        for (let i = 0; i < 4; i++) nebulas.push(new Nebula(i));
+        for (let i = 0; i < 3; i++) nebulas.push(new Nebula(i));
 
         // توزيع ألوان الهالات: غالبية تركوازية/زرقاء + لمسات
         const tints = ['teal', 'blue', 'cyan', 'teal', 'violet', 'blue'];
@@ -537,18 +510,32 @@ document.addEventListener('DOMContentLoaded', () => {
         astronaut = new Astronaut();
     }
 
-    function buildGradients() {
-        bgGrad = ctx.createRadialGradient(centerX, centerY * 0.82, 0, centerX, centerY, Math.max(width, height) * 0.95);
-        bgGrad.addColorStop(0, '#0a1428');
-        bgGrad.addColorStop(0.5, '#060c1a');
-        bgGrad.addColorStop(1, '#02040a');
+    function buildStaticLayers() {
+        // خلفية ثابتة (sprite مُسبق — يُرسم مرة بدل gradient كل إطار)
+        const bgC = document.createElement('canvas');
+        bgC.width = width; bgC.height = height;
+        const bgG = bgC.getContext('2d');
+        const grad = bgG.createRadialGradient(centerX, centerY * 0.82, 0, centerX, centerY, Math.max(width, height) * 0.95);
+        grad.addColorStop(0, '#0a1428');
+        grad.addColorStop(0.5, '#060c1a');
+        grad.addColorStop(1, '#02040a');
+        bgG.fillStyle = grad;
+        bgG.fillRect(0, 0, width, height);
+        bgSprite = bgC;
 
-        vignetteGrad = ctx.createRadialGradient(
+        // vignette ثابتة (sprite مُسبق)
+        const vC = document.createElement('canvas');
+        vC.width = width; vC.height = height;
+        const vG = vC.getContext('2d');
+        const vGrad = vG.createRadialGradient(
             centerX, centerY, Math.min(width, height) * 0.34,
             centerX, centerY, Math.max(width, height) * 0.80
         );
-        vignetteGrad.addColorStop(0, 'rgba(2,4,10,0)');
-        vignetteGrad.addColorStop(1, 'rgba(2,4,10,0.55)');
+        vGrad.addColorStop(0, 'rgba(2,4,10,0)');
+        vGrad.addColorStop(1, 'rgba(2,4,10,0.55)');
+        vG.fillStyle = vGrad;
+        vG.fillRect(0, 0, width, height);
+        vignetteSprite = vC;
     }
 
     function resize() {
@@ -556,18 +543,17 @@ document.addEventListener('DOMContentLoaded', () => {
         height = canvas.height = window.innerHeight;
         centerX = width / 2;
         centerY = height / 2;
-        buildGradients();
+        buildStaticLayers();
         initElements();
         if (prefersReduced || !running) renderFrame(); // إطار ثابت عند الحاجة
     }
 
     /* ===================== الرسم ===================== */
     function renderFrame() {
-        // الخلفية
+        // الخلفية (sprite ثابت — أسرع بكثير من gradient كل إطار)
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
-        ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(bgSprite, 0, 0);
 
         // بارالاكس ناعم
         mouse.currentX += (mouse.targetX - mouse.currentX) * 0.08;
@@ -684,11 +670,10 @@ document.addEventListener('DOMContentLoaded', () => {
         astronaut.update(); astronaut.draw(px, py);
         for (const s of shootingStars) { s.update(); s.draw(px, py); }
 
-        // vignette لإبراز المحتوى
+        // vignette (sprite ثابت)
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
-        ctx.fillStyle = vignetteGrad;
-        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(vignetteSprite, 0, 0);
     }
 
     function animate() {
