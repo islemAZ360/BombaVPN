@@ -1282,18 +1282,30 @@ def send_message():
 @login_required
 def api_user_status():
     user_id = request.user['uid']
+    user_data = {}
     doc = db.collection('users').document(user_id).get()
     if doc.exists:
-        data = doc.to_dict()
-        expires_at = data.get('subscription_expires_at')
-        if expires_at:
-            expires_at = expires_at.replace(tzinfo=None).isoformat()
-        return jsonify({
-            'status': data.get('status'),
-            'has_pending_renewal': data.get('has_pending_renewal', False),
-            'expires_at': expires_at
-        })
-    return jsonify({'status': 'unknown', 'has_pending_renewal': False, 'expires_at': None}), 404
+        user_data = doc.to_dict()
+        
+    subs = list(db.collection('subscriptions').where('user_id', '==', user_id).stream())
+    has_active = any(sub.to_dict().get('status') == 'active' for sub in subs)
+    
+    computed_status = 'active' if has_active else ('expired' if subs else user_data.get('status', 'pending'))
+    
+    # Get latest active expiry if any
+    expires_at = None
+    if subs:
+        active_subs = [s.to_dict() for s in subs if s.to_dict().get('status') == 'active']
+        if active_subs:
+            latest = max(active_subs, key=lambda x: x.get('expires_at', datetime.min).timestamp() if isinstance(x.get('expires_at'), datetime) else 0)
+            if 'expires_at' in latest and isinstance(latest['expires_at'], datetime):
+                expires_at = latest['expires_at'].replace(tzinfo=None).isoformat()
+
+    return jsonify({
+        'status': computed_status,
+        'has_pending_renewal': user_data.get('has_pending_renewal', False),
+        'expires_at': expires_at or ""
+    })
 
 @app.route('/sub/<token>')
 def get_subscription(token):
