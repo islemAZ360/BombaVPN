@@ -1479,10 +1479,23 @@ def get_subscription(token):
                     has_active = True
                 
                 vless_uri = None
+                server_name = server.get('name', 'BombaVPN Server')
+                import urllib.parse
+                safe_name = urllib.parse.quote(server_name)
+                
                 if server.get('vless_link'):
                     vless_uri = re.sub(r'(@)([^:?#]+)', r'\g<1>' + active_address, server['vless_link'], count=1)
+                    if '#' in vless_uri:
+                        vless_uri = re.sub(r'#.*$', '#' + safe_name, vless_uri)
+                    else:
+                        vless_uri += '#' + safe_name
                 elif server.get('json_config'):
                     vless_uri = generate_vless_uri(server['json_config'], active_address)
+                    if vless_uri:
+                        if '#' in vless_uri:
+                            vless_uri = re.sub(r'#.*$', '#' + safe_name, vless_uri)
+                        else:
+                            vless_uri += '#' + safe_name
                     
                 if vless_uri and not is_expired:
                     combined_links.append(vless_uri)
