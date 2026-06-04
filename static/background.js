@@ -35,9 +35,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const SHADE_BASE_ANGLE = Math.atan2(-1, -1); // اتجاه النقطة المضيئة في sprite التظليل
 
     /* ===================== صور الأصول ===================== */
-    const PLANET_COUNT = 6; // تقليل الازدحام: 6 كواكب مميزة بدل 9
+    const PLANET_IMG_COUNT = 9; // تحميل كل صور الكواكب (0-8)
     const planetImages = [];
-    for (let i = 0; i < PLANET_COUNT; i++) {
+    for (let i = 0; i < PLANET_IMG_COUNT; i++) {
         const img = new Image();
         img.src = `/static/images/planets/planet_${i}.png`;
         planetImages.push(img);
@@ -304,14 +304,14 @@ document.addEventListener('DOMContentLoaded', () => {
         reset() {
             this.x = Math.random() > 0.5 ? Math.random() * 320 : width - Math.random() * 320;
             this.y = Math.random() * height;
-            this.z = Math.random() * 2.6 + 2.0;                   // 2 قريب → 4.6 بعيد
+            this.z = Math.random() * 3.5 + 1.5;                   // 1.5 قريب جداً → 5.0 بعيد جداً
             this.radius = (Math.random() * 52 + 34) / (this.z * 0.6);
             this.vx = (Math.random() - 0.5) * 0.02;
             this.vy = (Math.random() - 0.5) * 0.02;
             this.rotation = Math.random() * TWO_PI;
             this.rotationSpeed = (Math.random() - 0.5) * 0.0016;
-            // عمق: الأبعد أخفت قليلاً (atmospheric perspective)
-            this.bodyAlpha = Math.max(0.5, Math.min(1, 1.18 - this.z * 0.12));
+            // عمق: الكواكب القريبة واضحة جداً والأبعد يقل وضوحها بشدة لزيادة الواقعية
+            this.bodyAlpha = Math.max(0.15, Math.min(1, 1.35 - this.z * 0.25));
         }
         update() {
             this.x += this.vx / this.z;
@@ -499,7 +499,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // توزيع ألوان الهالات: غالبية تركوازية/زرقاء + لمسات
         const tints = ['teal', 'blue', 'cyan', 'teal', 'violet', 'blue'];
-        for (let i = 0; i < PLANET_COUNT; i++) planets.push(new Planet(i, tints[i % tints.length]));
+        const DISPLAY_PLANET_COUNT = 14; // زيادة عدد الكواكب المعروضة
+        for (let i = 0; i < DISPLAY_PLANET_COUNT; i++) planets.push(new Planet(i % PLANET_IMG_COUNT, tints[i % tints.length]));
 
         for (let i = 0; i < 2; i++) shootingStars.push(new ShootingStar());
         for (let i = 0; i < numNodes; i++) networkNodes.push(new NetworkNode());
