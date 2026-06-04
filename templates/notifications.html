@@ -6,26 +6,36 @@
 </div>
 
 <div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <h3>{{ _('SystemNotifications') }}</h3>
-        <form action="{{ url_for('mark_all_read') }}" method="POST" class="ajax-form">
-            <button type="submit" class="btn btn-primary btn-small">{{ _('MarkAllRead') }}</button>
-        </form>
+        <div style="display: flex; gap: 10px;">
+            <form action="{{ url_for('mark_all_read') }}" method="POST" class="ajax-form">
+                <button type="submit" class="btn btn-primary btn-small">{{ _('MarkAllRead') }}</button>
+            </form>
+            <form action="{{ url_for('delete_all_notifs') }}" method="POST" class="ajax-form">
+                <button type="submit" class="btn btn-danger btn-small" style="background: rgba(255, 71, 87, 0.2); color: #ff4757; border: 1px solid rgba(255, 71, 87, 0.5);">🗑️ حذف الكل</button>
+            </form>
+        </div>
     </div>
     
-    <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 15px;">
+    <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 15px; max-height: 60vh; overflow-y: auto; padding-right: 5px;">
         {% for n in notifications %}
-        <div style="background: rgba(255, 255, 255, 0.03); padding: 15px; border-radius: 8px; border-left: 4px solid {{ '#4a4a4a' if n.is_read else '#ff4757' }}; display: flex; justify-content: space-between; align-items: center;">
-            <div>
+        <div class="notification-item" style="background: rgba(255, 255, 255, 0.03); padding: 15px; border-radius: 8px; border-left: 4px solid {{ '#4a4a4a' if n.is_read else '#ff4757' }}; display: flex; justify-content: space-between; align-items: center; gap: 15px;">
+            <div style="flex-grow: 1; overflow: hidden;">
                 <h4 style="margin: 0 0 5px 0; color: {{ '#a0a0a0' if n.is_read else '#ff4757' }};">{{ n.title }}</h4>
-                <p style="margin: 0; font-size: 0.9em; color: #d0d0d0;">{{ n.message }}</p>
+                <p style="margin: 0; font-size: 0.9em; color: #d0d0d0; word-break: break-word; overflow-wrap: break-word;">{{ n.message }}</p>
                 <small style="color: #666; display: block; margin-top: 8px;">{{ n.created_at.strftime('%Y-%m-%d %H:%M') if n.created_at else '' }}</small>
             </div>
-            {% if not n.is_read %}
-            <form action="{{ url_for('mark_read', notif_id=n.id) }}" method="POST" class="ajax-form">
-                <button type="submit" class="btn btn-secondary btn-small" style="font-size: 12px; padding: 5px 10px;">{{ _('Read') }}</button>
-            </form>
-            {% endif %}
+            <div style="display: flex; flex-direction: column; gap: 5px; flex-shrink: 0;">
+                {% if not n.is_read %}
+                <form action="{{ url_for('mark_read', notif_id=n.id) }}" method="POST" class="ajax-form">
+                    <button type="submit" class="btn btn-secondary btn-small" style="font-size: 12px; padding: 5px 10px; width: 100%;">{{ _('Read') }}</button>
+                </form>
+                {% endif %}
+                <form action="{{ url_for('delete_notif', notif_id=n.id) }}" method="POST" class="ajax-form">
+                    <button type="submit" class="btn btn-secondary btn-small" style="font-size: 12px; padding: 5px 10px; width: 100%; color: #ff4757;">🗑️ حذف</button>
+                </form>
+            </div>
         </div>
         {% else %}
         <p style="text-align: center; color: #666; padding: 20px;">{{ _('NoNotificationsMsg') }}</p>

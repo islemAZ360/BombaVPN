@@ -484,6 +484,29 @@ def mark_all_read():
         return jsonify({'status': 'success', 'action': 'remove_all_notifications', 'message': 'All notifications marked as read'}), 200
     return redirect(url_for('admin_notifications'))
 
+@app.route('/admin/notifications/delete/<notif_id>', methods=['POST'])
+@login_required
+def delete_notif(notif_id):
+    if not request.is_admin:
+        return "Unauthorized", 403
+    db.collection('notifications').document(notif_id).delete()
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'status': 'success', 'action': 'remove_parent'}), 200
+    return redirect(url_for('admin_notifications'))
+
+@app.route('/admin/notifications/delete_all', methods=['POST'])
+@login_required
+def delete_all_notifs():
+    if not request.is_admin:
+        return "Unauthorized", 403
+    for doc in db.collection('notifications').stream():
+        db.collection('notifications').document(doc.id).delete()
+        
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'status': 'success', 'action': 'remove_all_notifications', 'message': 'All notifications deleted'}), 200
+    return redirect(url_for('admin_notifications'))
+
 @app.route('/admin/debts')
 @login_required
 def admin_debts():
