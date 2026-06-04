@@ -377,7 +377,12 @@ document.addEventListener('DOMContentLoaded', () => {
             pCtx.translate(center, center);
             pCtx.rotate(lightAngle);
             pCtx.globalAlpha = 0.85; // تقليل عتامة الظل قليلاً لكي لا يخفي الحلقات تماماً
-            pCtx.drawImage(shadeSprite, -r, -r, pSize, pSize);
+            
+            // تكبير حجم الظل ليكون أكبر من الكوكب بـ 1.5 مرة
+            // هذا يضمن أن أطراف مربع الظل لن تقطع أطراف الكوكب عند دورانهما بزوايا مختلفة!
+            const shadeSize = pSize * 1.5;
+            pCtx.drawImage(shadeSprite, -shadeSize/2, -shadeSize/2, shadeSize, shadeSize);
+            
             pCtx.restore();
             
             pCtx.globalCompositeOperation = 'source-over'; // إعادة الوضع الافتراضي
