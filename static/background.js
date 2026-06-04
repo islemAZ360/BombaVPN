@@ -643,32 +643,53 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = 'source-over';
 
-        // الشمس (مع توهج كورونا مخصّص متعدد الطبقات)
-        if (sunImage.complete && sunImage.naturalWidth > 0) {
-            ctx.save();
-            const sX = sun.x + px / 6;
-            const sY = sun.y + py / 6;
-            ctx.translate(sX, sY);
-            ctx.globalCompositeOperation = 'screen';
-            // كورونا خارجية واسعة (sprite مُسبق الرسم)
-            const gr = sun.radius * 4.5;
-            ctx.globalAlpha = 0.85;
-            ctx.drawImage(sunGlowSprite, -gr, -gr, gr * 2, gr * 2);
-            // طبقة توهج ناعمة إضافية أوسع
-            ctx.globalAlpha = 0.3;
-            const gr2 = sun.radius * 7;
-            ctx.drawImage(glowSprites.warm, -gr2, -gr2, gr2 * 2, gr2 * 2);
-            // صورة الشمس نفسها
-            ctx.globalAlpha = 1;
-            ctx.drawImage(sunImage, -sun.radius, -sun.radius, sun.radius * 2, sun.radius * 2);
-            ctx.restore();
-            ctx.globalAlpha = 1;
-            ctx.globalCompositeOperation = 'source-over';
+        // تحديث الكواكب ورائد الفضاء
+        for (const p of planets) p.update();
+        astronaut.update();
+
+        // تجميع العناصر لترتيبها حسب العمق (Z-sorting) لضمان عدم تداخلها بشكل غير منطقي
+        const renderables = [];
+
+        // الشمس
+        renderables.push({
+            z: 6.0, // عمق الشمس (يتوافق مع تأثير الحركة px / 6)
+            draw: () => {
+                if (sunImage.complete && sunImage.naturalWidth > 0) {
+                    ctx.save();
+                    const sX = sun.x + px / 6;
+                    const sY = sun.y + py / 6;
+                    ctx.translate(sX, sY);
+                    ctx.globalCompositeOperation = 'screen';
+                    const gr = sun.radius * 4.5;
+                    ctx.globalAlpha = 0.85;
+                    ctx.drawImage(sunGlowSprite, -gr, -gr, gr * 2, gr * 2);
+                    ctx.globalAlpha = 0.3;
+                    const gr2 = sun.radius * 7;
+                    ctx.drawImage(glowSprites.warm, -gr2, -gr2, gr2 * 2, gr2 * 2);
+                    ctx.globalAlpha = 1;
+                    ctx.drawImage(sunImage, -sun.radius, -sun.radius, sun.radius * 2, sun.radius * 2);
+                    ctx.restore();
+                    ctx.globalAlpha = 1;
+                    ctx.globalCompositeOperation = 'source-over';
+                }
+            }
+        });
+
+        // رائد الفضاء
+        renderables.push({ z: astronaut.z, draw: () => astronaut.draw(px, py) });
+
+        // الكواكب
+        for (const p of planets) {
+            renderables.push({ z: p.z, draw: () => p.draw(px, py) });
         }
 
-        // الكواكب ثم رائد الفضاء ثم الشهب (الطبقة الأمامية)
-        for (const p of planets) { p.update(); p.draw(px, py); }
-        astronaut.update(); astronaut.draw(px, py);
+        // ترتيب العناصر من الأبعد (Z الأكبر) إلى الأقرب (Z الأصغر)
+        renderables.sort((a, b) => b.z - a.z);
+
+        // رسم العناصر بالترتيب الصحيح
+        for (const r of renderables) r.draw();
+
+        // الشهب في طبقة أمامية دائماً
         for (const s of shootingStars) { s.update(); s.draw(px, py); }
 
         // vignette (sprite ثابت)

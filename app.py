@@ -1310,7 +1310,7 @@ def get_subscription(token):
     return encoded_link, 200, {
         'Content-Type': 'text/plain; charset=utf-8',
         'profile-update-interval': '1' if has_active else '0.25',
-        'profile-web-page-url': 'https://galaxyvpn.onrender.com'
+        'profile-web-page-url': 'https://bombavpn.onrender.com'
     }
 
 
@@ -1449,7 +1449,7 @@ def keep_alive():
     while True:
         time.sleep(10 * 60)  # Sleep 10 minutes
         try:
-            requests.get('https://galaxyvpn.onrender.com', timeout=10)
+            requests.get('https://bombavpn.onrender.com', timeout=10)
             print("Self-ping successful: Kept server awake.")
         except Exception as e:
             print(f"Self-ping failed: {e}")
