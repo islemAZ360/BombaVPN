@@ -351,33 +351,52 @@ document.addEventListener('DOMContentLoaded', () => {
             const hr = r * 1.85;
             ctx.drawImage(halo, dx - hr, dy - hr, hr * 2, hr * 2);
 
-            // جسم الكوكب (مع دوران بطيء)
+            // استخدام Offscreen Canvas لرسم الكوكب مع الظل المدمج حصرياً عليه (لكي يعمل بشكل مثالي مع الكواكب ذات الحلقات)
+            const pSize = r * 2;
+            if (!window.planetOffscreenCanvas) {
+                window.planetOffscreenCanvas = document.createElement('canvas');
+                window.planetOffscreenCtx = window.planetOffscreenCanvas.getContext('2d', { willReadFrequently: true });
+            }
+            const pCanvas = window.planetOffscreenCanvas;
+            const pCtx = window.planetOffscreenCtx;
+            
+            // تكبير الكانفاس المؤقت إذا كان حجم الكوكب أكبر من المتوقع
+            if (pCanvas.width < pSize) {
+                pCanvas.width = pCanvas.height = pSize * 1.5;
+            }
+            
+            pCtx.clearRect(0, 0, pSize, pSize);
+            
+            // 1. رسم الكوكب مع دورانه في الكانفاس المؤقت
+            pCtx.save();
+            pCtx.translate(r, r);
+            pCtx.rotate(this.rotation);
+            pCtx.drawImage(this.image, -r, -r, pSize, pSize);
+            pCtx.restore();
+            
+            // 2. تطبيق الظل فقط على المناطق غير الشفافة (ليتطابق مع الحلقات)
+            pCtx.globalCompositeOperation = 'source-atop';
+            const lightAngle = Math.atan2(sun.y - this.y, sun.x - this.x);
+            pCtx.save();
+            pCtx.translate(r, r);
+            pCtx.rotate(lightAngle);
+            pCtx.globalAlpha = 0.85; // تقليل العتامة قليلاً لعدم إخفاء تفاصيل الكوكب بالكامل
+            pCtx.drawImage(shadeSprite, -r, -r, pSize, pSize);
+            
+            // بريق خفيف (Specularity)
+            const sr = r * 0.5;
+            pCtx.globalCompositeOperation = 'screen';
+            pCtx.globalAlpha = 0.4;
+            pCtx.drawImage(specSprite, -r * 0.34 - sr, -r * 0.34 - sr, sr * 2, sr * 2);
+            pCtx.restore();
+            pCtx.globalCompositeOperation = 'source-over'; // إعادة الوضع الافتراضي
+            
+            // 3. رسم النتيجة النهائية على الكانفاس الرئيسي
             ctx.globalCompositeOperation = 'source-over';
             ctx.globalAlpha = a;
-            ctx.save();
-            ctx.translate(dx, dy);
-            ctx.rotate(this.rotation);
-            ctx.drawImage(this.image, -r, -r, r * 2, r * 2);
-            ctx.restore();
-
-            // تظليل كروي واقعي (يتجه نحو الشمس)
-            const lightAngle = Math.atan2(sun.y - this.y, sun.x - this.x);
-            ctx.save();
-            ctx.translate(dx, dy);
-            ctx.rotate(lightAngle); // تدوير الظل لتكون جهته المضيئة نحو الشمس
-            ctx.globalCompositeOperation = 'multiply'; // وضع multiply لدمج الظل بواقعية
-            ctx.globalAlpha = a;
-            ctx.drawImage(shadeSprite, -r, -r, r * 2, r * 2);
-            
-            // بريق خفيف على الجهة المضيئة (Specularity)
-            const sr = r * 0.5;
-            ctx.globalCompositeOperation = 'screen';
-            ctx.globalAlpha = 0.5 * a;
-            ctx.drawImage(specSprite, -r * 0.34 - sr, -r * 0.34 - sr, sr * 2, sr * 2);
-            ctx.restore();
+            ctx.drawImage(pCanvas, 0, 0, pSize, pSize, dx - r, dy - r, pSize, pSize);
 
             ctx.globalAlpha = 1;
-            ctx.globalCompositeOperation = 'source-over';
         }
     }
 
