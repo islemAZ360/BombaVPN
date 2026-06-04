@@ -286,8 +286,16 @@
 <script>
     // Live re-render/refresh mechanism
     const currentStatus = "{{ user.status }}";
-    const currentPendingRenewal = "{{ 'true' if user.has_pending_renewal else 'false' }}";
-    const currentExpiresAt = "{{ user.subscription_expires_at.isoformat() if user.subscription_expires_at else '' }}";
+    const currentPendingRenewal = "{{ 'true' if user.get('has_pending_renewal') else 'false' }}";
+    
+    // الحصول على أحدث تاريخ انتهاء من الاشتراكات الفعالة إن وجد
+    {% set active_subs = subscriptions | selectattr('status', 'equalto', 'active') | list %}
+    {% if active_subs %}
+        {% set latest_sub = active_subs | sort(attribute='expires_at', reverse=true) | first %}
+        const currentExpiresAt = "{{ latest_sub.expires_at.isoformat() if latest_sub.expires_at else '' }}";
+    {% else %}
+        const currentExpiresAt = "";
+    {% endif %}
 
     // Poll every 5 seconds to check for any status, renewal, or time changes
     setInterval(async () => {
