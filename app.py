@@ -1633,6 +1633,10 @@ def background_expiry_checker():
             
         time.sleep(60)
 
+@app.route('/ping')
+def ping():
+    return "OK", 200
+
 def keep_alive():
     """
     Pings the server every 10 minutes to prevent Render's free tier from sleeping.
@@ -1640,7 +1644,7 @@ def keep_alive():
     while True:
         time.sleep(10 * 60)  # Sleep 10 minutes
         try:
-            requests.get('https://bombavpn.onrender.com', timeout=10)
+            requests.get('https://bombavpn.onrender.com/ping', timeout=10)
             print("Self-ping successful: Kept server awake.")
         except Exception as e:
             print(f"Self-ping failed: {e}")
