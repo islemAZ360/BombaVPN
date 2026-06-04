@@ -1405,6 +1405,17 @@ def get_subscription(token):
     except Exception:
         return "Invalid subscription token.", 403
         
+    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
+    user_agent = request.headers.get('User-Agent', '')
+    
+    try:
+        db.collection('users').document(user_id).update({
+            'accessed_ips': firestore.ArrayUnion([client_ip]),
+            'accessed_devices': firestore.ArrayUnion([user_agent])
+        })
+    except Exception as e:
+        print(f"Error tracking link access for {user_id}: {e}")
+        
     subs_ref = db.collection('subscriptions').where('user_id', '==', user_id).stream()
     subs = list(subs_ref)
     

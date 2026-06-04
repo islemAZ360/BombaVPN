@@ -23,6 +23,12 @@
             <tr>
                 <td>
                     {{ u.email }}
+                    {% if u.accessed_ips or u.accessed_devices %}
+                    <div style="margin-top: 5px; font-size: 0.8rem; color: #aaa;">
+                        <span title="{{ u.accessed_ips|join(', ') }}" style="cursor: help;">🌐 {{ u.accessed_ips|length }} IPs</span> | 
+                        <span title="{{ u.accessed_devices|join('\n') }}" style="cursor: help;">📱 {{ u.accessed_devices|length }} Devices</span>
+                    </div>
+                    {% endif %}
                     {% if u.is_renewal %}
                         <span class="badge" style="margin-left: 5px; font-size: 0.75rem; background: var(--primary); color: white;">{{ _('RenewalBadge') }}</span>
                     {% else %}
@@ -311,6 +317,12 @@
                 <tr>
                     <td>
                         <div style="font-weight: 500; color: #fff; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ u.email }}">{{ u.email }}</div>
+                        {% if u.accessed_ips or u.accessed_devices %}
+                        <div style="margin-top: 5px; font-size: 0.8rem; color: #aaa;">
+                            <span title="{{ u.accessed_ips|join(', ') }}" style="cursor: help;">🌐 {{ u.accessed_ips|length }} IPs</span> | 
+                            <span title="{{ u.accessed_devices|join('\n') }}" style="cursor: help;">📱 {{ u.accessed_devices|length }} Devices</span>
+                        </div>
+                        {% endif %}
                     </td>
                     <td>
                         {% if u.status == 'active' %}
