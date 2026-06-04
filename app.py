@@ -105,6 +105,19 @@ def login_required(f):
             request.user = decoded_claims
             request.is_admin = (decoded_claims.get('email') == 'islamazaizia360@gmail.com')
         except Exception as e:
+            # محاولة فك تشفير الجلسة المحلية (للتطوير المحلي)
+            is_production = os.environ.get('FLASK_ENV') == 'production' or os.environ.get('RENDER') == 'true'
+            if not is_production:
+                try:
+                    from itsdangerous import URLSafeTimedSerializer
+                    local_serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+                    data = local_serializer.loads(session_cookie, max_age=5*24*3600)  # 5 أيام
+                    if data.get('is_local_session'):
+                        request.user = {'uid': data['uid'], 'email': data['email'], 'name': data.get('name', '')}
+                        request.is_admin = (data.get('email') == 'islamazaizia360@gmail.com')
+                        return f(*args, **kwargs)
+                except Exception:
+                    pass
             print(f"Session verification failed: {e}")
             return redirect(url_for('login'))
             
@@ -137,7 +150,19 @@ def index():
                 return redirect(url_for('admin_dashboard'))
             return redirect(url_for('user_dashboard'))
         except:
-            pass
+            # محاولة الجلسة المحلية
+            is_production = os.environ.get('FLASK_ENV') == 'production' or os.environ.get('RENDER') == 'true'
+            if not is_production:
+                try:
+                    from itsdangerous import URLSafeTimedSerializer
+                    local_serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+                    data = local_serializer.loads(session_cookie, max_age=5*24*3600)
+                    if data.get('is_local_session'):
+                        if data.get('email') == 'islamazaizia360@gmail.com':
+                            return redirect(url_for('admin_dashboard'))
+                        return redirect(url_for('user_dashboard'))
+                except:
+                    pass
     return redirect(url_for('login'))
 
 @app.route('/login')
@@ -152,16 +177,39 @@ def register():
 def session_login():
     id_token = request.json.get('idToken')
     expires_in = timedelta(days=5)
+    is_production = os.environ.get('FLASK_ENV') == 'production' or os.environ.get('RENDER') == 'true'
+    
     try:
         session_cookie = firebase_auth.create_session_cookie(id_token, expires_in=expires_in)
         response = jsonify({'status': 'success'})
         expires = datetime.now() + expires_in
-        # Security fix: Set secure=True if running in production (Render sets RENDER env var)
-        is_production = os.environ.get('FLASK_ENV') == 'production' or os.environ.get('RENDER') == 'true'
         response.set_cookie('session', session_cookie, expires=expires, httponly=True, secure=is_production, samesite='Lax')
         return response
     except Exception as e:
-        print(f"Session login error: {type(e).__name__}: {e}")
+        print(f"Session login error (create_session_cookie): {type(e).__name__}: {e}")
+        
+        # حل بديل للتطوير المحلي: التحقق من الـ Token مباشرة وإنشاء session cookie يدوياً
+        if not is_production:
+            try:
+                decoded = firebase_auth.verify_id_token(id_token)
+                # إنشاء session cookie مخصص باستخدام itsdangerous
+                from itsdangerous import URLSafeTimedSerializer
+                local_serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+                local_session = local_serializer.dumps({
+                    'uid': decoded['uid'],
+                    'email': decoded.get('email', ''),
+                    'name': decoded.get('name', ''),
+                    'is_local_session': True
+                })
+                response = jsonify({'status': 'success'})
+                expires = datetime.now() + expires_in
+                response.set_cookie('session', local_session, expires=expires, httponly=True, secure=False, samesite='Lax')
+                print(f"Local session created for: {decoded.get('email')}")
+                return response
+            except Exception as e2:
+                print(f"Session login error (verify_id_token fallback): {type(e2).__name__}: {e2}")
+                return jsonify({'error': str(e2)}), 401
+        
         return jsonify({'error': str(e)}), 401
         
 @app.route('/api/sessionLogout', methods=['POST'])

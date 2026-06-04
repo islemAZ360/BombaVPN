@@ -44,10 +44,14 @@
                 setTimeout(() => { window.location.href = '/'; }, 1000);
             } else {
                 resetBtn();
-                showToast('error', '{{ _("Error") }}', '{{ _("LoginError") }}');
+                const data = await response.json().catch(() => ({}));
+                const errorMsg = data.error || '{{ _("LoginError") }}';
+                console.error('Session login failed:', errorMsg);
+                showToast('error', '{{ _("Error") }}', errorMsg);
             }
         } catch (error) {
             resetBtn();
+            console.error('Session login exception:', error);
             showToast('error', '{{ _("Error") }}', error.message);
         }
     }
