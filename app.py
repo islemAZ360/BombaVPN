@@ -140,6 +140,16 @@ def start_background_thread():
                 except Exception as e:
                     print("Could not start background thread:", e)
 
+@app.after_request
+def add_header(response):
+    # منع كروم من تخزين الصفحات الديناميكية لتجنب حلقة إعادة التحميل
+    if 'Cache-Control' not in response.headers:
+        if request.endpoint != 'static':
+            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+    return response
+
 @app.route('/')
 def index():
     session_cookie = request.cookies.get('session')
