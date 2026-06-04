@@ -70,7 +70,7 @@ import urllib.parse
 def generate_vless_uri(json_str, active_address=None):
     try:
         data = json.loads(json_str)
-        name = data.get('remarks', 'BombaVPN')
+        name = data.get('remarks', 'GalaxyVPN')
         
         for outbound in data.get('outbounds', []):
             if outbound.get('protocol') == 'vless':
@@ -164,7 +164,7 @@ def generate_full_config(json_str, active_address=None):
     """
     try:
         data = json.loads(json_str)
-        name = data.get('remarks', 'BombaVPN')
+        name = data.get('remarks', 'GalaxyVPN')
         
         proxy_outbound = None
         for outbound in data.get('outbounds', []):

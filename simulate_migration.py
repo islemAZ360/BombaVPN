@@ -51,7 +51,7 @@ def setup_simulation():
     sub_ref = db.collection('subscriptions').add({
         'user_id': user_id,
         'server_id': server_a_id,
-        'allocated_subdomain': 'sim_user-xxxxxx.bombavpn.dynv6.net',
+        'allocated_subdomain': 'sim_user-xxxxxx.galaxyvpn.dynv6.net',
         'status': 'active',
         'required_tags': ['premium'],
         'is_temporary': False,
@@ -129,7 +129,7 @@ def run_worker_iteration():
                 
             if best_server['id'] != allocated_server_id:
                 safe_prefix = 'sim_user'
-                subdomain = f"{safe_prefix}-{best_server['id'][:6]}.bombavpn.dynv6.net"
+                subdomain = f"{safe_prefix}-{best_server['id'][:6]}.galaxyvpn.dynv6.net"
                 print(f"MIGRATING sub {sub_id} to server {best_server['id']} (temp={new_temp})")
                 db.collection('subscriptions').document(sub_id).update({
                     'server_id': best_server['id'],
@@ -207,7 +207,7 @@ def simulate():
     sub1_ref = db.collection('subscriptions').add({
         'user_id': user_id,
         'server_id': s1_id,
-        'allocated_subdomain': 'sim_user_adv1-xxxxxx.bombavpn.dynv6.net',
+        'allocated_subdomain': 'sim_user_adv1-xxxxxx.galaxyvpn.dynv6.net',
         'status': 'active',
         'required_tags': ['premium'],
         'is_temporary': False,
@@ -226,7 +226,7 @@ def simulate():
     sub2_ref = db.collection('subscriptions').add({
         'user_id': user_id,
         'server_id': s1_id,
-        'allocated_subdomain': 'sim_user_adv2-xxxxxx.bombavpn.dynv6.net',
+        'allocated_subdomain': 'sim_user_adv2-xxxxxx.galaxyvpn.dynv6.net',
         'status': 'active',
         'required_tags': ['premium'],
         'is_temporary': False,
@@ -246,7 +246,7 @@ def simulate():
     sub3_ref = db.collection('subscriptions').add({
         'user_id': user_id,
         'server_id': s2_id, # Dead server
-        'allocated_subdomain': 'sim_user_adv3-xxxxxx.bombavpn.dynv6.net',
+        'allocated_subdomain': 'sim_user_adv3-xxxxxx.galaxyvpn.dynv6.net',
         'status': 'active',
         'required_tags': ['premium'],
         'is_temporary': False,
@@ -278,7 +278,7 @@ def simulate():
     sub4_ref = db.collection('subscriptions').add({
         'user_id': user_id,
         'server_id': s2_id, # Dead server
-        'allocated_subdomain': 'sim_user_adv4-xxxxxx.bombavpn.dynv6.net',
+        'allocated_subdomain': 'sim_user_adv4-xxxxxx.galaxyvpn.dynv6.net',
         'status': 'active',
         'required_tags': ['premium'],
         'is_temporary': False,
