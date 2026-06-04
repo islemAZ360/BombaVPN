@@ -69,37 +69,26 @@ document.addEventListener('DOMContentLoaded', () => {
         return c;
     }
 
-    // sprite تظليل كروي ثلاثي الأبعاد محسّن وواقعي
+    // sprite تظليل كروي ثلاثي الأبعاد محسّن وواقعي (بدون قطع دائري لكي لا يفسد الحلقات)
     let shadeSprite = null;
     function buildShadeSprite() {
         const size = 512;
         const c = document.createElement('canvas');
         c.width = c.height = size;
         const g = c.getContext('2d');
-        g.save();
-        g.beginPath();
-        g.arc(size / 2, size / 2, size / 2, 0, TWO_PI);
-        g.clip();
         
         // الضوء يأتي من اليمين (الزاوية 0). اليسار مظلم.
+        // تدرج خطي يغطي كامل المربع لكي يظلل الكوكب وحلقاته بنعومة
         const grad = g.createLinearGradient(0, size/2, size, size/2);
-        grad.addColorStop(0, 'rgba(0, 0, 0, 0.98)'); // الجانب المظلم جداً
+        grad.addColorStop(0, 'rgba(0, 0, 0, 0.95)'); // الجانب المظلم
         grad.addColorStop(0.35, 'rgba(0, 0, 0, 0.85)');
-        grad.addColorStop(0.60, 'rgba(0, 0, 0, 0.35)');
-        grad.addColorStop(0.85, 'rgba(0, 0, 0, 0.0)');  // الجانب المضيء
-        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        grad.addColorStop(0.55, 'rgba(0, 0, 0, 0.45)');
+        grad.addColorStop(0.75, 'rgba(0, 0, 0, 0.05)');  
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)'); // الجانب المضيء
         
         g.fillStyle = grad;
         g.fillRect(0, 0, size, size);
         
-        // حواف مظلمة واقعية (Ambient Occlusion)
-        const grad2 = g.createRadialGradient(size/2, size/2, size * 0.35, size/2, size/2, size/2);
-        grad2.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        grad2.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
-        g.fillStyle = grad2;
-        g.fillRect(0, 0, size, size);
-        
-        g.restore();
         return c;
     }
 
@@ -351,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const hr = r * 1.85;
             ctx.drawImage(halo, dx - hr, dy - hr, hr * 2, hr * 2);
 
-            // استخدام Offscreen Canvas لرسم الكوكب مع الظل المدمج حصرياً عليه (لكي يعمل بشكل مثالي مع الكواكب ذات الحلقات)
+            // استخدام Offscreen Canvas لدمج الظل باحترافية وبطريقة لا تخفي الفضاء أو تشوه الحلقات
             const pSize = r * 2;
             if (!window.planetOffscreenCanvas) {
                 window.planetOffscreenCanvas = document.createElement('canvas');
@@ -360,38 +349,53 @@ document.addEventListener('DOMContentLoaded', () => {
             const pCanvas = window.planetOffscreenCanvas;
             const pCtx = window.planetOffscreenCtx;
             
-            // تكبير الكانفاس المؤقت إذا كان حجم الكوكب أكبر من المتوقع
             if (pCanvas.width < pSize) {
                 pCanvas.width = pCanvas.height = pSize * 1.5;
             }
             
             pCtx.clearRect(0, 0, pSize, pSize);
             
-            // 1. رسم الكوكب مع دورانه في الكانفاس المؤقت
+            // 1. رسم الكوكب بشكل طبيعي
+            pCtx.globalCompositeOperation = 'source-over';
+            pCtx.globalAlpha = 1.0;
             pCtx.save();
             pCtx.translate(r, r);
             pCtx.rotate(this.rotation);
             pCtx.drawImage(this.image, -r, -r, pSize, pSize);
             pCtx.restore();
             
-            // 2. تطبيق الظل فقط على المناطق غير الشفافة (ليتطابق مع الحلقات)
-            pCtx.globalCompositeOperation = 'source-atop';
+            // 2. تطبيق الظل بوضعية multiply لدمج الألوان باحترافية مع الحلقات والجسم
+            pCtx.globalCompositeOperation = 'multiply';
             const lightAngle = Math.atan2(sun.y - this.y, sun.x - this.x);
             pCtx.save();
             pCtx.translate(r, r);
             pCtx.rotate(lightAngle);
-            pCtx.globalAlpha = 0.85; // تقليل العتامة قليلاً لعدم إخفاء تفاصيل الكوكب بالكامل
+            pCtx.globalAlpha = 1.0; 
             pCtx.drawImage(shadeSprite, -r, -r, pSize, pSize);
-            
-            // بريق خفيف (Specularity)
+            pCtx.restore();
+
+            // 3. الخطوة السحرية: مسح أي ظل تسرّب خارج حدود الكوكب (لكي لا يظهر مربع الظل في الفضاء)
+            pCtx.globalCompositeOperation = 'destination-in';
+            pCtx.save();
+            pCtx.translate(r, r);
+            pCtx.rotate(this.rotation);
+            pCtx.globalAlpha = 1.0;
+            pCtx.drawImage(this.image, -r, -r, pSize, pSize);
+            pCtx.restore();
+
+            // 4. بريق خفيف (Specularity)
             const sr = r * 0.5;
             pCtx.globalCompositeOperation = 'screen';
-            pCtx.globalAlpha = 0.4;
+            pCtx.globalAlpha = 0.5;
+            pCtx.save();
+            pCtx.translate(r, r);
+            pCtx.rotate(lightAngle);
             pCtx.drawImage(specSprite, -r * 0.34 - sr, -r * 0.34 - sr, sr * 2, sr * 2);
             pCtx.restore();
+            
             pCtx.globalCompositeOperation = 'source-over'; // إعادة الوضع الافتراضي
             
-            // 3. رسم النتيجة النهائية على الكانفاس الرئيسي
+            // 5. رسم النتيجة النهائية على الكانفاس الرئيسي
             ctx.globalCompositeOperation = 'source-over';
             ctx.globalAlpha = a;
             ctx.drawImage(pCanvas, 0, 0, pSize, pSize, dx - r, dy - r, pSize, pSize);
