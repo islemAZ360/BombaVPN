@@ -161,6 +161,7 @@ def session_login():
         response.set_cookie('session', session_cookie, expires=expires, httponly=True, secure=is_production, samesite='Lax')
         return response
     except Exception as e:
+        print(f"Session login error: {type(e).__name__}: {e}")
         return jsonify({'error': str(e)}), 401
         
 @app.route('/api/sessionLogout', methods=['POST'])
@@ -225,7 +226,7 @@ def pay():
                 'server_id': server_id,
                 'receipt_url': filename,
                 'status': 'pending',
-                'created_at': datetime.utcnow()
+                'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
             })
             
             flash('تم إرسال الطلب بنجاح. جاري مراجعته من قبل الإدارة. / Request submitted successfully. Under review.', 'success')
@@ -332,7 +333,7 @@ def admin_dashboard():
             if s_doc.exists:
                 u['server'] = s_doc.to_dict()
             
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     
     # Fetch support tickets
     tickets = []
@@ -441,7 +442,7 @@ def admin_debts():
     except Exception as e:
         print("Error fetching debts:", e)
         
-    return render_template('debts.html', users=in_debt_users, now=datetime.utcnow())
+    return render_template('debts.html', users=in_debt_users, now=datetime.now(timezone.utc).replace(tzinfo=None))
 
 def get_country_info_bulk(ips):
     import socket
@@ -502,7 +503,7 @@ def add_servers():
     
     price = request.form.get('price') or ''
     
-    expires_at = datetime.utcnow() + timedelta(days=real_days, hours=real_hours, minutes=real_minutes)
+    expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=real_days, hours=real_hours, minutes=real_minutes)
     
     added = 0
     existing_servers = [s.to_dict().get('name', '') for s in db.collection('servers').stream()]
@@ -585,7 +586,7 @@ def add_servers():
                     'plan_hours': plan_hours,
                     'plan_minutes': plan_minutes,
                     'tags': keywords,
-                    'created_at': datetime.utcnow(),
+                    'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
                     'expires_at': expires_at
                 })
                 added += 1
@@ -619,7 +620,7 @@ def import_servers():
             if tags_set:
                 pricing_rules.append({'tags': tags_set, 'price': p_str.strip()})
     
-    expires_at = datetime.utcnow() + timedelta(days=real_days, hours=real_hours, minutes=real_minutes)
+    expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=real_days, hours=real_hours, minutes=real_minutes)
     
     # Strip happ://add/ if present
     if subscription_text.startswith('happ://add/'):
@@ -738,7 +739,7 @@ def import_servers():
                 'plan_hours': plan_hours,
                 'plan_minutes': plan_minutes,
                 'tags': keywords,
-                'created_at': datetime.utcnow(),
+                'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
                 'expires_at': expires_at
             })
             added += 1
@@ -838,7 +839,7 @@ def approve_request(request_id):
             create_dns_record(subdomain, s_data['original_ip'], DYNV6_TOKEN)
             
     duration_delta = timedelta(days=days, hours=hours, minutes=minutes)
-    expires_at = datetime.utcnow() + duration_delta
+    expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + duration_delta
     
     # Check if server expires before the subscription
     is_temporary = False
@@ -851,7 +852,7 @@ def approve_request(request_id):
                 db.collection('notifications').add({
                     'title': 'تنبيه ديون (السيرفر سينتهي قريباً)',
                     'message': f'المستخدم {user_data.get("email")} لديه اشتراك يتجاوز عمر السيرفر المختار. نظام النقل التلقائي سيتدخل لاحقاً لنقله لسيرفر جديد ليكمل الـ {debt_delta.days} يوم المتبقية.',
-                    'created_at': datetime.utcnow(),
+                    'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
                     'is_read': False,
                     'type': 'debt'
                 })
@@ -864,7 +865,7 @@ def approve_request(request_id):
         'status': 'active',
         'required_tags': s_data.get('tags', []) if s_data else [],
         'is_temporary': False,
-        'created_at': datetime.utcnow(),
+        'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
         'expires_at': expires_at
     })
     
@@ -1052,7 +1053,7 @@ def send_admin_message(user_id):
         db.collection('admin_messages').add({
             'user_id': user_id,
             'message': message,
-            'created_at': datetime.utcnow(),
+            'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
             'is_read': False
         })
         flash('تم إرسال الرسالة للمستخدم / Message sent', 'success')
@@ -1086,7 +1087,7 @@ def reply_message(message_id):
     if reply_text:
         db.collection('messages').document(message_id).update({
             'admin_reply': reply_text,
-            'reply_at': datetime.utcnow()
+            'reply_at': datetime.now(timezone.utc).replace(tzinfo=None)
         })
         flash('تم إرسال الرد بنجاح', 'success')
     return redirect(url_for('admin_dashboard'))
@@ -1112,7 +1113,7 @@ def user_dashboard():
                 db.collection('users').document(user_id).set({
                     'email': request.user['email'],
                     'status': 'pending',
-                    'created_at': datetime.utcnow()
+                    'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
                 })
                 user_data = {'status': 'pending'}
             else:
@@ -1194,7 +1195,7 @@ def user_dashboard():
     except Exception as e:
         print("Error fetching admin messages:", e)
         
-    return render_template('user_dashboard.html', user_email=email, user=user_data, sub_link=sub_link, messages=messages, admin_msgs=admin_msgs, subscriptions=subscriptions, now=datetime.utcnow())
+    return render_template('user_dashboard.html', user_email=email, user=user_data, sub_link=sub_link, messages=messages, admin_msgs=admin_msgs, subscriptions=subscriptions, now=datetime.now(timezone.utc).replace(tzinfo=None))
 
 # --- API ROUTES ---
 @app.route('/api/message', methods=['POST'])
@@ -1208,7 +1209,7 @@ def send_message():
             'user_id': request.user['uid'],
             'email': request.user['email'],
             'message': text,
-            'created_at': datetime.utcnow(),
+            'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
             'admin_reply': None
         })
         if is_ajax:
@@ -1348,7 +1349,7 @@ def background_expiry_checker():
     
     while True:
         try:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
             
             with servers_cache_lock:
                 all_active_servers = []
@@ -1430,7 +1431,7 @@ def background_expiry_checker():
                                     db.collection('notifications').add({
                                         'title': 'نقل تلقائي مع دين',
                                         'message': f'تم نقل الاشتراك {sub_id} للمستخدم {user_data.get("email")} إلى سيرفر جديد سينتهي قبل اشتراكه! هناك دين بقيمة {debt_delta.days} يوم.',
-                                        'created_at': datetime.utcnow(),
+                                        'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
                                         'is_read': False,
                                         'type': 'debt'
                                     })
@@ -1477,7 +1478,7 @@ def migrate_db_once():
                     'allocated_subdomain': data.get('allocated_subdomain'),
                     'expires_at': data.get('subscription_expires_at'),
                     'status': data.get('status', 'expired'),
-                    'created_at': datetime.utcnow()
+                    'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
                 }
                 
                 db.collection('subscriptions').add(sub_data)
@@ -1492,7 +1493,7 @@ def migrate_db_once():
                     'server_id': data.get('requested_server_id'),
                     'receipt_url': data.get('receipt_url'),
                     'status': data.get('status'),
-                    'created_at': datetime.utcnow()
+                    'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
                 }
                 db.collection('purchase_requests').add(req_data)
                 reqs_count += 1
