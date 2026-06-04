@@ -15,9 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     let width, height, centerX, centerY;
-    let stars = [], nebulas = [], planets = [], shootingStars = [], networkNodes = [];
+    let stars = [], nebulas = [], planets = [], shootingStars = [];
     let blackHoleObj, astronaut, sun, galaxyObj;
     let bgSprite = null, vignetteSprite = null;
+    let zSortedDrawList = null; // قائمة عناصر مُرتّبة حسب العمق (تُبنى مرة بدل كل إطار)
     let running = true;
 
     let mouse = { screenX: -9999, screenY: -9999, targetX: 0, targetY: 0, currentX: 0, currentY: 0 };
@@ -406,23 +407,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    class NetworkNode {
-        constructor() {
-            this.x = Math.random() * width;
-            this.y = Math.random() * height;
-            this.vx = (Math.random() - 0.5) * 0.18;
-            this.vy = (Math.random() - 0.5) * 0.18;
-        }
-        update() {
-            this.x += this.vx;
-            this.y += this.vy;
-            if (this.x < -20) this.x = width + 20;
-            if (this.x > width + 20) this.x = -20;
-            if (this.y < -20) this.y = height + 20;
-            if (this.y > height + 20) this.y = -20;
-        }
-    }
-
     class Astronaut {
         constructor() {
             this.x = width * 0.72;
@@ -488,27 +472,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /* ===================== التهيئة ===================== */
     function initElements() {
-        stars = []; nebulas = []; planets = []; shootingStars = []; networkNodes = [];
+        stars = []; nebulas = []; planets = []; shootingStars = [];
 
         const area = width * height;
-        const numStars = Math.min(Math.floor(area / 5500), 280);
-        const numNodes = Math.min(Math.floor(area / 36000), 22);
+        const numStars = Math.min(Math.floor(area / 6500), 240);
 
         for (let i = 0; i < numStars; i++) stars.push(new Star());
         for (let i = 0; i < 3; i++) nebulas.push(new Nebula(i));
 
         // توزيع ألوان الهالات: غالبية تركوازية/زرقاء + لمسات
         const tints = ['teal', 'blue', 'cyan', 'teal', 'violet', 'blue'];
-        const DISPLAY_PLANET_COUNT = 14; // زيادة عدد الكواكب المعروضة
+        const DISPLAY_PLANET_COUNT = 8; // تقليل عدد الكواكب لتخفيف الازدحام واللاق
         for (let i = 0; i < DISPLAY_PLANET_COUNT; i++) planets.push(new Planet(i % PLANET_IMG_COUNT, tints[i % tints.length]));
 
         for (let i = 0; i < 2; i++) shootingStars.push(new ShootingStar());
-        for (let i = 0; i < numNodes; i++) networkNodes.push(new NetworkNode());
 
         sun = { x: width * 0.86, y: height * 0.16, radius: Math.min(width, height) * 0.085 };
         galaxyObj = { x: width * 0.80, y: height * 0.82, radius: Math.min(width, height) * 0.32, rot: 0, z: 8 };
         blackHoleObj = new BlackHole();
         astronaut = new Astronaut();
+
+        // بناء قائمة الرسم المُرتّبة حسب العمق مرة واحدة (Z لا يتغيّر)
+        // أبعد أولاً → أقرب أخيراً
+        zSortedDrawList = [
+            { z: 6.0, type: 'sun' },
+            { z: astronaut.z, type: 'astronaut' }
+        ];
+        for (const p of planets) zSortedDrawList.push({ z: p.z, type: 'planet', ref: p });
+        zSortedDrawList.sort((a, b) => b.z - a.z);
     }
 
     function buildStaticLayers() {
@@ -589,76 +580,21 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = 'source-over';
 
-        // الشبكة العصبية (مُحسّنة: مسار واحد مدمج للخطوط + مسار واحد لخطوط الماوس)
-        const connSq = 16000;   // ~126px
-        const mouseSq = 38000;  // ~195px
-        const hasMouse = mouse.screenX !== -9999;
-
-        // تحديث المواقع أولاً
-        for (let i = 0; i < networkNodes.length; i++) networkNodes[i].update();
-
-        // رسم النقاط (دفعة واحدة)
-        ctx.globalCompositeOperation = 'screen';
-        ctx.globalAlpha = 0.85;
-        ctx.fillStyle = 'rgba(0,255,204,0.85)';
-        for (let i = 0; i < networkNodes.length; i++) {
-            ctx.fillRect(networkNodes[i].x - 1, networkNodes[i].y - 1, 2, 2);
-        }
-
-        // مسار واحد لكل خطوط الاتصال (لون ثابت متوسط بدل لون متغيّر لكل خط)
-        ctx.strokeStyle = 'rgba(0,255,204,0.22)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        for (let i = 0; i < networkNodes.length; i++) {
-            const n1 = networkNodes[i];
-            for (let j = i + 1; j < networkNodes.length; j++) {
-                const n2 = networkNodes[j];
-                const dx = n1.x - n2.x, dy = n1.y - n2.y;
-                if (dx * dx + dy * dy < connSq) {
-                    ctx.moveTo(n1.x, n1.y);
-                    ctx.lineTo(n2.x, n2.y);
-                }
-            }
-        }
-        ctx.stroke();
-
-        // مسار واحد لخطوط الماوس + تطبيق القوة
-        if (hasMouse) {
-            ctx.strokeStyle = 'rgba(160,240,255,0.35)';
-            ctx.beginPath();
-            for (let i = 0; i < networkNodes.length; i++) {
-                const n1 = networkNodes[i];
-                const dx = n1.x - mouse.screenX, dy = n1.y - mouse.screenY;
-                const dsq = dx * dx + dy * dy;
-                if (dsq < mouseSq) {
-                    const force = 1 - dsq / mouseSq;
-                    n1.x -= dx * 0.018 * force;
-                    n1.y -= dy * 0.018 * force;
-                    ctx.moveTo(n1.x, n1.y);
-                    ctx.lineTo(mouse.screenX, mouse.screenY);
-                }
-            }
-            ctx.stroke();
-        }
-        ctx.globalAlpha = 1;
-        ctx.globalCompositeOperation = 'source-over';
-
         // تحديث الكواكب ورائد الفضاء
         for (const p of planets) p.update();
         astronaut.update();
 
-        // تجميع العناصر لترتيبها حسب العمق (Z-sorting) لضمان عدم تداخلها بشكل غير منطقي
-        const renderables = [];
-
-        // الشمس
-        renderables.push({
-            z: 6.0, // عمق الشمس (يتوافق مع تأثير الحركة px / 6)
-            draw: () => {
+        // رسم العناصر بالترتيب المُسبق حسب العمق (Z-sorting بُني مرة في initElements)
+        for (let i = 0; i < zSortedDrawList.length; i++) {
+            const item = zSortedDrawList[i];
+            if (item.type === 'planet') {
+                item.ref.draw(px, py);
+            } else if (item.type === 'astronaut') {
+                astronaut.draw(px, py);
+            } else if (item.type === 'sun') {
                 if (sunImage.complete && sunImage.naturalWidth > 0) {
                     ctx.save();
-                    const sX = sun.x + px / 6;
-                    const sY = sun.y + py / 6;
-                    ctx.translate(sX, sY);
+                    ctx.translate(sun.x + px / 6, sun.y + py / 6);
                     ctx.globalCompositeOperation = 'screen';
                     const gr = sun.radius * 4.5;
                     ctx.globalAlpha = 0.85;
@@ -673,21 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ctx.globalCompositeOperation = 'source-over';
                 }
             }
-        });
-
-        // رائد الفضاء
-        renderables.push({ z: astronaut.z, draw: () => astronaut.draw(px, py) });
-
-        // الكواكب
-        for (const p of planets) {
-            renderables.push({ z: p.z, draw: () => p.draw(px, py) });
         }
-
-        // ترتيب العناصر من الأبعد (Z الأكبر) إلى الأقرب (Z الأصغر)
-        renderables.sort((a, b) => b.z - a.z);
-
-        // رسم العناصر بالترتيب الصحيح
-        for (const r of renderables) r.draw();
 
         // الشهب في طبقة أمامية دائماً
         for (const s of shootingStars) { s.update(); s.draw(px, py); }
