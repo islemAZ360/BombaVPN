@@ -1504,5 +1504,11 @@ if __name__ == '__main__':
     keep_alive_thread = threading.Thread(target=keep_alive, daemon=True)
     keep_alive_thread.start()
     
+    # فتح المتصفح تلقائياً على الرابط الصحيح إذا كنا نعمل محلياً
+    if not os.environ.get('RENDER') and not os.environ.get('WERKZEUG_RUN_MAIN'):
+        import webbrowser
+        from threading import Timer
+        Timer(1.5, lambda: webbrowser.open("http://localhost:5000")).start()
+    
     debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
     app.run(debug=debug_mode, host='0.0.0.0', port=5000)
