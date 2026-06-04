@@ -340,8 +340,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const hr = r * 1.85;
             ctx.drawImage(halo, dx - hr, dy - hr, hr * 2, hr * 2);
 
-            // استخدام Offscreen Canvas لدمج الظل باحترافية وبطريقة لا تخفي الفضاء أو تشوه الحلقات
+            // استخدام Offscreen Canvas بحجم كافٍ لاستيعاب دوران الكوكب دون قص أطرافه
             const pSize = r * 2;
+            const cSize = Math.ceil(pSize * 1.5); // زيادة الحجم بنسبة 1.5 لاستيعاب أطراف الصورة عند الدوران
+            const center = cSize / 2;
+
             if (!window.planetOffscreenCanvas) {
                 window.planetOffscreenCanvas = document.createElement('canvas');
                 window.planetOffscreenCtx = window.planetOffscreenCanvas.getContext('2d', { willReadFrequently: true });
@@ -349,56 +352,47 @@ document.addEventListener('DOMContentLoaded', () => {
             const pCanvas = window.planetOffscreenCanvas;
             const pCtx = window.planetOffscreenCtx;
             
-            if (pCanvas.width < pSize) {
-                pCanvas.width = pCanvas.height = pSize * 1.5;
+            // تكبير الـ Canvas إذا لزم الأمر
+            if (pCanvas.width < cSize) {
+                pCanvas.width = pCanvas.height = cSize;
             }
             
-            pCtx.clearRect(0, 0, pSize, pSize);
+            pCtx.clearRect(0, 0, cSize, cSize);
             
-            // 1. رسم الكوكب بشكل طبيعي
+            // 1. رسم الكوكب بشكل طبيعي في المنتصف
             pCtx.globalCompositeOperation = 'source-over';
             pCtx.globalAlpha = 1.0;
             pCtx.save();
-            pCtx.translate(r, r);
+            pCtx.translate(center, center);
             pCtx.rotate(this.rotation);
             pCtx.drawImage(this.image, -r, -r, pSize, pSize);
             pCtx.restore();
             
-            // 2. تطبيق الظل بوضعية multiply لدمج الألوان باحترافية مع الحلقات والجسم
+            // 2. تطبيق الظل بوضعية multiply لدمج الألوان باحترافية
             pCtx.globalCompositeOperation = 'multiply';
             const lightAngle = Math.atan2(sun.y - this.y, sun.x - this.x);
             pCtx.save();
-            pCtx.translate(r, r);
+            pCtx.translate(center, center);
             pCtx.rotate(lightAngle);
             pCtx.globalAlpha = 1.0; 
             pCtx.drawImage(shadeSprite, -r, -r, pSize, pSize);
             pCtx.restore();
 
-            // 3. الخطوة السحرية: مسح أي ظل تسرّب خارج حدود الكوكب (لكي لا يظهر مربع الظل في الفضاء)
+            // 3. الخطوة السحرية: مسح أي ظل تسرّب خارج حدود الكوكب (حتى لا يخفي الفضاء أو الحلقات)
             pCtx.globalCompositeOperation = 'destination-in';
             pCtx.save();
-            pCtx.translate(r, r);
+            pCtx.translate(center, center);
             pCtx.rotate(this.rotation);
             pCtx.globalAlpha = 1.0;
             pCtx.drawImage(this.image, -r, -r, pSize, pSize);
             pCtx.restore();
-
-            // 4. بريق خفيف (Specularity)
-            const sr = r * 0.5;
-            pCtx.globalCompositeOperation = 'screen';
-            pCtx.globalAlpha = 0.5;
-            pCtx.save();
-            pCtx.translate(r, r);
-            pCtx.rotate(lightAngle);
-            pCtx.drawImage(specSprite, -r * 0.34 - sr, -r * 0.34 - sr, sr * 2, sr * 2);
-            pCtx.restore();
             
             pCtx.globalCompositeOperation = 'source-over'; // إعادة الوضع الافتراضي
             
-            // 5. رسم النتيجة النهائية على الكانفاس الرئيسي
+            // 4. رسم النتيجة النهائية المدمجة على الكانفاس الرئيسي
             ctx.globalCompositeOperation = 'source-over';
             ctx.globalAlpha = a;
-            ctx.drawImage(pCanvas, 0, 0, pSize, pSize, dx - r, dy - r, pSize, pSize);
+            ctx.drawImage(pCanvas, 0, 0, cSize, cSize, dx - center, dy - center, cSize, cSize);
 
             ctx.globalAlpha = 1;
         }
