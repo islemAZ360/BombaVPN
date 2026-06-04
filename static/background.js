@@ -368,23 +368,16 @@ document.addEventListener('DOMContentLoaded', () => {
             pCtx.drawImage(this.image, -r, -r, pSize, pSize);
             pCtx.restore();
             
-            // 2. تطبيق الظل بوضعية multiply لدمج الألوان باحترافية
-            pCtx.globalCompositeOperation = 'multiply';
+            // 2. تطبيق الظل بوضع source-atop بدلاً من multiply + destination-in
+            // هذا الوضع يرسم الظل فقط على الأجزاء غير الشفافة من الكوكب (بما فيها الحلقات)
+            // وهو أسرع بكثير ولا يسبب مشاكل في القص!
+            pCtx.globalCompositeOperation = 'source-atop';
             const lightAngle = Math.atan2(sun.y - this.y, sun.x - this.x);
             pCtx.save();
             pCtx.translate(center, center);
             pCtx.rotate(lightAngle);
-            pCtx.globalAlpha = 1.0; 
+            pCtx.globalAlpha = 0.85; // تقليل عتامة الظل قليلاً لكي لا يخفي الحلقات تماماً
             pCtx.drawImage(shadeSprite, -r, -r, pSize, pSize);
-            pCtx.restore();
-
-            // 3. الخطوة السحرية: مسح أي ظل تسرّب خارج حدود الكوكب (حتى لا يخفي الفضاء أو الحلقات)
-            pCtx.globalCompositeOperation = 'destination-in';
-            pCtx.save();
-            pCtx.translate(center, center);
-            pCtx.rotate(this.rotation);
-            pCtx.globalAlpha = 1.0;
-            pCtx.drawImage(this.image, -r, -r, pSize, pSize);
             pCtx.restore();
             
             pCtx.globalCompositeOperation = 'source-over'; // إعادة الوضع الافتراضي
@@ -392,7 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 4. رسم النتيجة النهائية المدمجة على الكانفاس الرئيسي
             ctx.globalCompositeOperation = 'source-over';
             ctx.globalAlpha = a;
-            ctx.drawImage(pCanvas, 0, 0, cSize, cSize, dx - center, dy - center, cSize, cSize);
+            ctx.drawImage(pCanvas, 0, 0, cSize, cSize, Math.round(dx - center), Math.round(dy - center), cSize, cSize);
 
             ctx.globalAlpha = 1;
         }
