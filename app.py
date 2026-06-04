@@ -173,19 +173,32 @@ def login():
 def register():
     return redirect(url_for('login'))
 
+# نقطة اختبار مؤقتة
+@app.route('/debug-check')
+def debug_check():
+    return f"Server code v2 running OK at {datetime.now()}", 200
+
 @app.route('/api/sessionLogin', methods=['POST'])
 def session_login():
     id_token = request.json.get('idToken')
     expires_in = timedelta(days=5)
     is_production = os.environ.get('FLASK_ENV') == 'production' or os.environ.get('RENDER') == 'true'
     
+    # تسجيل تشخيصي
+    with open('debug_log.txt', 'a', encoding='utf-8') as f:
+        f.write(f"\n[{datetime.now()}] sessionLogin called. is_production={is_production}, token_len={len(id_token) if id_token else 0}\n")
+    
     try:
         session_cookie = firebase_auth.create_session_cookie(id_token, expires_in=expires_in)
         response = jsonify({'status': 'success'})
         expires = datetime.now() + expires_in
         response.set_cookie('session', session_cookie, expires=expires, httponly=True, secure=is_production, samesite='Lax')
+        with open('debug_log.txt', 'a', encoding='utf-8') as f:
+            f.write(f"[{datetime.now()}] create_session_cookie SUCCESS\n")
         return response
     except Exception as e:
+        with open('debug_log.txt', 'a', encoding='utf-8') as f:
+            f.write(f"[{datetime.now()}] create_session_cookie FAILED: {type(e).__name__}: {e}\n")
         print(f"Session login error (create_session_cookie): {type(e).__name__}: {e}")
         
         # حل بديل للتطوير المحلي: التحقق من الـ Token مباشرة وإنشاء session cookie يدوياً
