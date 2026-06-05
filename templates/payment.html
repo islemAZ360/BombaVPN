@@ -8,10 +8,51 @@
 <div class="card card-flush" style="max-width: 800px; margin: 0 auto;">
     <h3 style="text-align: center; margin-bottom: 1.5rem;">{{ _('SelectPlan') }}</h3>
     
+    <!-- Filter Bar -->
+    <div id="filter-bar" style="margin-bottom: 1.5rem;">
+        <!-- Duration Filter -->
+        <div style="margin-bottom: 12px;">
+            <div style="font-size: 0.8rem; color: var(--text-muted, #888); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                {{ _('FilterByDuration') if _('FilterByDuration') != 'FilterByDuration' else 'Filter by Duration' }}
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="duration-filters">
+                <button class="filter-chip active" data-duration="all" onclick="setDurationFilter('all', this)">{{ _('All') if _('All') != 'All' else 'All' }}</button>
+                <button class="filter-chip" data-duration="2592000" onclick="setDurationFilter(2592000, this)">1 {{ _('Month') if _('Month') != 'Month' else 'Month' }}</button>
+                <button class="filter-chip" data-duration="7776000" onclick="setDurationFilter(7776000, this)">3 {{ _('Months') if _('Months') != 'Months' else 'Months' }}</button>
+                <button class="filter-chip" data-duration="15552000" onclick="setDurationFilter(15552000, this)">6 {{ _('Months') if _('Months') != 'Months' else 'Months' }}</button>
+                <button class="filter-chip" data-duration="31104000" onclick="setDurationFilter(31104000, this)">1 {{ _('Year') if _('Year') != 'Year' else 'Year' }}</button>
+            </div>
+        </div>
+        <!-- Tag Filter -->
+        <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted, #888); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                {{ _('FilterByTag') if _('FilterByTag') != 'FilterByTag' else 'Filter by Tag' }}
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="tag-filters">
+                <button class="filter-chip active" data-tag="all" onclick="setTagFilter('all', this)">{{ _('All') if _('All') != 'All' else 'All' }}</button>
+                <button class="filter-chip" data-tag="gemini" onclick="setTagFilter('gemini', this)">🌀 Gemini</button>
+                <button class="filter-chip" data-tag="yt" onclick="setTagFilter('yt', this)">▶️ YouTube</button>
+                <button class="filter-chip" data-tag="lte" onclick="setTagFilter('lte', this)">📶 LTE</button>
+                <button class="filter-chip" data-tag="ru" onclick="setTagFilter('ru', this)">🇷🇺 Russia</button>
+                <button class="filter-chip" data-tag="torrent" onclick="setTagFilter('torrent', this)">🔗 Torrent</button>
+            </div>
+        </div>
+    </div>
+    <!-- No Results Message -->
+    <div id="no-results-msg" style="display: none; text-align: center; padding: 2rem 1rem; color: var(--text-muted, #888);">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px; opacity: 0.4;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <div style="font-size: 1rem;">{{ _('NoMatchingPlans') if _('NoMatchingPlans') != 'NoMatchingPlans' else 'No plans match your filters' }}</div>
+        <div style="font-size: 0.85rem; margin-top: 6px; opacity: 0.6;">{{ _('TryDifferentFilter') if _('TryDifferentFilter') != 'TryDifferentFilter' else 'Try a different combination' }}</div>
+    </div>
+
     <div class="plans-grid" id="plans-container">
         {% for server in servers %}
         <div class="plan-card" data-id="{{ server.id }}" data-name="{{ server.name }}" data-price="{{ server.price }}" data-country="{{ server.country_code or '' }}" 
              data-days="{{ server.plan_days or 0 }}" data-hours="{{ server.plan_hours or 0 }}" data-minutes="{{ server.plan_minutes or 0 }}"
+             data-tags="{{ server.tags | join(',') if server.tags else '' }}"
+             data-total-seconds="{{ server.total_plan_seconds or ((server.plan_days or 0) * 86400 + (server.plan_hours or 0) * 3600 + (server.plan_minutes or 0) * 60) }}"
              onclick="openPaymentModal(this)">
             <div class="plan-name" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                 {% if server.country_code %}
@@ -32,6 +73,40 @@
         {% endfor %}
     </div>
 </div>
+
+<style>
+    .filter-chip {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: var(--text-muted, #aaa);
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.82rem;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        font-family: inherit;
+        white-space: nowrap;
+    }
+    .filter-chip:hover {
+        background: rgba(0, 255, 204, 0.08);
+        border-color: rgba(0, 255, 204, 0.3);
+        color: #fff;
+    }
+    .filter-chip.active {
+        background: linear-gradient(135deg, rgba(0, 255, 204, 0.15), rgba(0, 200, 255, 0.15));
+        border-color: rgba(0, 255, 204, 0.5);
+        color: #00ffcc;
+        font-weight: 600;
+        box-shadow: 0 0 12px rgba(0, 255, 204, 0.1);
+    }
+    .plan-card {
+        transition: all 0.3s ease;
+    }
+    .plan-card.hidden-by-filter {
+        display: none !important;
+    }
+    @keyframes fadeInCard { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+</style>
 
 <!-- Payment Modal Overlay -->
 <div id="payment-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); backdrop-filter:blur(5px); z-index:9999; align-items:center; justify-content:center;">
@@ -87,6 +162,66 @@
 
 {% block scripts %}
 <script>
+    // Filter State
+    let activeDurationFilter = 'all';
+    let activeTagFilter = 'all';
+    
+    function setDurationFilter(value, btn) {
+        activeDurationFilter = value;
+        document.querySelectorAll('#duration-filters .filter-chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        applyFilters();
+    }
+    
+    function setTagFilter(value, btn) {
+        activeTagFilter = value;
+        document.querySelectorAll('#tag-filters .filter-chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        applyFilters();
+    }
+    
+    function applyFilters() {
+        const cards = document.querySelectorAll('#plans-container .plan-card');
+        let visibleCount = 0;
+        const tolerance = 0.15; // 15% tolerance for duration matching
+        
+        cards.forEach(card => {
+            let showDuration = true;
+            let showTag = true;
+            
+            // Duration filter
+            if (activeDurationFilter !== 'all') {
+                const totalSecs = parseInt(card.getAttribute('data-total-seconds')) || 0;
+                const targetSecs = parseInt(activeDurationFilter);
+                const lower = targetSecs * (1 - tolerance);
+                const upper = targetSecs * (1 + tolerance);
+                showDuration = (totalSecs >= lower && totalSecs <= upper);
+            }
+            
+            // Tag filter
+            if (activeTagFilter !== 'all') {
+                const tags = (card.getAttribute('data-tags') || '').toLowerCase().split(',').map(t => t.trim());
+                showTag = tags.includes(activeTagFilter);
+            }
+            
+            if (showDuration && showTag) {
+                card.classList.remove('hidden-by-filter');
+                card.style.animation = 'fadeInCard 0.3s ease';
+                visibleCount++;
+            } else {
+                card.classList.add('hidden-by-filter');
+            }
+        });
+        
+        // Show/hide no results message
+        const noResultsMsg = document.getElementById('no-results-msg');
+        if (visibleCount === 0 && cards.length > 0) {
+            noResultsMsg.style.display = 'block';
+        } else {
+            noResultsMsg.style.display = 'none';
+        }
+    }
+    
     // Modal Logic
     const paymentModal = document.getElementById('payment-modal');
     
@@ -200,7 +335,16 @@
                     card.classList.add('selected');
                 }
                 card.setAttribute('data-id', server.id);
-                card.onclick = function() { selectPlan(server.id, this); };
+                card.setAttribute('data-name', server.name || '');
+                card.setAttribute('data-price', server.price || 0);
+                card.setAttribute('data-country', server.country_code || '');
+                card.setAttribute('data-days', server.plan_days || 0);
+                card.setAttribute('data-hours', server.plan_hours || 0);
+                card.setAttribute('data-minutes', server.plan_minutes || 0);
+                card.setAttribute('data-tags', (server.tags || []).join(','));
+                const totalSecs = server.total_plan_seconds || ((server.plan_days || 0) * 86400 + (server.plan_hours || 0) * 3600 + (server.plan_minutes || 0) * 60);
+                card.setAttribute('data-total-seconds', totalSecs);
+                card.onclick = function() { openPaymentModal(this); };
                 
                 const flagImg = server.country_code 
                     ? `<img src="https://flagcdn.com/24x18/${server.country_code}.png" alt="${server.country_code}" style="border-radius: 2px;">` 
@@ -221,6 +365,9 @@
                 `;
                 serverContainer.appendChild(card);
             });
+            
+            // Re-apply active filters
+            applyFilters();
         } catch(e) {
             console.log('Auto-refresh error:', e);
         }
