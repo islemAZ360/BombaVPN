@@ -1,50 +1,9 @@
-{% extends 'base.html' %}
-{% block content %}
-<div class="header-actions">
-    <h2>{{ _('DebtStats') }}</h2>
-    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">{{ _('BackToDashboard') }}</a>
-</div>
+import re
 
-<div class="card" style="margin-top: 20px;">
-    <h3>{{ _('UsersWithDebts') }}</h3>
-    <p style="color: #a0a0a0; margin-bottom: 20px;">{{ _('DebtDesc') }}</p>
-    
-    <div class="table-responsive">
-        <table>
-            <tr>
-                <th>{{ _('Email') }}</th>
-                <th>{{ _('CurrentServer') }}</th>
-                <th>{{ _('ServerExpiry') }}</th>
-                <th>{{ _('ActualExpiry') }}</th>
-                <th>{{ _('DueDebt') }}</th>
-            </tr>
-            {% for u in users %}
-            <tr>
-                <td>{{ u.email }}</td>
-                <td>{{ u.server_name if u.server_name else _('Deleted') }}</td>
-                <td style="color: #ff4757;">{{ u.server_expires_at.strftime('%Y-%m-%d %H:%M') if u.server_expires_at else '-' }}</td>
-                <td style="color: #2ed573;">{{ u.subscription_expires_at.strftime('%Y-%m-%d %H:%M') if u.subscription_expires_at else '-' }}</td>
-                <td>
-                    <span class="badge" style="background: #ff4757; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">
-                        {% if u.debt_days != 'غير معروف' %}
-                            {% if u.debt_days > 0 %}{{ u.debt_days }} {{ _('Days') }} {% endif %}
-                            {% if u.debt_hours > 0 %}{{ u.debt_hours }} {{ _('Hours') }} {% endif %}
-                            {% if u.debt_days == 0 and u.debt_hours == 0 %}{{ _('DebtTransferring') }}{% endif %}
-                        {% else %}
-                            {{ _('Unknown') }}
-                        {% endif %}
-                    </span>
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="5" style="text-align: center; color: #2ed573; padding: 20px;">{{ _('NoDebtsMsg') }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
-</div>
+with open('templates/debts.html', 'r', encoding='utf-8') as f:
+    content = f.read()
 
+debts_js = """
 <script>
     async function fetchDebtsSync() {
         try {
@@ -97,5 +56,18 @@
     // Poll every 5 seconds
     setInterval(fetchDebtsSync, 5000);
 </script>
+"""
 
-{% endblock %}
+# Insert debts_js before {% endblock %}
+target_str = "{% endblock %}"
+if "fetchDebtsSync" not in content and target_str in content:
+    content = content.replace(target_str, debts_js + "\n" + target_str)
+    
+    # We must also add id="debts-tbody" to the tbody tag in debts.html
+    content = content.replace("<tbody>", '<tbody id="debts-tbody">', 1)
+    
+    with open('templates/debts.html', 'w', encoding='utf-8') as f:
+        f.write(content)
+    print("debts.html patched successfully.")
+else:
+    print("Could not patch debts.html or already patched.")
