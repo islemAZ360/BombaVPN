@@ -520,37 +520,67 @@ def admin_debts():
         
     in_debt_users = []
     try:
-        # We fetch users marked as in debt
-        for doc in db.collection('users').where('is_in_debt', '==', True).stream():
-            u = doc.to_dict()
-            u['id'] = doc.id
-            if 'subscription_expires_at' in u and u['subscription_expires_at']:
-                u['subscription_expires_at'] = u['subscription_expires_at'].replace(tzinfo=None)
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        
+        # Pre-fetch servers to avoid many DB calls
+        servers_map = {}
+        with servers_cache_lock:
+            for s_id, s_dict in servers_cache.items():
+                servers_map[s_id] = s_dict.copy()
+                
+        # Iterate over all active subscriptions to find debts
+        for doc in db.collection('subscriptions').where('status', '==', 'active').stream():
+            sub = doc.to_dict()
+            sub_id = doc.id
+            user_id = sub.get('user_id')
+            server_id = sub.get('server_id')
+            sub_exp = sub.get('expires_at')
             
-            # Fetch allocated server to calculate exact debt
-            alloc_id = u.get('allocated_server_id')
-            if alloc_id:
-                s_doc = db.collection('servers').document(alloc_id).get()
+            if not server_id or not sub_exp:
+                continue
+                
+            if sub_exp.tzinfo is None:
+                sub_exp = sub_exp.replace(tzinfo=timezone.utc)
+            sub_exp = sub_exp.replace(tzinfo=None)
+            
+            s_data = servers_map.get(server_id)
+            if not s_data:
+                s_doc = db.collection('servers').document(server_id).get()
                 if s_doc.exists:
                     s_data = s_doc.to_dict()
-                    s_exp = s_data.get('expires_at')
-                    if s_exp:
-                        s_exp = s_exp.replace(tzinfo=None)
-                        u['server_name'] = s_data.get('name')
-                        u['server_expires_at'] = s_exp
-                        if u['subscription_expires_at'] and s_exp < u['subscription_expires_at']:
-                            delta = u['subscription_expires_at'] - s_exp
-                            u['debt_days'] = delta.days
-                            u['debt_hours'] = delta.seconds // 3600
-                        else:
-                            u['debt_days'] = 0
-                            u['debt_hours'] = 0
+                    servers_map[server_id] = s_data
                 else:
-                    u['server_name'] = None
-                    u['debt_days'] = None
-                    u['debt_hours'] = None
+                    continue
+                    
+            s_exp = s_data.get('expires_at')
+            if not s_exp:
+                continue
+                
+            if s_exp.tzinfo is None:
+                s_exp = s_exp.replace(tzinfo=timezone.utc)
+            s_exp = s_exp.replace(tzinfo=None)
             
-            in_debt_users.append(u)
+            if s_exp < sub_exp:
+                delta = sub_exp - s_exp
+                
+                u_email = "Unknown"
+                with users_cache_lock:
+                    if user_id in users_cache:
+                        u_email = users_cache[user_id].get('email', 'Unknown')
+                if u_email == "Unknown":
+                    u_doc = db.collection('users').document(user_id).get()
+                    if u_doc.exists:
+                        u_email = u_doc.to_dict().get('email', 'Unknown')
+                        
+                in_debt_users.append({
+                    'id': sub_id,
+                    'email': u_email,
+                    'server_name': s_data.get('name', 'Unknown'),
+                    'server_expires_at': s_exp,
+                    'subscription_expires_at': sub_exp,
+                    'debt_days': delta.days,
+                    'debt_hours': delta.seconds // 3600
+                })
     except Exception as e:
         print("Error fetching debts:", e)
         
