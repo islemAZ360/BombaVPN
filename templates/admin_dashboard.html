@@ -8,7 +8,7 @@
     </a>
     <button onclick="setupTelegram()" class="btn btn-primary btn-small" style="width: fit-content; background: #0088cc; border:none; display:flex; align-items:center; gap:6px;" title="ربط البوت">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-        ربط بوت التلغرام
+        {{ _('ConnectTelegramBot') }}
     </button>
     <button id="logout-btn" class="btn btn-transparent-danger btn-small">{{ _('Logout') }}</button>
 </div>
@@ -16,7 +16,7 @@
 <!-- Analytics Dashboard -->
 <div class="card" style="margin-bottom: 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-        <h3 style="margin: 0;">الإحصائيات (Analytics)</h3>
+        <h3 style="margin: 0;">{{ _('Analytics') }}</h3>
     </div>
     <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px;">
         <div style="flex: 1; min-width: 300px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
@@ -2331,7 +2331,7 @@ function rescanServers() {
                 new Chart(document.getElementById('usersChart'), {
                     type: 'doughnut',
                     data: {
-                        labels: ['نشط (Active)', 'منتهي (Expired)'],
+                        labels: ["{{ _('ActiveStatus') }}", "{{ _('ExpiredStatus') }}"],
                         datasets: [{
                             data: [data.users_active, data.users_expired],
                             backgroundColor: ['#00ffcc', '#ff4757'],
@@ -2342,7 +2342,7 @@ function rescanServers() {
                         responsive: true,
                         plugins: {
                             legend: { labels: { color: '#fff' } },
-                            title: { display: true, text: 'حالة المستخدمين', color: '#fff' }
+                            title: { display: true, text: "{{ _('UserStatus') }}", color: '#fff' }
                         }
                     }
                 });
@@ -2351,9 +2351,9 @@ function rescanServers() {
                 new Chart(document.getElementById('financeChart'), {
                     type: 'bar',
                     data: {
-                        labels: ['إجمالي السيرفرات', 'الديون المستحقة'],
+                        labels: ["{{ _('TotalServers') }}", "{{ _('OutstandingDebts') }}"],
                         datasets: [{
-                            label: 'العدد / القيمة',
+                            label: "{{ _('CountOrValue') }}",
                             data: [data.servers_total, data.total_debt],
                             backgroundColor: ['#007bff', '#ffc107']
                         }]
@@ -2362,7 +2362,7 @@ function rescanServers() {
                         responsive: true,
                         plugins: {
                             legend: { display: false },
-                            title: { display: true, text: 'السيرفرات والديون', color: '#fff' }
+                            title: { display: true, text: "{{ _('ServersAndDebts') }}", color: '#fff' }
                         },
                         scales: {
                             y: { ticks: { color: '#aaa' } },
