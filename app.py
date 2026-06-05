@@ -948,9 +948,10 @@ def _import_vless_servers(subscription_text, total_plan_seconds, total_real_seco
             final_price = price_base
             keywords_lower = set(k.lower() for k in keywords)
 
+            plan_days_equiv = total_plan_seconds // 86400
             matched_rules = []
             for rule in pricing_rules:
-                if rule['tags'].issubset(keywords_lower) and rule.get('duration_days', 0) == plan_days:
+                if rule['tags'].issubset(keywords_lower) and rule.get('duration_days', 0) == plan_days_equiv:
                     matched_rules.append(rule)
 
             if matched_rules:
