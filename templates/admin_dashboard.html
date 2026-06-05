@@ -551,9 +551,9 @@
             <input type="hidden" name="action" value="assign">
             <div style="margin-bottom: 1rem;">
                 <select name="server_id" class="form-control" required style="width: 100%; padding: 0.5rem; border-radius: var(--radius); background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border-color);">
-                    <option value="">-- Select Server --</option>
+                    <option value="" style="background: #1a1a2e; color: #fff;">-- Select Server --</option>
                     {% for s in servers %}
-                    <option value="{{ s.id }}">{{ s.name }} ({{ s.price }})</option>
+                    <option value="{{ s.id }}" style="background: #1a1a2e; color: #fff;">{{ s.name }} ({{ s.price }})</option>
                     {% endfor %}
                 </select>
             </div>
