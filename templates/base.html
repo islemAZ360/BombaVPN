@@ -30,10 +30,12 @@
 
     <!-- Navbar -->
     <div class="top-bar">
-        <div class="logo" style="display: flex; align-items: center; gap: 10px;">
-            <img src="{{ url_for('static', filename='icon-192.png') }}" alt="GalaxyVPN Logo" style="width: 28px; height: 28px; border-radius: 6px;">
-            GalaxyVPN
-        </div>
+        <a href="/" style="text-decoration: none; color: inherit;">
+            <div class="logo" style="display: flex; align-items: center; gap: 10px;">
+                <img src="{{ url_for('static', filename='icon-192.png') }}" alt="GalaxyVPN Logo" style="width: 28px; height: 28px; border-radius: 6px;">
+                GalaxyVPN
+            </div>
+        </a>
         <div style="flex-grow: 1;"></div>
         <div class="nav-links" style="display: flex; gap: 10px; align-items: center; margin-right: 15px;">
             {% if request.user %}
