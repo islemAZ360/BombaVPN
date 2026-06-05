@@ -1601,27 +1601,29 @@
 
     // Live countdown timers for expiration dates
     function updateCountdowns() {
-        document.querySelectorAll('.countdown-timer').forEach(el => {
-            const expires = new Date(el.getAttribute('data-expires'));
-            if (isNaN(expires)) return;
+        document.querySelectorAll('.countdown-timer, .live-countdown').forEach(el => {
+            const expiresStr = el.getAttribute('data-expires');
+            if (!expiresStr) {
+                el.textContent = 'No expiry date';
+                el.style.color = 'rgba(255,255,255,0.4)';
+                return;
+            }
+            const expires = new Date(expiresStr);
+            if (isNaN(expires)) {
+                el.textContent = 'Invalid date';
+                el.style.color = '#F44336';
+                return;
+            }
             const now = new Date();
             const diff = expires - now;
             
             if (diff <= 0) {
-                el.textContent = 'Expired';
-                el.style.color = 'var(--danger)';
+                el.innerHTML = '<span style="background: #F44336; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">Expired</span>';
             } else {
-                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-                const minutes = Math.floor((diff / 1000 / 60) % 60);
-                const seconds = Math.floor((diff / 1000) % 60);
-                
-                let text = 'Expires in: ';
-                if (days > 0) text += days + 'd ';
-                if (hours > 0 || days > 0) text += hours + 'h ';
-                text += minutes + 'm ' + seconds + 's';
-                
-                el.textContent = text;
+                const totalSecs = Math.floor(diff / 1000);
+                el.textContent = formatDurationSmart(totalSecs);
+                el.style.color = '#4CAF50';
+                el.style.fontWeight = 'bold';
             }
         });
     }
