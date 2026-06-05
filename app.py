@@ -1082,6 +1082,28 @@ def edit_server(server_id):
             update_data = {'name': new_name}
             if new_price is not None:
                 update_data['price'] = new_price
+                
+            new_total_plan_seconds = request.form.get('total_plan_seconds')
+            if new_total_plan_seconds is not None:
+                try:
+                    update_data['total_plan_seconds'] = int(new_total_plan_seconds)
+                except ValueError:
+                    pass
+                    
+            new_expires_at = request.form.get('expires_at')
+            if new_expires_at is not None:
+                if new_expires_at.strip() == '':
+                    update_data['expires_at'] = None
+                else:
+                    try:
+                        if len(new_expires_at) == 16:
+                            parsed_date = datetime.strptime(new_expires_at, '%Y-%m-%dT%H:%M')
+                        else:
+                            parsed_date = datetime.strptime(new_expires_at[:19], '%Y-%m-%dT%H:%M:%S')
+                        update_data['expires_at'] = parsed_date
+                    except ValueError:
+                        pass
+                
             db.collection('servers').document(server_id).update(update_data)
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({'status': 'success'})
