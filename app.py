@@ -335,9 +335,9 @@ def api_available_servers():
         s['id'] = doc.id
         # Clean non-serializable fields
         if 'expires_at' in s and s['expires_at']:
-            s['expires_at'] = s['expires_at'].isoformat()
+            s['expires_at'] = s['expires_at'].isoformat() + 'Z'
         if 'created_at' in s and s['created_at']:
-            s['created_at'] = s['created_at'].isoformat()
+            s['created_at'] = s['created_at'].isoformat() + 'Z'
         servers.append(s)
     return jsonify(servers)
 

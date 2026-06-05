@@ -316,7 +316,7 @@
                         </div>
                         <div style="display:flex; flex-wrap:wrap; align-items:center; gap:5px;">
                             ⏳ Expires: 
-                            <span class="live-countdown" data-expires="{{ s.expires_at.isoformat() if s.expires_at else '' }}" style="font-size: 0.75rem; color: #ffeb3b; font-weight: bold;">Calculating...</span>
+                            <span class="live-countdown" data-expires="{{ s.expires_at.isoformat() ~ 'Z' if s.expires_at else '' }}" style="font-size: 0.75rem; color: #ffeb3b; font-weight: bold;">Calculating...</span>
                             <input type="number" name="expires_minutes_input" placeholder="+ Mins" class="form-control" style="width: 70px; padding: 0.1rem 0.3rem; font-size: 0.75rem;" title="Set expiration in minutes from now">
                         </div>
                     </div>
@@ -2137,7 +2137,7 @@
                                 </div>
                                 <div style="display:flex; flex-wrap:wrap; align-items:center; gap:5px;">
                                     ⏳ Expires:
-                                    <span class="live-countdown" data-expires="${s.expires_at || ''}" style="font-size: 0.75rem; color: #ffeb3b; font-weight: bold;">Calculating...</span>
+                                    <span class="live-countdown" data-expires="${s.expires_at ? s.expires_at + (s.expires_at.endsWith('Z') ? '' : 'Z') : ''}" style="font-size: 0.75rem; color: #ffeb3b; font-weight: bold;">Calculating...</span>
                                     <input type="number" name="expires_minutes_input" placeholder="+ Mins" class="form-control" style="width: 70px; padding: 0.1rem 0.3rem; font-size: 0.75rem;" title="Set expiration in minutes from now">
                                     ${isExpired ? '<span style="font-size: 0.7rem; background: #F44336; color: #fff; padding: 2px 6px; border-radius: 4px;">Expired</span>' : ''}
                                 </div>
