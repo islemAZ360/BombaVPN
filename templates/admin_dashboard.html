@@ -1247,23 +1247,45 @@
                     let countryCode = s.country_code ? s.country_code : 'xx';
                     let isExpired = s.expires_at ? new Date(s.expires_at) < new Date() : true;
                     let expStr = s.expires_at ? new Date(s.expires_at).toLocaleString() : 'No Expire Data';
+                    let createdStr = s.created_at ? new Date(s.created_at).toLocaleString() : 'Unknown';
+                    let planDays = s.plan_days || 0;
+                    
+                    let sourceLinkHtml = '';
+                    if (s.source_link_id && data.source_links) {
+                        let sl = data.source_links.find(l => l.id === s.source_link_id);
+                        if (sl) {
+                            let shortUrl = sl.url.length > 20 ? sl.url.substring(0, 20) + '...' : sl.url;
+                            sourceLinkHtml = `
+                            <div style="margin-top: 5px; display: flex; align-items: center; gap: 5px;">
+                                <span style="font-size: 0.7rem; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; color: #aaa; border: 1px solid rgba(255,255,255,0.1);">🔗 ${shortUrl}</span>
+                                <button type="button" onclick="document.getElementById('form-sync-${s.source_link_id}').submit();" style="background: none; border: none; cursor: pointer; color: var(--primary);" title="Sync Link">🔄</button>
+                                <form id="form-sync-${s.source_link_id}" method="POST" action="/api/admin/sync_link/${s.source_link_id}" style="display:none;"></form>
+                            </div>`;
+                        }
+                    }
                     
                     html += `<tr id="server-row-${s.id}" ${isExpired ? 'style="opacity: 0.6; background: rgba(244,67,54,0.05);"' : ''}>
                         <td>
-                            <form method="POST" action="/admin/edit_server/${s.id}" style="display:flex; gap:0.5rem; align-items:center;">
-                                ${countryCode !== 'xx' ? `<img src="https://flagcdn.com/24x18/${countryCode}.png" alt="flag" style="border-radius: 2px;">` : ''}
-                                <input type="text" name="name" value="${s.name}" class="form-control" style="width: 150px; padding: 0.2rem 0.5rem;" required>
+                            <form method="POST" action="/admin/edit_server/${s.id}" style="display:flex; flex-direction: column; gap:0.5rem;">
+                                <div style="display:flex; gap:0.5rem; align-items:center;">
+                                    ${countryCode !== 'xx' ? `<img src="https://flagcdn.com/24x18/${countryCode}.png" alt="flag" style="border-radius: 2px;">` : ''}
+                                    <input type="text" name="name" value="${s.name}" class="form-control" style="width: 150px; padding: 0.2rem 0.5rem;" required>
+                                </div>
+                                ${sourceLinkHtml}
                         </td>
                         <td style="vertical-align: middle;">
                             <input type="text" name="price" value="${s.price || ''}" class="form-control" style="width: 80px; padding: 0.2rem 0.5rem;">
                         </td>
                         <td style="vertical-align: middle;">
-                            <div style="margin-top: 5px; font-size: 0.8rem; color: #aaa;">${s.original_ip || ''}</div>
+                            <div style="margin-top: 5px; font-size: 0.85rem; color: #aaa;">${s.original_ip || ''}</div>
                         </td>
                         <td style="vertical-align: middle;">
-                            <div style="${isExpired ? 'color: #F44336;' : 'color: #4CAF50;'}">
-                                ${expStr}
-                                ${isExpired ? '<span style="margin-left: 8px; font-size: 0.7rem; background: #F44336; color: #fff; padding: 2px 6px; border-radius: 4px;">Expired</span>' : ''}
+                            <div style="font-size: 0.8rem; color: #ccc;">
+                                <div style="margin-bottom: 2px;">📅 Uploaded: <span style="color: #fff;">${createdStr}</span></div>
+                                <div style="margin-bottom: 2px;">⏳ Plan: <span style="color: var(--primary); font-weight: bold;">${planDays} Days</span></div>
+                                <div style="${isExpired ? 'color: #F44336;' : 'color: #4CAF50;'}">
+                                    ⏳ Expires: ${isExpired ? '<span style="margin-left: 8px; font-size: 0.7rem; background: #F44336; color: #fff; padding: 2px 6px; border-radius: 4px;">Expired</span>' : `<span class="live-countdown" data-expires="${s.expires_at || ''}">Calculating...</span>`}
+                                </div>
                             </div>
                         </td>
                         <td style="white-space: nowrap;">
