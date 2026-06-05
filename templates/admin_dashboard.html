@@ -307,17 +307,22 @@
                     <div style="margin-top: 5px; font-size: 0.85rem; color: #aaa;">{{ s.ip or s.original_ip }}</div>
                 </td>
                 <td style="vertical-align: middle;">
-                    <div style="font-size: 0.8rem; color: #ccc;">
-                        <div style="margin-bottom: 2px;">📅 Uploaded: <span style="color: #fff;">{{ s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else 'Unknown' }}</span></div>
-                        <div style="margin-bottom: 4px; display:flex; align-items:center; gap:5px;">
-                            ⏳ Plan (Mins): 
-                            <input type="number" name="plan_minutes_input" value="{{ ((s.total_plan_seconds or (s.plan_days * 24 * 3600 if s.plan_days else 0)) // 60) | int }}" class="form-control" style="width: 70px; padding: 0.1rem 0.3rem; font-size: 0.75rem;">
-                            <span class="smart-duration" data-seconds="{{ s.total_plan_seconds or (s.plan_days * 24 * 3600 if s.plan_days else 0) }}" style="color: var(--primary); font-weight: bold; font-size:0.7rem;"></span>
+                    <div style="font-size: 0.8rem; color: #ccc; display: flex; flex-direction: column; gap: 8px;">
+                        <div>
+                            <span style="display: inline-block; width: 85px; color: #aaa;">📅 Uploaded:</span> 
+                            <span style="color: #fff;">{{ s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else 'Unknown' }}</span>
                         </div>
-                        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:5px;">
-                            ⏳ Expires: 
+                        
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="display: inline-block; width: 85px; color: #aaa;">⏳ Plan:</span>
+                            <input type="number" name="plan_minutes_input" value="{{ ((s.total_plan_seconds or (s.plan_days * 24 * 3600 if s.plan_days else 0)) // 60) | int }}" class="form-control" style="width: 75px; padding: 0.2rem 0.4rem; font-size: 0.75rem;" title="Total Plan (Mins)">
+                            <span class="smart-duration" data-seconds="{{ s.total_plan_seconds or (s.plan_days * 24 * 3600 if s.plan_days else 0) }}" style="color: var(--primary); font-weight: bold; font-size: 0.75rem;"></span>
+                        </div>
+                        
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="display: inline-block; width: 85px; color: #aaa;">⏳ Expires:</span>
+                            <input type="number" name="expires_minutes_input" placeholder="+ Mins" class="form-control" style="width: 75px; padding: 0.2rem 0.4rem; font-size: 0.75rem;" title="Add minutes from now">
                             <span class="live-countdown" data-expires="{{ s.expires_at.isoformat() ~ 'Z' if s.expires_at else '' }}" style="font-size: 0.75rem; color: #ffeb3b; font-weight: bold;">Calculating...</span>
-                            <input type="number" name="expires_minutes_input" placeholder="+ Mins" class="form-control" style="width: 70px; padding: 0.1rem 0.3rem; font-size: 0.75rem;" title="Set expiration in minutes from now">
                         </div>
                     </div>
                 </td>
