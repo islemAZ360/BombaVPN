@@ -1112,6 +1112,12 @@ def manage_subscription(sub_id):
         db.collection('subscriptions').document(sub_id).update(update_data)
         flash('تم إلغاء الاشتراك بنجاح / Subscription cancelled', 'success')
         
+    elif action == 'delete':
+        if data.get('allocated_subdomain'):
+            delete_dns_record(data['allocated_subdomain'], DYNV6_TOKEN)
+        db.collection('subscriptions').document(sub_id).delete()
+        flash('تم حذف الاشتراك نهائياً / Subscription deleted permanently', 'success')
+        
     elif action == 'modify':
         modify_type = request.form.get('modify_type', 'add')
         days = int(request.form.get('days') or 0)

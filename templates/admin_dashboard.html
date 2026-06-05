@@ -323,6 +323,19 @@
                             <span title="{{ u.accessed_devices|join('\n') }}" style="cursor: help;">📱 {{ u.accessed_devices|length }} Devices</span>
                         </div>
                         {% endif %}
+                        <div style="margin-top: 10px; display: flex; gap: 5px;">
+                            <button type="button" class="icon-btn assign-btn" onclick="openAssignModal('{{ u.id }}', '')" title="Assign New Server" style="padding: 4px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+                            </button>
+                            <button type="button" class="icon-btn msg-btn" onclick="openMessageModal('{{ u.id }}', '{{ u.email }}')" title="Send Message" style="padding: 4px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                            </button>
+                            <form method="POST" action="{{ url_for('delete_user', user_id=u.id) }}" style="margin:0;" onsubmit="return confirm('Delete user completely?');">
+                                <button type="submit" class="icon-btn del-btn" title="Delete User" style="padding: 4px;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                </button>
+                            </form>
+                        </div>
                     </td>
                     <td>
                         {% if u.status == 'active' %}
@@ -363,6 +376,10 @@
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                                             </button>
                                             
+                                            <button type="button" class="icon-btn assign-btn" onclick="openAssignModal('{{ u.id }}', '{{ sub.id }}')" title="Change Server">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                                            </button>
+                                            
                                             <form method="POST" action="{{ url_for('manage_user_sub', user_id=u.id) }}" style="margin:0;" onsubmit="return confirm('Cancel subscription?');">
                                                 <input type="hidden" name="action" value="cancel">
                                                 <input type="hidden" name="sub_id" value="{{ sub.id }}">
@@ -371,19 +388,13 @@
                                                 </button>
                                             </form>
                                             
-                                            {% if loop.first %}
-                                            <button type="button" class="icon-btn msg-btn" onclick="openMessageModal('{{ u.id }}', '{{ u.email }}')" title="Send Message">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                                            </button>
-                                            <button type="button" class="icon-btn assign-btn" onclick="openAssignModal('{{ u.id }}')" title="Assign Server">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                                            </button>
-                                            <form method="POST" action="{{ url_for('delete_user', user_id=u.id) }}" style="margin:0;" onsubmit="return confirm('Delete user completely?');">
-                                                <button type="submit" class="icon-btn del-btn" title="Delete User">
+                                            <form method="POST" action="{{ url_for('manage_user_sub', user_id=u.id) }}" style="margin:0;" onsubmit="return confirm('Delete subscription permanently?');">
+                                                <input type="hidden" name="action" value="delete">
+                                                <input type="hidden" name="sub_id" value="{{ sub.id }}">
+                                                <button type="submit" class="icon-btn del-btn" title="Delete Subscription">
                                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                                 </button>
                                             </form>
-                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>
@@ -399,17 +410,6 @@
                                     </td>
                                     <td style="width: 35%; border: none;">
                                         <div class="action-btn-group" style="justify-content: flex-end;">
-                                            <button type="button" class="icon-btn assign-btn" onclick="openAssignModal('{{ u.id }}')" title="Assign Server">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                                            </button>
-                                            <button type="button" class="icon-btn msg-btn" onclick="openMessageModal('{{ u.id }}', '{{ u.email }}')" title="Send Message">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                                            </button>
-                                            <form method="POST" action="{{ url_for('delete_user', user_id=u.id) }}" style="margin:0;" onsubmit="return confirm('Delete user completely?');">
-                                                <button type="submit" class="icon-btn del-btn" title="Delete User">
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                                </button>
-                                            </form>
                                         </div>
                                     </td>
                                 </tr>
@@ -578,9 +578,19 @@
         document.getElementById('modify-modal').style.display = 'flex';
     }
 
-    function openAssignModal(userId) {
+    function openAssignModal(userId, subId) {
         const form = document.getElementById('assign-form');
         form.action = "{{ url_for('manage_user_sub', user_id='PLACEHOLDER') }}".replace('PLACEHOLDER', userId);
+        
+        let subInput = form.querySelector('input[name="sub_id"]');
+        if (!subInput) {
+            subInput = document.createElement('input');
+            subInput.type = 'hidden';
+            subInput.name = 'sub_id';
+            form.appendChild(subInput);
+        }
+        subInput.value = subId || '';
+        
         document.getElementById('assign-modal').style.display = 'flex';
     }
 
