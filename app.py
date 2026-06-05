@@ -33,6 +33,40 @@ import secrets
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'bomba_vpn_fallback_secret_key_12345')
 app.config['SESSION_COOKIE_NAME'] = 'flask_session'
 
+def send_telegram_notification(message):
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+    if bot_token and chat_id:
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        payload = {'chat_id': chat_id, 'text': message, 'parse_mode': 'Markdown'}
+        try:
+            requests.post(url, json=payload, timeout=5)
+        except Exception as e:
+            print(f"Telegram notification failed: {e}")
+
+@app.route('/api/admin/stats')
+def admin_stats():
+    if not getattr(request, 'is_admin', False):
+        return jsonify({'error': 'Unauthorized'}), 403
+        
+    try:
+        users = list(db.collection('users').stream())
+        servers = list(db.collection('servers').stream())
+        
+        active_users = sum(1 for u in users if u.to_dict().get('status') == 'active')
+        expired_users = len(users) - active_users
+        
+        total_debt = sum(float(u.to_dict().get('debt', 0)) for u in users)
+        
+        return jsonify({
+            'users_active': active_users,
+            'users_expired': expired_users,
+            'servers_total': len(servers),
+            'total_debt': total_debt
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # Serializer for secure subscription links
 from itsdangerous import URLSafeSerializer
 sub_serializer = URLSafeSerializer(app.config['SECRET_KEY'], salt='subscription-link')
@@ -362,6 +396,10 @@ def pay():
                 'status': 'pending',
                 'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
             })
+            
+            # إرسال إشعار تيليجرام
+            msg = f"💳 *دفعة جديدة!*\nالمستخدم: `{request.user['email']}`\nرفع صورة إيصال لاشتراك جديد/تجديد.\nيرجى مراجعة لوحة التحكم."
+            send_telegram_notification(msg)
             
             flash('تم إرسال الطلب بنجاح. جاري مراجعته من قبل الإدارة. / Request submitted successfully. Under review.', 'success')
             return redirect(url_for('user_dashboard'))
@@ -2066,6 +2104,11 @@ def send_message():
             'created_at': dt_now,
             'admin_reply': None
         })
+        
+        # إرسال إشعار تيليجرام
+        msg = f"💬 *رسالة دعم جديدة!*\nالمستخدم: `{request.user['email']}`\nالرسالة:\n{text}"
+        send_telegram_notification(msg)
+        
         if is_ajax:
             return jsonify({
                 'status': 'success', 

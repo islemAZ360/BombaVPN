@@ -9,6 +9,19 @@
     <button id="logout-btn" class="btn btn-transparent-danger btn-small">{{ _('Logout') }}</button>
 </div>
 
+<!-- Analytics Dashboard -->
+<div class="card" style="margin-bottom: 20px;">
+    <h3>الإحصائيات (Analytics)</h3>
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px;">
+        <div style="flex: 1; min-width: 300px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
+            <canvas id="usersChart"></canvas>
+        </div>
+        <div style="flex: 1; min-width: 300px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
+            <canvas id="financeChart"></canvas>
+        </div>
+    </div>
+</div>
+
 <div class="card">
     <h3>{{ _('PendingRequests') }}</h3>
     <div class="table-responsive">
@@ -2211,5 +2224,59 @@
     // Poll every 5 seconds
     setInterval(fetchDashboardSync, 5000);
 
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const res = await fetch('/api/admin/stats');
+            const data = await res.json();
+            if (!data.error) {
+                // Users Chart
+                new Chart(document.getElementById('usersChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['نشط (Active)', 'منتهي (Expired)'],
+                        datasets: [{
+                            data: [data.users_active, data.users_expired],
+                            backgroundColor: ['#00ffcc', '#ff4757'],
+                            borderColor: 'transparent'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { labels: { color: '#fff' } },
+                            title: { display: true, text: 'حالة المستخدمين', color: '#fff' }
+                        }
+                    }
+                });
+
+                // Finance Chart
+                new Chart(document.getElementById('financeChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['إجمالي السيرفرات', 'الديون المستحقة'],
+                        datasets: [{
+                            label: 'العدد / القيمة',
+                            data: [data.servers_total, data.total_debt],
+                            backgroundColor: ['#007bff', '#ffc107']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false },
+                            title: { display: true, text: 'السيرفرات والديون', color: '#fff' }
+                        },
+                        scales: {
+                            y: { ticks: { color: '#aaa' } },
+                            x: { ticks: { color: '#aaa' } }
+                        }
+                    }
+                });
+            }
+        } catch (e) { console.error('Failed to load stats', e); }
+    });
 </script>
 {% endblock %}
