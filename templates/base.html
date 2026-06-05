@@ -215,7 +215,7 @@
             <form id="user-chat-form" method="POST" onsubmit="submitUserChatMessage(event)" style="padding:1rem 1.5rem; border-top:1px solid var(--border-color, #333); background:rgba(255,255,255,0.02);">
                 <div style="display:flex; gap:10px; align-items:flex-end;">
                     <textarea id="user-chat-input" name="message" rows="2" placeholder="Type your message..." style="flex:1; resize:none; border-radius:8px; padding:10px; background:rgba(0,0,0,0.3); color:#fff; border:1px solid rgba(255,255,255,0.1); font-family:inherit;" required onkeydown="if(event.keyCode===13 && !event.shiftKey){event.preventDefault();submitUserChatMessage(event);}"></textarea>
-                    <button type="submit" id="user-chat-submit-btn" class="btn btn-primary" style="padding:0 1.5rem; height:44px; border-radius:8px; display:flex; align-items:center; gap:8px;">
+                    <button type="submit" id="user-chat-submit-btn" class="btn btn-primary" style="padding:0 1.5rem; height:44px; border-radius:8px; display:flex; align-items:center; gap:8px; width:auto; flex:none;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                         Send
                     </button>

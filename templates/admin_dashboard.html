@@ -480,7 +480,7 @@
         <form id="message-form" method="POST" action="" onsubmit="submitChatMessage(event)">
             <div style="display:flex; gap:0.5rem; align-items:flex-end;">
                 <textarea id="chat-input" name="message" class="form-control" rows="2" placeholder="Type your reply here..." style="flex:1; resize:none; border-radius:8px; padding:10px; background:rgba(255,255,255,0.05); color:#fff; border:1px solid rgba(255,255,255,0.1);" required onkeydown="if(event.keyCode===13 && !event.shiftKey){event.preventDefault();submitChatMessage(event);}"></textarea>
-                <button type="submit" id="chat-submit-btn" class="btn btn-primary" style="padding:0 1.2rem; height:44px; border-radius:8px; display:flex; align-items:center; justify-content:center;">
+                <button type="submit" id="chat-submit-btn" class="btn btn-primary" style="padding:0 1.2rem; height:44px; border-radius:8px; display:flex; align-items:center; justify-content:center; width:auto; flex:none;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                 </button>
             </div>
