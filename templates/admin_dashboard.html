@@ -201,27 +201,31 @@
         <!-- Fetched rules will be injected here by AJAX -->
     </div>
     
-    <form method="POST" action="/api/admin/pricing_rules" style="display: flex; gap: 10px; align-items: flex-end; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.1);">
-        <div style="flex: 2;">
+    <form method="POST" action="/api/admin/pricing_rules" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-start; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.1);">
+        <div style="flex: 1; min-width: 250px;">
             <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Tags (Press Enter/Comma)</label>
             <div id="tags-visual-container" class="form-control" style="min-height: 42px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; cursor: text; padding: 5px;">
                 <input type="text" id="tag-input-visual" placeholder="e.g. torrent" style="background: transparent; border: none; outline: none; color: white; min-width: 60px; flex-grow: 1;">
             </div>
             <input type="hidden" name="tags" id="hidden-tags-input">
         </div>
-        <div style="flex: 1;">
+        <div style="flex: 3; min-width: 400px;">
             <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Duration</label>
-            <div style="display:flex; gap: 5px;">
-                <input type="number" name="duration_days" class="form-control duration-input rule-input" placeholder="Total Days" title="Days" required>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 10px;">
+                <input type="number" name="duration_months" class="form-control duration-input rule-input" placeholder="Months">
+                <input type="number" name="duration_days" class="form-control duration-input rule-input" placeholder="Days">
+                <input type="number" name="duration_hours" class="form-control duration-input rule-input" placeholder="Hours">
+                <input type="number" name="duration_minutes" class="form-control duration-input rule-input" placeholder="Minutes">
+                <input type="number" name="duration_seconds" class="form-control duration-input rule-input" placeholder="Seconds">
             </div>
             <div id="rule-duration-preview" style="font-size: 0.8rem; color: #4CAF50; margin-top: 5px; min-height: 15px;"></div>
         </div>
-        <div style="flex: 0.5;">
+        <div style="flex: 0.5; min-width: 100px; display: flex; flex-direction: column;">
             <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Price</label>
             <input type="number" name="price" class="form-control" placeholder="500" required>
         </div>
         <div>
-            <button type="submit" class="btn btn-primary">+ Add</button>
+            <button type="submit" class="btn btn-primary" style="margin-top: 25px; height: 42px;">+ Add</button>
         </div>
     </form>
 </div>
