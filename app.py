@@ -653,20 +653,26 @@ def add_servers():
         return "Unauthorized", 403
         
     files = request.files.getlist('json_files')
+    plan_months = int(request.form.get('plan_months') or 0)
     plan_days = int(request.form.get('plan_days') or 0)
     plan_hours = int(request.form.get('plan_hours') or 0)
     plan_minutes = int(request.form.get('plan_minutes') or 0)
     
+    real_months = int(request.form.get('real_months') or 0)
     real_days = int(request.form.get('real_days') or 0)
     real_hours = int(request.form.get('real_hours') or 0)
     real_minutes = int(request.form.get('real_minutes') or 0)
     
+    # Normalize mathematically
+    total_plan_days = (plan_months * 30) + plan_days
+    total_real_days = (real_months * 30) + real_days
+    
     price = request.form.get('price') or ''
     
-    if real_days == 0 and real_hours == 0 and real_minutes == 0:
+    if total_real_days == 0 and real_hours == 0 and real_minutes == 0:
         expires_at = None
     else:
-        expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=real_days, hours=real_hours, minutes=real_minutes)
+        expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=total_real_days, hours=real_hours, minutes=real_minutes)
     
     added = 0
     existing_servers = [s.to_dict().get('name', '') for s in db.collection('servers').stream()]
@@ -764,13 +770,19 @@ def import_servers():
         return "Unauthorized", 403
         
     subscription_text = request.form.get('subscription_text', '').strip()
+    plan_months = int(request.form.get('plan_months') or 0)
     plan_days = int(request.form.get('plan_days') or 0)
     plan_hours = int(request.form.get('plan_hours') or 0)
     plan_minutes = int(request.form.get('plan_minutes') or 0)
     
+    real_months = int(request.form.get('real_months') or 0)
     real_days = int(request.form.get('real_days') or 0)
     real_hours = int(request.form.get('real_hours') or 0)
     real_minutes = int(request.form.get('real_minutes') or 0)
+    
+    # Normalize mathematically
+    total_plan_days = (plan_months * 30) + plan_days
+    total_real_days = (real_months * 30) + real_days
     
     price_base = request.form.get('price_base') or ''
     rule_tags = request.form.getlist('rule_tags[]')
@@ -783,10 +795,10 @@ def import_servers():
             r['tags'] = set(r.get('tags', []))
             pricing_rules.append(r)
     
-    if real_days == 0 and real_hours == 0 and real_minutes == 0:
+    if total_real_days == 0 and real_hours == 0 and real_minutes == 0:
         expires_at = None
     else:
-        expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=real_days, hours=real_hours, minutes=real_minutes)
+        expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=total_real_days, hours=real_hours, minutes=real_minutes)
     
     # Strip happ://add/ if present
     if subscription_text.startswith('happ://add/'):
@@ -801,10 +813,10 @@ def import_servers():
             # Save to source_links
             doc_ref = db.collection('source_links').add({
                 'url': original_url,
-                'plan_days': plan_days,
+                'plan_days': total_plan_days,
                 'plan_hours': plan_hours,
                 'plan_minutes': plan_minutes,
-                'real_days': real_days,
+                'real_days': total_real_days,
                 'real_hours': real_hours,
                 'real_minutes': real_minutes,
                 'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
@@ -919,7 +931,7 @@ def import_servers():
                 'json_config': content,
                 'vless_link': original_link,
                 'price': final_price,
-                'plan_days': plan_days,
+                'plan_days': total_plan_days,
                 'plan_hours': plan_hours,
                 'plan_minutes': plan_minutes,
                 'tags': keywords,
@@ -1299,7 +1311,7 @@ def rescan_servers():
         
         matched_rules = []
         for rule in rules:
-            if rule['tags'].issubset(new_tags_set) and rule.get('duration_days', 0) == plan_days:
+            if rule['tags'].issubset(new_tags_set) and rule.get('duration_days', 0) == total_plan_days:
                 matched_rules.append(rule)
                 
         if matched_rules:

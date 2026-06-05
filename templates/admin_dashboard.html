@@ -91,7 +91,8 @@
         <div style="display: flex; gap: 2rem; background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 200px;">
                 <label style="font-size: 0.85rem; color: var(--primary); font-weight: bold; margin-bottom: 12px; display: block;">{{ _('PlanDurationLabel') }}</label>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px;">
+                    <input type="number" name="plan_months" class="form-control" placeholder="Months">
                     <input type="number" name="plan_days" class="form-control" placeholder="{{ _('Days') }}">
                     <input type="number" name="plan_hours" class="form-control" placeholder="{{ _('Hours') }}">
                     <input type="number" name="plan_minutes" class="form-control" placeholder="{{ _('Minutes') }}">
@@ -128,10 +129,11 @@
         <div style="display: flex; gap: 20px; align-items: stretch; background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px;">
             <div style="flex: 1;">
                 <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: bold; margin-bottom: 12px; display: block;">{{ _('DurationTitle') }}</label>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-                    <input type="number" name="plan_days" class="form-control" placeholder="{{ _('Days') }}" required>
-                    <input type="number" name="plan_hours" class="form-control" placeholder="{{ _('Hours') }}">
-                    <input type="number" name="plan_minutes" class="form-control" placeholder="{{ _('Minutes') }}">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px;">
+                    <input type="number" name="real_months" class="form-control" placeholder="Months">
+                    <input type="number" name="real_days" class="form-control" placeholder="{{ _('Days') }}" required>
+                    <input type="number" name="real_hours" class="form-control" placeholder="{{ _('Hours') }}">
+                    <input type="number" name="real_minutes" class="form-control" placeholder="{{ _('Minutes') }}">
                 </div>
             </div>
             <div style="width: 2px; background: rgba(255,255,255,0.05);"></div>
@@ -177,12 +179,19 @@
     
     <form method="POST" action="/api/admin/pricing_rules" style="display: flex; gap: 10px; align-items: flex-end; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.1);">
         <div style="flex: 2;">
-            <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Tags (Comma separated)</label>
-            <input type="text" name="tags" class="form-control" placeholder="e.g. torrent, ru" required>
+            <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Tags (Press Enter/Comma)</label>
+            <div id="tags-visual-container" class="form-control" style="min-height: 42px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; cursor: text; padding: 5px;">
+                <input type="text" id="tag-input-visual" placeholder="e.g. torrent" style="background: transparent; border: none; outline: none; color: white; min-width: 60px; flex-grow: 1;">
+            </div>
+            <input type="hidden" name="tags" id="hidden-tags-input" required>
+        </div>
+        <div style="flex: 1;">
+            <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Duration (Months)</label>
+            <input type="number" name="duration_months" class="form-control" placeholder="e.g. 6">
         </div>
         <div style="flex: 1;">
             <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Duration (Days)</label>
-            <input type="number" name="duration_days" class="form-control" placeholder="e.g. 30" required>
+            <input type="number" name="duration_days" class="form-control" placeholder="e.g. 30" value="0" required>
         </div>
         <div style="flex: 1;">
             <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Price</label>
@@ -550,6 +559,68 @@
 </style>
 
 <script>
+
+    // Smart Duration Formatter
+    function formatDurationSmart(totalDays) {
+        if (!totalDays || totalDays === 0) return '0 Days';
+        let months = Math.floor(totalDays / 30);
+        let days = totalDays % 30;
+        let parts = [];
+        if (months > 0) parts.push(`${months} Months`);
+        if (days > 0) parts.push(`${days} Days`);
+        return parts.join(', ');
+    }
+
+    // Tag Input Visual System
+    document.addEventListener('DOMContentLoaded', () => {
+        const visualContainer = document.getElementById('tags-visual-container');
+        const visualInput = document.getElementById('tag-input-visual');
+        const hiddenInput = document.getElementById('hidden-tags-input');
+        if (!visualContainer) return;
+        
+        let tagsArray = [];
+        
+        function updateTagsUI() {
+            // clear visual except input
+            const cards = visualContainer.querySelectorAll('.tag-card');
+            cards.forEach(c => c.remove());
+            
+            tagsArray.forEach((tag, idx) => {
+                let span = document.createElement('span');
+                span.className = 'tag-card';
+                span.style.cssText = 'background: var(--accent); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;';
+                span.innerHTML = `${tag} <span style="cursor: pointer; font-weight: bold; color: rgba(255,255,255,0.7);" onclick="removeTag(${idx})">×</span>`;
+                visualContainer.insertBefore(span, visualInput);
+            });
+            
+            hiddenInput.value = tagsArray.join(',');
+        }
+        
+        window.removeTag = function(index) {
+            tagsArray.splice(index, 1);
+            updateTagsUI();
+        };
+        
+        visualContainer.addEventListener('click', () => {
+            visualInput.focus();
+        });
+        
+        visualInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                let val = visualInput.value.trim().replace(',', '');
+                if (val && !tagsArray.includes(val)) {
+                    tagsArray.push(val);
+                    visualInput.value = '';
+                    updateTagsUI();
+                }
+            } else if (e.key === 'Backspace' && visualInput.value === '' && tagsArray.length > 0) {
+                tagsArray.pop();
+                updateTagsUI();
+            }
+        });
+    });
+
     function closeModal(modalId) {
         document.getElementById(modalId).style.display = 'none';
         if (window.modifyTimerInterval) clearInterval(window.modifyTimerInterval);
@@ -722,6 +793,68 @@
 </script>
 
 <script>
+
+    // Smart Duration Formatter
+    function formatDurationSmart(totalDays) {
+        if (!totalDays || totalDays === 0) return '0 Days';
+        let months = Math.floor(totalDays / 30);
+        let days = totalDays % 30;
+        let parts = [];
+        if (months > 0) parts.push(`${months} Months`);
+        if (days > 0) parts.push(`${days} Days`);
+        return parts.join(', ');
+    }
+
+    // Tag Input Visual System
+    document.addEventListener('DOMContentLoaded', () => {
+        const visualContainer = document.getElementById('tags-visual-container');
+        const visualInput = document.getElementById('tag-input-visual');
+        const hiddenInput = document.getElementById('hidden-tags-input');
+        if (!visualContainer) return;
+        
+        let tagsArray = [];
+        
+        function updateTagsUI() {
+            // clear visual except input
+            const cards = visualContainer.querySelectorAll('.tag-card');
+            cards.forEach(c => c.remove());
+            
+            tagsArray.forEach((tag, idx) => {
+                let span = document.createElement('span');
+                span.className = 'tag-card';
+                span.style.cssText = 'background: var(--accent); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;';
+                span.innerHTML = `${tag} <span style="cursor: pointer; font-weight: bold; color: rgba(255,255,255,0.7);" onclick="removeTag(${idx})">×</span>`;
+                visualContainer.insertBefore(span, visualInput);
+            });
+            
+            hiddenInput.value = tagsArray.join(',');
+        }
+        
+        window.removeTag = function(index) {
+            tagsArray.splice(index, 1);
+            updateTagsUI();
+        };
+        
+        visualContainer.addEventListener('click', () => {
+            visualInput.focus();
+        });
+        
+        visualInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                let val = visualInput.value.trim().replace(',', '');
+                if (val && !tagsArray.includes(val)) {
+                    tagsArray.push(val);
+                    visualInput.value = '';
+                    updateTagsUI();
+                }
+            } else if (e.key === 'Backspace' && visualInput.value === '' && tagsArray.length > 0) {
+                tagsArray.pop();
+                updateTagsUI();
+            }
+        });
+    });
+
     let pendingDeleteId = null;
     let isDeletingAll = false;
     const modal = document.getElementById('confirm-modal');
@@ -886,6 +1019,68 @@
 </script>
 
 <script>
+
+    // Smart Duration Formatter
+    function formatDurationSmart(totalDays) {
+        if (!totalDays || totalDays === 0) return '0 Days';
+        let months = Math.floor(totalDays / 30);
+        let days = totalDays % 30;
+        let parts = [];
+        if (months > 0) parts.push(`${months} Months`);
+        if (days > 0) parts.push(`${days} Days`);
+        return parts.join(', ');
+    }
+
+    // Tag Input Visual System
+    document.addEventListener('DOMContentLoaded', () => {
+        const visualContainer = document.getElementById('tags-visual-container');
+        const visualInput = document.getElementById('tag-input-visual');
+        const hiddenInput = document.getElementById('hidden-tags-input');
+        if (!visualContainer) return;
+        
+        let tagsArray = [];
+        
+        function updateTagsUI() {
+            // clear visual except input
+            const cards = visualContainer.querySelectorAll('.tag-card');
+            cards.forEach(c => c.remove());
+            
+            tagsArray.forEach((tag, idx) => {
+                let span = document.createElement('span');
+                span.className = 'tag-card';
+                span.style.cssText = 'background: var(--accent); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;';
+                span.innerHTML = `${tag} <span style="cursor: pointer; font-weight: bold; color: rgba(255,255,255,0.7);" onclick="removeTag(${idx})">×</span>`;
+                visualContainer.insertBefore(span, visualInput);
+            });
+            
+            hiddenInput.value = tagsArray.join(',');
+        }
+        
+        window.removeTag = function(index) {
+            tagsArray.splice(index, 1);
+            updateTagsUI();
+        };
+        
+        visualContainer.addEventListener('click', () => {
+            visualInput.focus();
+        });
+        
+        visualInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                let val = visualInput.value.trim().replace(',', '');
+                if (val && !tagsArray.includes(val)) {
+                    tagsArray.push(val);
+                    visualInput.value = '';
+                    updateTagsUI();
+                }
+            } else if (e.key === 'Backspace' && visualInput.value === '' && tagsArray.length > 0) {
+                tagsArray.pop();
+                updateTagsUI();
+            }
+        });
+    });
+
     // Live JSON preview logic
     const jsonInput = document.getElementById('json_files_input');
     const previewContainer = document.getElementById('json_preview_container');
@@ -975,6 +1170,68 @@
 </script>
 
 <script>
+
+    // Smart Duration Formatter
+    function formatDurationSmart(totalDays) {
+        if (!totalDays || totalDays === 0) return '0 Days';
+        let months = Math.floor(totalDays / 30);
+        let days = totalDays % 30;
+        let parts = [];
+        if (months > 0) parts.push(`${months} Months`);
+        if (days > 0) parts.push(`${days} Days`);
+        return parts.join(', ');
+    }
+
+    // Tag Input Visual System
+    document.addEventListener('DOMContentLoaded', () => {
+        const visualContainer = document.getElementById('tags-visual-container');
+        const visualInput = document.getElementById('tag-input-visual');
+        const hiddenInput = document.getElementById('hidden-tags-input');
+        if (!visualContainer) return;
+        
+        let tagsArray = [];
+        
+        function updateTagsUI() {
+            // clear visual except input
+            const cards = visualContainer.querySelectorAll('.tag-card');
+            cards.forEach(c => c.remove());
+            
+            tagsArray.forEach((tag, idx) => {
+                let span = document.createElement('span');
+                span.className = 'tag-card';
+                span.style.cssText = 'background: var(--accent); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;';
+                span.innerHTML = `${tag} <span style="cursor: pointer; font-weight: bold; color: rgba(255,255,255,0.7);" onclick="removeTag(${idx})">×</span>`;
+                visualContainer.insertBefore(span, visualInput);
+            });
+            
+            hiddenInput.value = tagsArray.join(',');
+        }
+        
+        window.removeTag = function(index) {
+            tagsArray.splice(index, 1);
+            updateTagsUI();
+        };
+        
+        visualContainer.addEventListener('click', () => {
+            visualInput.focus();
+        });
+        
+        visualInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                let val = visualInput.value.trim().replace(',', '');
+                if (val && !tagsArray.includes(val)) {
+                    tagsArray.push(val);
+                    visualInput.value = '';
+                    updateTagsUI();
+                }
+            } else if (e.key === 'Backspace' && visualInput.value === '' && tagsArray.length > 0) {
+                tagsArray.pop();
+                updateTagsUI();
+            }
+        });
+    });
+
     // Live countdown timers for expiration dates
     function updateCountdowns() {
         document.querySelectorAll('.countdown-timer').forEach(el => {
@@ -1007,6 +1264,68 @@
 </script>
 
 <script>
+
+    // Smart Duration Formatter
+    function formatDurationSmart(totalDays) {
+        if (!totalDays || totalDays === 0) return '0 Days';
+        let months = Math.floor(totalDays / 30);
+        let days = totalDays % 30;
+        let parts = [];
+        if (months > 0) parts.push(`${months} Months`);
+        if (days > 0) parts.push(`${days} Days`);
+        return parts.join(', ');
+    }
+
+    // Tag Input Visual System
+    document.addEventListener('DOMContentLoaded', () => {
+        const visualContainer = document.getElementById('tags-visual-container');
+        const visualInput = document.getElementById('tag-input-visual');
+        const hiddenInput = document.getElementById('hidden-tags-input');
+        if (!visualContainer) return;
+        
+        let tagsArray = [];
+        
+        function updateTagsUI() {
+            // clear visual except input
+            const cards = visualContainer.querySelectorAll('.tag-card');
+            cards.forEach(c => c.remove());
+            
+            tagsArray.forEach((tag, idx) => {
+                let span = document.createElement('span');
+                span.className = 'tag-card';
+                span.style.cssText = 'background: var(--accent); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;';
+                span.innerHTML = `${tag} <span style="cursor: pointer; font-weight: bold; color: rgba(255,255,255,0.7);" onclick="removeTag(${idx})">×</span>`;
+                visualContainer.insertBefore(span, visualInput);
+            });
+            
+            hiddenInput.value = tagsArray.join(',');
+        }
+        
+        window.removeTag = function(index) {
+            tagsArray.splice(index, 1);
+            updateTagsUI();
+        };
+        
+        visualContainer.addEventListener('click', () => {
+            visualInput.focus();
+        });
+        
+        visualInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                let val = visualInput.value.trim().replace(',', '');
+                if (val && !tagsArray.includes(val)) {
+                    tagsArray.push(val);
+                    visualInput.value = '';
+                    updateTagsUI();
+                }
+            } else if (e.key === 'Backspace' && visualInput.value === '' && tagsArray.length > 0) {
+                tagsArray.pop();
+                updateTagsUI();
+            }
+        });
+    });
+
     // Dynamic Pricing Rules logic
     
     // --- Real-time Auto-refresh for Pending Requests ---
@@ -1282,7 +1601,7 @@
                         <td style="vertical-align: middle;">
                             <div style="font-size: 0.8rem; color: #ccc;">
                                 <div style="margin-bottom: 2px;">📅 Uploaded: <span style="color: #fff;">${createdStr}</span></div>
-                                <div style="margin-bottom: 2px;">⏳ Plan: <span style="color: var(--primary); font-weight: bold;">${planDays} Days</span></div>
+                                <div style="margin-bottom: 2px;">⏳ Plan: <span style="color: var(--primary); font-weight: bold;">${formatDurationSmart(planDays)}</span></div>
                                 <div style="${isExpired ? 'color: #F44336;' : 'color: #4CAF50;'}">
                                     ⏳ Expires: ${isExpired ? '<span style="margin-left: 8px; font-size: 0.7rem; background: #F44336; color: #fff; padding: 2px 6px; border-radius: 4px;">Expired</span>' : `<span class="live-countdown" data-expires="${s.expires_at || ''}">Calculating...</span>`}
                                 </div>
