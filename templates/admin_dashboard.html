@@ -173,7 +173,21 @@
     <h3 style="display: flex; align-items: center; justify-content: space-between;">
         <span>Pricing Rules System</span>
     </h3>
-    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Create rules based on tags and durations.</p>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Create rules based on tags and durations.</p>
+    
+    <!-- Suggested Tags -->
+    <div style="margin-bottom: 15px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <span style="font-size: 0.8rem; color: #aaa;">Available Tags:</span>
+        <button type="button" class="tag-suggestion" onclick="addTag('gemini')" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: 0.2s;">+ gemini</button>
+        <button type="button" class="tag-suggestion" onclick="addTag('yt')" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: 0.2s;">+ yt</button>
+        <button type="button" class="tag-suggestion" onclick="addTag('lte')" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: 0.2s;">+ lte</button>
+        <button type="button" class="tag-suggestion" onclick="addTag('ru')" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: 0.2s;">+ ru</button>
+        <button type="button" class="tag-suggestion" onclick="addTag('torrent')" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: 0.2s;">+ torrent</button>
+        <style>
+            .tag-suggestion:hover { background: var(--primary) !important; border-color: var(--primary) !important; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+            .tag-suggestion:active { transform: translateY(0); }
+        </style>
+    </div>
     
     <div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px;" id="saved-pricing-rules">
         <!-- Fetched rules will be injected here by AJAX -->
@@ -615,9 +629,17 @@
             hiddenInput.value = tagsArray.join(',');
         }
         
+
         window.removeTag = function(index) {
             tagsArray.splice(index, 1);
             updateTagsUI();
+        };
+        
+        window.addTag = function(val) {
+            if (val && !tagsArray.includes(val)) {
+                tagsArray.push(val);
+                updateTagsUI();
+            }
         };
         
         visualContainer.addEventListener('click', () => {
@@ -864,9 +886,17 @@
             hiddenInput.value = tagsArray.join(',');
         }
         
+
         window.removeTag = function(index) {
             tagsArray.splice(index, 1);
             updateTagsUI();
+        };
+        
+        window.addTag = function(val) {
+            if (val && !tagsArray.includes(val)) {
+                tagsArray.push(val);
+                updateTagsUI();
+            }
         };
         
         visualContainer.addEventListener('click', () => {
@@ -1105,9 +1135,17 @@
             hiddenInput.value = tagsArray.join(',');
         }
         
+
         window.removeTag = function(index) {
             tagsArray.splice(index, 1);
             updateTagsUI();
+        };
+        
+        window.addTag = function(val) {
+            if (val && !tagsArray.includes(val)) {
+                tagsArray.push(val);
+                updateTagsUI();
+            }
         };
         
         visualContainer.addEventListener('click', () => {
@@ -1271,9 +1309,17 @@
             hiddenInput.value = tagsArray.join(',');
         }
         
+
         window.removeTag = function(index) {
             tagsArray.splice(index, 1);
             updateTagsUI();
+        };
+        
+        window.addTag = function(val) {
+            if (val && !tagsArray.includes(val)) {
+                tagsArray.push(val);
+                updateTagsUI();
+            }
         };
         
         visualContainer.addEventListener('click', () => {
@@ -1380,9 +1426,17 @@
             hiddenInput.value = tagsArray.join(',');
         }
         
+
         window.removeTag = function(index) {
             tagsArray.splice(index, 1);
             updateTagsUI();
+        };
+        
+        window.addTag = function(val) {
+            if (val && !tagsArray.includes(val)) {
+                tagsArray.push(val);
+                updateTagsUI();
+            }
         };
         
         visualContainer.addEventListener('click', () => {
