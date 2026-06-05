@@ -44,6 +44,45 @@ def send_telegram_notification(message):
         except Exception as e:
             print(f"Telegram notification failed: {e}")
 
+def send_telegram_receipt_review(req_id, user_email, server_name, receipt_filename, price):
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+    if bot_token and chat_id:
+        url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], receipt_filename)
+        
+        caption = f"💳 *New Payment Receipt!*\n\n" \
+                  f"👤 *User:* `{user_email}`\n" \
+                  f"💻 *Server:* {server_name}\n" \
+                  f"💰 *Price:* {price} ₽\n\n" \
+                  f"Please review the receipt image and approve or reject."
+                  
+        reply_markup = {
+            "inline_keyboard": [
+                [
+                    {"text": "✅ Approve", "callback_data": f"approve_{req_id}"},
+                    {"text": "❌ Reject", "callback_data": f"reject_{req_id}"}
+                ]
+            ]
+        }
+        
+        try:
+            if os.path.exists(file_path):
+                with open(file_path, 'rb') as photo:
+                    files = {'photo': photo}
+                    data = {
+                        'chat_id': chat_id, 
+                        'caption': caption, 
+                        'parse_mode': 'Markdown',
+                        'reply_markup': json.dumps(reply_markup)
+                    }
+                    requests.post(url, files=files, data=data, timeout=15)
+            else:
+                # Fallback to text if file missing
+                send_telegram_notification(caption)
+        except Exception as e:
+            print(f"Telegram receipt review failed: {e}")
+
 @app.route('/api/admin/stats')
 def admin_stats():
     if 'admin_logged_in' not in session:
@@ -388,7 +427,7 @@ def pay():
             
             # Save the new purchase request in the dedicated collection
             renew_sub_id = request.form.get('renew_sub_id')
-            db.collection('purchase_requests').add({
+            doc_ref = db.collection('purchase_requests').add({
                 'user_id': user_id,
                 'email': request.user['email'],
                 'server_id': server_id,
@@ -398,9 +437,17 @@ def pay():
                 'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
             })
             
-            # إرسال إشعار تيليجرام
-            msg = f"💳 *دفعة جديدة!*\nالمستخدم: `{request.user['email']}`\nرفع صورة إيصال لاشتراك جديد/تجديد.\nيرجى مراجعة لوحة التحكم."
-            send_telegram_notification(msg)
+            # Fetch server name and price for telegram
+            server_name = 'Unknown'
+            price = 0
+            s_doc = db.collection('servers').document(server_id).get()
+            if s_doc.exists:
+                server_name = s_doc.to_dict().get('name', 'Unknown')
+                price = s_doc.to_dict().get('price', 0)
+            
+            # إرسال صورة الوصل لتيليجرام مع أزرار القبول والرفض
+            req_id = doc_ref[1].id
+            send_telegram_receipt_review(req_id, request.user['email'], server_name, filename, price)
             
             flash('تم إرسال الطلب بنجاح. جاري مراجعته من قبل الإدارة. / Request submitted successfully. Under review.', 'success')
             return redirect(url_for('user_dashboard'))
@@ -1127,16 +1174,11 @@ def delete_server(server_id):
     flash('تم حذف السيرفر وجدولة نقل مستخدميه تلقائياً', 'success')
     return redirect(url_for('admin_dashboard'))
 
-@app.route('/admin/approve_request/<request_id>', methods=['POST'])
-@login_required
-def approve_request(request_id):
-    if not request.is_admin:
-        return "Unauthorized", 403
-        
+def _approve_request_logic(request_id):
     req_doc_ref = db.collection('purchase_requests').document(request_id)
     req_doc = req_doc_ref.get()
     if not req_doc.exists or req_doc.to_dict().get('status') != 'pending':
-        return redirect(url_for('admin_dashboard'))
+        return False, "Request not found or not pending"
         
     req_data = req_doc.to_dict()
     user_id = req_data['user_id']
@@ -1145,7 +1187,7 @@ def approve_request(request_id):
     user_doc_ref = db.collection('users').document(user_id)
     user_doc = user_doc_ref.get()
     if not user_doc.exists:
-        return redirect(url_for('admin_dashboard'))
+        return False, "User not found"
     user_data = user_doc.to_dict()
         
     days = 30 # default
@@ -1163,14 +1205,10 @@ def approve_request(request_id):
         if not days and not hours and not minutes:
             days = 30
         
-        email_val = user_data.get('email', '')
-        if email_val:
-            safe_prefix = email_val.replace('@', '-').replace('.', '-')
     duration_delta = timedelta(days=days, hours=hours, minutes=minutes)
     expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + duration_delta
     
     # Check if server expires before the subscription
-    is_temporary = False
     if s_data:
         s_expires = s_data.get('expires_at')
         if s_expires:
@@ -1217,39 +1255,124 @@ def approve_request(request_id):
         for r_doc in referrer_docs:
             r_user = r_doc.to_dict()
             r_subs = db.collection('subscriptions').where('user_id', '==', r_doc.id).where('status', '==', 'active').stream()
-            # Add 7 days to ALL active subs of the referrer, or just the first one
             for r_sub_doc in r_subs:
                 r_sub = r_sub_doc.to_dict()
                 if 'expires_at' in r_sub and r_sub['expires_at']:
                     new_expiry = r_sub['expires_at'].replace(tzinfo=timezone.utc) + timedelta(days=7)
                     db.collection('subscriptions').document(r_sub_doc.id).update({'expires_at': new_expiry})
                     send_telegram_notification(f"🎉 مكافأة إحالة!\nالمستخدم {user_data.get('email')} اشترى باقة عبر رابط دعوة من {r_user.get('email')}.\nتمت إضافة 7 أيام لاشتراكه بنجاح.")
-        # Remove referred_by so it only triggers on first purchase
         user_doc_ref.update({'referred_by': firestore.DELETE_FIELD})
-    
-    flash('تم الموافقة على الطلب وإنشاء الاشتراك بنجاح / Request approved successfully', 'success')
-    return redirect(url_for('admin_dashboard'))
-
-@app.route('/admin/reject_request/<request_id>', methods=['POST'])
-@login_required
-def reject_request(request_id):
-    if not request.is_admin:
-        return "Unauthorized", 403
         
+    return True, "Success"
+
+def _reject_request_logic(request_id):
     req_doc_ref = db.collection('purchase_requests').document(request_id)
     req_doc = req_doc_ref.get()
     
     if req_doc.exists:
         req_data = req_doc.to_dict()
+        if req_data.get('status') != 'pending':
+            return False, "Not pending"
+            
         receipt_image = req_data.get('receipt_url')
         if receipt_image:
             try: os.remove(os.path.join(app.config['UPLOAD_FOLDER'], receipt_image))
             except OSError: pass
             
         req_doc_ref.update({'status': 'rejected'})
+        return True, "Success"
+    return False, "Not found"
+
+@app.route('/admin/approve_request/<request_id>', methods=['POST'])
+@login_required
+def approve_request(request_id):
+    if not request.is_admin: return "Unauthorized", 403
     
-    flash('تم رفض الطلب بنجاح / Request rejected successfully', 'success')
+    success, msg = _approve_request_logic(request_id)
+    if success:
+        flash('تم الموافقة على الطلب وإنشاء الاشتراك بنجاح / Request approved successfully', 'success')
     return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/reject_request/<request_id>', methods=['POST'])
+@login_required
+def reject_request(request_id):
+    if not request.is_admin: return "Unauthorized", 403
+    
+    success, msg = _reject_request_logic(request_id)
+    if success:
+        flash('تم رفض الطلب بنجاح / Request rejected successfully', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/api/telegram/webhook', methods=['POST'])
+def telegram_webhook():
+    update = request.get_json()
+    if not update:
+        return "OK", 200
+        
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    
+    if 'callback_query' in update:
+        callback = update['callback_query']
+        data = callback.get('data', '')
+        message = callback.get('message', {})
+        chat_id = message.get('chat', {}).get('id')
+        message_id = message.get('message_id')
+        
+        if data.startswith('approve_') or data.startswith('reject_'):
+            action, req_id = data.split('_', 1)
+            
+            success = False
+            result_text = ""
+            
+            if action == 'approve':
+                success, _ = _approve_request_logic(req_id)
+                result_text = "✅ Approved by Admin via Telegram"
+            elif action == 'reject':
+                success, _ = _reject_request_logic(req_id)
+                result_text = "❌ Rejected by Admin via Telegram"
+                
+            if success and chat_id and message_id and bot_token:
+                # Remove buttons and append result
+                original_caption = message.get('caption', '')
+                new_caption = f"{original_caption}\n\n{result_text}"
+                
+                url = f"https://api.telegram.org/bot{bot_token}/editMessageCaption"
+                requests.post(url, json={
+                    'chat_id': chat_id,
+                    'message_id': message_id,
+                    'caption': new_caption,
+                    'reply_markup': {'inline_keyboard': []} # Remove buttons
+                })
+                
+            # Answer callback to remove loading state
+            requests.post(f"https://api.telegram.org/bot{bot_token}/answerCallbackQuery", json={
+                'callback_query_id': callback.get('id'),
+                'text': result_text if success else "Action failed or already processed."
+            })
+            
+    return "OK", 200
+
+@app.route('/api/admin/setup_telegram', methods=['POST'])
+@login_required
+def setup_telegram_webhook():
+    if not request.is_admin: return "Unauthorized", 403
+    
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    if not bot_token:
+        return jsonify({'status': 'error', 'error': 'Bot token not set'}), 400
+        
+    webhook_url = request.url_root.rstrip('/') + url_for('telegram_webhook')
+    url = f"https://api.telegram.org/bot{bot_token}/setWebhook"
+    
+    try:
+        resp = requests.post(url, json={'url': webhook_url}, timeout=10)
+        data = resp.json()
+        if data.get('ok'):
+            return jsonify({'status': 'success', 'message': f'Webhook set to {webhook_url}'})
+        else:
+            return jsonify({'status': 'error', 'error': data.get('description')}), 400
+    except Exception as e:
+        return jsonify({'status': 'error', 'error': str(e)}), 500
 
 @app.route('/admin/delete_user/<user_id>', methods=['POST'])
 @login_required

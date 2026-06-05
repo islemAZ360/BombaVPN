@@ -11,7 +11,12 @@
 
 <!-- Analytics Dashboard -->
 <div class="card" style="margin-bottom: 20px;">
-    <h3>الإحصائيات (Analytics)</h3>
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <h3 style="margin: 0;">الإحصائيات (Analytics)</h3>
+        <button onclick="setupTelegram()" class="btn btn-primary" style="background: #0088cc; border:none; border-radius: 8px; padding: 8px 16px;">
+            <i class="fab fa-telegram"></i> ربط بوت التلغرام للقبول (Webhook)
+        </button>
+    </div>
     <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px;">
         <div style="flex: 1; min-width: 300px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
             <canvas id="usersChart"></canvas>
@@ -1059,7 +1064,23 @@
     let isDeletingAll = false;
     let isRescanning = false;
 
-    function rescanServers() {
+    function setupTelegram() {
+    if(confirm('هل أنت متأكد من ربط بوت التلغرام بهذا الرابط لتتمكن من القبول والرفض من التلغرام مباشرة؟')) {
+        fetch('/api/admin/setup_telegram', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                alert('تم ربط البوت بنجاح! جرب إرسال إيصال جديد للتحقق.');
+            } else {
+                alert('حدث خطأ: ' + (data.error || 'Unknown error'));
+            }
+        }).catch(e => {
+            alert('حدث خطأ في الاتصال بالخادم.');
+        });
+    }
+}
+
+function rescanServers() {
         isRescanning = true;
         isDeletingAll = false;
         pendingDeleteId = null;
