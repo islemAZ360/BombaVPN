@@ -145,20 +145,39 @@
             </div>
         </div>
 
-        <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <label style="font-size: 0.85rem; color: #a0a0a0; margin: 0;">Pricing Rules</label>
-                <button type="button" class="btn btn-primary btn-small" onclick="addPricingRule()">+ Add Rule</button>
-            </div>
-            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                <input type="text" name="price_base" class="form-control" placeholder="Base Price (Default)" style="flex: 1;">
-            </div>
-            <div id="pricing-rules-container" style="display: flex; flex-direction: column; gap: 10px;">
-                <!-- Rules will be injected here -->
-            </div>
-        </div>
+
 
         <button type="submit" class="btn btn-primary" style="width: fit-content; align-self: flex-end;">{{ _('ImportServersBtn') }}</button>
+    </form>
+</div>
+
+
+<div class="card" style="margin-bottom: 20px;">
+    <h3 style="display: flex; align-items: center; justify-content: space-between;">
+        <span>Pricing Rules System</span>
+    </h3>
+    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Create rules based on tags and durations.</p>
+    
+    <div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px;" id="saved-pricing-rules">
+        <!-- Fetched rules will be injected here by AJAX -->
+    </div>
+    
+    <form method="POST" action="/api/admin/pricing_rules" style="display: flex; gap: 10px; align-items: flex-end; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.1);">
+        <div style="flex: 2;">
+            <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Tags (Comma separated)</label>
+            <input type="text" name="tags" class="form-control" placeholder="e.g. torrent, ru" required>
+        </div>
+        <div style="flex: 1;">
+            <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Duration (Days)</label>
+            <input type="number" name="duration_days" class="form-control" placeholder="e.g. 30" required>
+        </div>
+        <div style="flex: 1;">
+            <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Price</label>
+            <input type="number" name="price" class="form-control" placeholder="e.g. 500" required>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary">+ Add</button>
+        </div>
     </form>
 </div>
 
@@ -195,6 +214,9 @@
 <div class="card">
     <h3 style="display: flex; align-items: center; justify-content: space-between;">
         <span>{{ _('Servers') }}</span>
+        <form method="POST" action="/api/admin/rescan_servers" onsubmit="return confirm('هل أنت متأكد من إعادة فحص جميع السيرفرات؟ سيتم تحديث الأسعار والوسوم.');">
+            <button type="submit" class="btn btn-primary btn-small">إعادة فحص السيرفرات (Re-Scan)</button>
+        </form>
         <div style="display: flex; gap: 10px;">
             <button id="save-all-btn" class="btn btn-hollow-primary btn-small" onclick="saveAllServers()">{{ _('SaveAll') }}</button>
             <button id="delete-all-btn" class="btn btn-hollow-danger btn-small" onclick="deleteAllServers()">{{ _('DeleteAll') }}</button>
@@ -973,65 +995,7 @@
 
 <script>
     // Dynamic Pricing Rules logic
-    function addPricingRule() {
-        const container = document.getElementById('pricing-rules-container');
-        const ruleDiv = document.createElement('div');
-        ruleDiv.style.cssText = 'display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);';
-        
-        const tagsContainer = document.createElement('div');
-        tagsContainer.style.cssText = 'display: flex; gap: 8px; flex: 2; flex-wrap: wrap; align-items: center;';
-        
-        const tags = ['Gemini', 'LTE', 'YT', 'RU', 'Torrent'];
-        const hiddenInput = document.createElement('input');
-        hiddenInput.type = 'hidden';
-        hiddenInput.name = 'rule_tags[]';
-        hiddenInput.required = true;
-        
-        function updateHiddenInput() {
-            const selected = Array.from(tagsContainer.querySelectorAll('input:checked')).map(cb => cb.value);
-            hiddenInput.value = selected.join(',');
-        }
-
-        tags.forEach(tag => {
-            const label = document.createElement('label');
-            label.style.cssText = 'display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; color: #ccc; transition: 0.2s;';
-            const cb = document.createElement('input');
-            cb.type = 'checkbox';
-            cb.value = tag;
-            cb.style.margin = '0';
-            cb.onchange = function() {
-                if(this.checked) label.style.background = 'rgba(0, 212, 255, 0.2)';
-                else label.style.background = 'rgba(255,255,255,0.05)';
-                updateHiddenInput();
-            };
-            label.appendChild(cb);
-            label.appendChild(document.createTextNode(tag));
-            tagsContainer.appendChild(label);
-        });
-
-        const priceInput = document.createElement('input');
-        priceInput.type = 'number';
-        priceInput.name = 'rule_prices[]';
-        priceInput.className = 'form-control';
-        priceInput.placeholder = 'Price';
-        priceInput.style.flex = '1';
-        priceInput.style.minWidth = '100px';
-        priceInput.required = true;
-
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.className = 'btn btn-danger btn-small';
-        removeBtn.innerHTML = '×';
-        removeBtn.onclick = function() { ruleDiv.remove(); };
-
-        ruleDiv.appendChild(tagsContainer);
-        ruleDiv.appendChild(hiddenInput);
-        ruleDiv.appendChild(priceInput);
-        ruleDiv.appendChild(removeBtn);
-        
-        container.appendChild(ruleDiv);
-    }
-
+    
     // --- Real-time Auto-refresh for Pending Requests ---
     async function fetchPendingRequests() {
         try {
@@ -1100,6 +1064,52 @@
     setInterval(fetchPendingRequests, 3000);
 
     // --- Real-time Auto-refresh for All Dashboard Data ---
+    
+    async function fetchPricingRules() {
+        try {
+            const resp = await fetch('/api/admin/pricing_rules');
+            if (!resp.ok) return;
+            const data = await resp.json();
+            const container = document.getElementById('saved-pricing-rules');
+            if(!container) return;
+            
+            let html = '';
+            data.rules.forEach(r => {
+                let tagsHtml = '';
+                if(r.tags && r.tags.length > 0) {
+                    r.tags.forEach(t => {
+                        tagsHtml += `<span style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; color: #fff;">${t}</span>`;
+                    });
+                } else {
+                    tagsHtml = `<span style="color: #aaa; font-style: italic;">No Tags</span>`;
+                }
+                
+                html += `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 10px 15px; border-radius: 8px; border-left: 3px solid var(--primary);">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="display: flex; gap: 5px;">${tagsHtml}</div>
+                        <div style="color: #aaa; font-size: 0.85rem;">⏳ ${r.duration_days} Days</div>
+                        <div style="font-weight: bold; color: #4CAF50;">💰 ${r.price} DZD</div>
+                    </div>
+                    <form method="POST" action="/api/admin/pricing_rules/${r.id}/delete" onsubmit="return confirm('Delete this rule?');" style="margin:0;">
+                        <button type="submit" class="icon-btn reject-btn" title="Delete Rule">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    </form>
+                </div>`;
+            });
+            if(data.rules.length === 0) {
+                html = '<div style="color: #aaa; text-align: center;">No pricing rules defined. Add one below.</div>';
+            }
+            container.innerHTML = html;
+        } catch(e) { console.error('Failed to fetch rules', e); }
+    }
+    
+    // Fetch rules on load
+    document.addEventListener('DOMContentLoaded', fetchPricingRules);
+    // Also fetch every 10 seconds just in case
+    setInterval(fetchPricingRules, 10000);
+
     async function fetchDashboardSync() {
         try {
             const resp = await fetch('/api/admin/dashboard_sync');
@@ -1225,24 +1235,36 @@
                     let isExpired = s.expires_at ? new Date(s.expires_at) < new Date() : true;
                     let expStr = s.expires_at ? new Date(s.expires_at).toLocaleString() : 'No Expire Data';
                     
-                    html += `<tr ${isExpired ? 'style="opacity: 0.6; background: rgba(244,67,54,0.05);"' : ''}>
+                    html += `<tr id="server-row-${s.id}" ${isExpired ? 'style="opacity: 0.6; background: rgba(244,67,54,0.05);"' : ''}>
                         <td>
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <img src="https://flagcdn.com/24x18/${countryCode}.png" alt="flag" style="border-radius: 2px;">
-                                <span style="font-weight: 500; color: #fff;">${s.name}</span>
-                            </div>
-                            <div style="margin-top: 5px; font-size: 0.8rem; color: #aaa;">IP: ${s.original_ip}</div>
+                            <form method="POST" action="/admin/edit_server/${s.id}" style="display:flex; gap:0.5rem; align-items:center;">
+                                ${countryCode !== 'xx' ? `<img src="https://flagcdn.com/24x18/${countryCode}.png" alt="flag" style="border-radius: 2px;">` : ''}
+                                <input type="text" name="name" value="${s.name}" class="form-control" style="width: 150px; padding: 0.2rem 0.5rem;" required>
                         </td>
-                        <td style="vertical-align: middle; color: #aaa;">${s.price || 'N/A'} DZD</td>
+                        <td style="vertical-align: middle;">
+                            <input type="text" name="price" value="${s.price || ''}" class="form-control" style="width: 80px; padding: 0.2rem 0.5rem;">
+                        </td>
+                        <td style="vertical-align: middle;">
+                            <div style="margin-top: 5px; font-size: 0.8rem; color: #aaa;">${s.original_ip || ''}</div>
+                        </td>
                         <td style="vertical-align: middle;">
                             <div style="${isExpired ? 'color: #F44336;' : 'color: #4CAF50;'}">
                                 ${expStr}
                                 ${isExpired ? '<span style="margin-left: 8px; font-size: 0.7rem; background: #F44336; color: #fff; padding: 2px 6px; border-radius: 4px;">Expired</span>' : ''}
                             </div>
                         </td>
+                        <td style="white-space: nowrap;">
+                            <button type="submit" class="action-icon-btn save-btn" title="Save">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                            </button>
+                            </form>
+                            <button type="button" class="action-icon-btn reject-btn" onclick="confirmDeleteServer('${s.id}')" title="Delete">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                            </button>
+                        </td>
                     </tr>`;
                 });
-                if(data.servers.length === 0) html = '<tr><td colspan="3" style="text-align: center; color: #aaa;">No servers found.</td></tr>';
+                if(data.servers.length === 0) html = '<tr><td colspan="5" style="text-align: center; color: #aaa;">No servers found.</td></tr>';
                 serversTbody.innerHTML = html;
             }
 
