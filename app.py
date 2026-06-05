@@ -2265,6 +2265,16 @@ def user_dashboard():
     except Exception as e:
         print("Error fetching subscriptions:", e)
         
+    try:
+        reqs = []
+        for doc in db.collection('purchase_requests').where('user_id', '==', user_id).stream():
+            reqs.append(doc.to_dict())
+        if reqs:
+            reqs.sort(key=lambda x: x.get('created_at', datetime.min).timestamp() if isinstance(x.get('created_at'), datetime) else 0, reverse=True)
+            user_data['latest_req'] = reqs[0]
+    except Exception as e:
+        print("Error fetching purchase requests:", e)
+        
     user_data['status'] = 'active' if has_active else ('expired' if subscriptions else user_data.get('status', 'pending'))
             
     email = request.user['email']
@@ -2358,9 +2368,15 @@ def api_user_status():
             if 'expires_at' in latest and isinstance(latest['expires_at'], datetime):
                 expires_at = latest['expires_at'].replace(tzinfo=None).isoformat()
 
+    reqs = list(db.collection('purchase_requests').where('user_id', '==', user_id).stream())
+    latest_req_status = ""
+    if reqs:
+        reqs.sort(key=lambda x: x.to_dict().get('created_at', datetime.min).timestamp() if isinstance(x.to_dict().get('created_at'), datetime) else 0, reverse=True)
+        latest_req_status = reqs[0].to_dict().get('status', '')
+
     return jsonify({
         'status': computed_status,
-        'has_pending_renewal': user_data.get('has_pending_renewal', False),
+        'latest_req_status': latest_req_status,
         'expires_at': expires_at or ""
     })
 

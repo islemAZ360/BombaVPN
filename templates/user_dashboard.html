@@ -40,16 +40,20 @@
             {% endif %}
         </div>
         
-        {% if user.status in ['pending', 'expired'] or (user.status == 'active' and not user.has_pending_renewal) %}
+        {% if not (user.latest_req and user.latest_req.status == 'pending') %}
             <a href="{{ url_for('pay') }}" class="btn" style="background: transparent; border: 2px solid #00ffcc; color: #00ffcc; padding: 0.6rem 1.8rem; border-radius: 8px; transition: all 0.3s ease; text-decoration: none; font-weight: bold; box-shadow: 0 0 15px rgba(0,255,204,0.1); white-space: nowrap;" onmouseover="this.style.background='#00ffcc'; this.style.color='#000'; this.style.boxShadow='0 0 20px rgba(0,255,204,0.5)';" onmouseout="this.style.background='transparent'; this.style.color='#00ffcc'; this.style.boxShadow='0 0 15px rgba(0,255,204,0.1)';">
                 {% if user.status == 'active' %}{{ _('Renew') }}{% else %}{{ _('BuySubscription') }}{% endif %}
             </a>
         {% endif %}
     </div>
 
-    {% if user.status == 'review' or user.has_pending_renewal %}
+    {% if user.latest_req and user.latest_req.status == 'pending' %}
         <div class="alert alert-warning" style="margin-top: 1.5rem; text-align: center;">
             {{ _('ReviewMsg') }}
+        </div>
+    {% elif user.latest_req and user.latest_req.status == 'rejected' %}
+        <div class="alert alert-danger" style="margin-top: 1.5rem; text-align: center; background: rgba(255, 0, 0, 0.1); border: 1px solid rgba(255, 0, 0, 0.3); color: #ff6b6b; padding: 15px; border-radius: 8px;">
+            عذراً، تم رفض طلبك الأخير من قبل الإدارة. يرجى مراجعة وصل الدفع الخاص بك والمحاولة من جديد، أو التواصل مع الدعم الفني.
         </div>
     {% endif %}
 
@@ -245,7 +249,7 @@
 <script>
     // Live re-render/refresh mechanism
     const currentStatus = "{{ user.status }}";
-    const currentPendingRenewal = "{{ 'true' if user.get('has_pending_renewal') else 'false' }}";
+    const currentReqStatus = "{{ user.latest_req.status if user.latest_req else '' }}";
     
     // الحصول على أحدث تاريخ انتهاء من الاشتراكات الفعالة إن وجد
     {% set active_subs = subscriptions | selectattr('status', 'equalto', 'active') | list %}
@@ -273,8 +277,8 @@
                     timeChanged = true;
                 }
 
-                // If server updated the status, renewal state, or time, reload page to re-render
-                if (data.status !== currentStatus || data.has_pending_renewal.toString() !== currentPendingRenewal || timeChanged) {
+                // If server updated the status, request state, or time, reload page to re-render
+                if (data.status !== currentStatus || (data.latest_req_status && data.latest_req_status !== currentReqStatus) || timeChanged) {
                     window.location.reload();
                 }
             }
