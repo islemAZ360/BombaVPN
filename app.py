@@ -284,10 +284,20 @@ def pay():
         data = user_doc.to_dict()
         
     servers = []
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     for doc in db.collection('servers').stream():
         s = doc.to_dict()
-        s['id'] = doc.id
-        servers.append(s)
+        s_exp = s.get('expires_at')
+        if s_exp:
+            if s_exp.tzinfo is None:
+                s_exp = s_exp.replace(tzinfo=timezone.utc)
+            s_exp = s_exp.replace(tzinfo=None)
+            if s_exp > now:
+                s['id'] = doc.id
+                servers.append(s)
+        else:
+            s['id'] = doc.id
+            servers.append(s)
         
     if request.method == 'POST':
         server_id = request.form.get('server_id')
