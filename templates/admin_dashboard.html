@@ -316,7 +316,12 @@
                 {% for u in all_users %}
                 <tr>
                     <td>
-                        <div style="font-weight: 500; color: #fff; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ u.email }}">{{ u.email }}</div>
+                        <div style="font-weight: 500; color: #fff; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px;" title="{{ u.email }}">
+                            {{ u.email }}
+                            {% if u.email == 'islamazaizia360@gmail.com' %}
+                                <span style="background:var(--primary); color:#000; font-size:0.65rem; padding:2px 6px; border-radius:4px; font-weight:bold;">Admin</span>
+                            {% endif %}
+                        </div>
                         {% if u.accessed_ips or u.accessed_devices %}
                         <div style="margin-top: 5px; font-size: 0.8rem; color: #aaa;">
                             <span title="{{ u.accessed_ips|join(', ') }}" style="cursor: help;">🌐 {{ u.accessed_ips|length }} IPs</span> | 
