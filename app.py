@@ -84,8 +84,9 @@ def send_telegram_receipt_review(req_id, user_email, server_name, receipt_filena
         print(f"Telegram receipt review failed: {e}")
 
 @app.route('/api/admin/stats')
+@login_required
 def admin_stats():
-    if 'admin_logged_in' not in session:
+    if not request.is_admin:
         return jsonify({'error': 'Unauthorized'}), 403
         
     try:
