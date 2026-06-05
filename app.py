@@ -2420,6 +2420,20 @@ def background_expiry_checker():
                             new_temp = False
                         elif server_dead:
                             if not all_active_servers:
+                                # No active servers available to migrate this user!
+                                user_doc = db.collection('users').document(sub.get('user_id')).get()
+                                user_email = user_doc.to_dict().get('email', 'Unknown') if user_doc.exists else 'Unknown'
+                                db.collection('subscriptions').document(sub_id).update({
+                                    'server_id': None,
+                                    'allocated_subdomain': None
+                                })
+                                db.collection('notifications').add({
+                                    'title': 'اشتراك بدون سيرفر',
+                                    'message': f'انتهى السيرفر الخاص بالمشترك {user_email} ولا توجد سيرفرات نشطة بديلة! تم فصل السيرفر عنه مؤقتاً لحين إضافة أو تجديد سيرفر.',
+                                    'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
+                                    'is_read': False,
+                                    'type': 'system'
+                                })
                                 continue
                             best_server = max(all_active_servers, key=lambda s: s['expires_at'].replace(tzinfo=None))
                             new_temp = True
