@@ -83,30 +83,6 @@ def send_telegram_receipt_review(req_id, user_email, server_name, receipt_filena
     except Exception as e:
         print(f"Telegram receipt review failed: {e}")
 
-@app.route('/api/admin/stats')
-@login_required
-def admin_stats():
-    if not request.is_admin:
-        return jsonify({'error': 'Unauthorized'}), 403
-        
-    try:
-        users = list(db.collection('users').stream())
-        servers = list(db.collection('servers').stream())
-        
-        active_users = sum(1 for u in users if u.to_dict().get('status') == 'active')
-        expired_users = len(users) - active_users
-        
-        total_debt = sum(float(u.to_dict().get('debt', 0)) for u in users)
-        
-        return jsonify({
-            'users_active': active_users,
-            'users_expired': expired_users,
-            'servers_total': len(servers),
-            'total_debt': total_debt
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 # Serializer for secure subscription links
 from itsdangerous import URLSafeSerializer
 sub_serializer = URLSafeSerializer(app.config['SECRET_KEY'], salt='subscription-link')
@@ -2314,6 +2290,30 @@ def user_dashboard():
     return render_template('user_dashboard.html', user_email=email, user=user_data, sub_link=sub_link, messages=messages, admin_msgs=admin_msgs, subscriptions=subscriptions, now=datetime.now(timezone.utc).replace(tzinfo=None))
 
 # --- API ROUTES ---
+@app.route('/api/admin/stats')
+@login_required
+def admin_stats():
+    if not request.is_admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+        
+    try:
+        users = list(db.collection('users').stream())
+        servers = list(db.collection('servers').stream())
+        
+        active_users = sum(1 for u in users if u.to_dict().get('status') == 'active')
+        expired_users = len(users) - active_users
+        
+        total_debt = sum(float(u.to_dict().get('debt', 0)) for u in users)
+        
+        return jsonify({
+            'users_active': active_users,
+            'users_expired': expired_users,
+            'servers_total': len(servers),
+            'total_debt': total_debt
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/message', methods=['POST'])
 @login_required
 def send_message():
