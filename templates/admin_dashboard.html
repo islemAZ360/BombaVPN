@@ -92,12 +92,13 @@
             <div style="flex: 1; min-width: 200px;">
                 <label style="font-size: 0.85rem; color: var(--primary); font-weight: bold; margin-bottom: 12px; display: block;">{{ _('PlanDurationLabel') }}</label>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 10px;">
-                    <input type="number" name="plan_months" class="form-control" placeholder="Months">
-                    <input type="number" name="plan_days" class="form-control" placeholder="{{ _('Days') }}">
-                    <input type="number" name="plan_hours" class="form-control" placeholder="{{ _('Hours') }}">
-                    <input type="number" name="plan_minutes" class="form-control" placeholder="{{ _('Minutes') }}">
-                    <input type="number" name="plan_seconds" class="form-control" placeholder="Seconds">
+                    <input type="number" name="plan_months" class="form-control duration-input plan-input" placeholder="Months">
+                    <input type="number" name="plan_days" class="form-control duration-input plan-input" placeholder="{{ _('Days') }}">
+                    <input type="number" name="plan_hours" class="form-control duration-input plan-input" placeholder="{{ _('Hours') }}">
+                    <input type="number" name="plan_minutes" class="form-control duration-input plan-input" placeholder="{{ _('Minutes') }}">
+                    <input type="number" name="plan_seconds" class="form-control duration-input plan-input" placeholder="Seconds">
                 </div>
+                <div id="plan-duration-preview" style="font-size: 0.8rem; color: #4CAF50; margin-top: 5px; min-height: 15px;"></div>
             </div>
             <div style="width: 2px; background: rgba(255,255,255,0.05); display: none;"></div>
             <div style="flex: 1; min-width: 200px;">
@@ -131,12 +132,13 @@
             <div style="flex: 1;">
                 <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: bold; margin-bottom: 12px; display: block;">{{ _('DurationTitle') }}</label>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 10px;">
-                    <input type="number" name="real_months" class="form-control" placeholder="Months">
-                    <input type="number" name="real_days" class="form-control" placeholder="{{ _('Days') }}" required>
-                    <input type="number" name="real_hours" class="form-control" placeholder="{{ _('Hours') }}">
-                    <input type="number" name="real_minutes" class="form-control" placeholder="{{ _('Minutes') }}">
-                    <input type="number" name="real_seconds" class="form-control" placeholder="Seconds">
+                    <input type="number" name="real_months" class="form-control duration-input real-input" placeholder="Months">
+                    <input type="number" name="real_days" class="form-control duration-input real-input" placeholder="{{ _('Days') }}" required>
+                    <input type="number" name="real_hours" class="form-control duration-input real-input" placeholder="{{ _('Hours') }}">
+                    <input type="number" name="real_minutes" class="form-control duration-input real-input" placeholder="{{ _('Minutes') }}">
+                    <input type="number" name="real_seconds" class="form-control duration-input real-input" placeholder="Seconds">
                 </div>
+                <div id="real-duration-preview" style="font-size: 0.8rem; color: #4CAF50; margin-top: 5px; min-height: 15px;"></div>
             </div>
             <div style="width: 2px; background: rgba(255,255,255,0.05);"></div>
             <div style="flex: 1;">
@@ -204,12 +206,13 @@
         <div style="flex: 1;">
             <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Duration</label>
             <div style="display:flex; gap: 5px;">
-                <input type="number" name="duration_months" class="form-control" placeholder="M" title="Months">
-                <input type="number" name="duration_days" class="form-control" placeholder="D" title="Days">
-                <input type="number" name="duration_hours" class="form-control" placeholder="H" title="Hours">
-                <input type="number" name="duration_minutes" class="form-control" placeholder="m" title="Minutes">
-                <input type="number" name="duration_seconds" class="form-control" placeholder="s" title="Seconds">
+                <input type="number" name="duration_months" class="form-control duration-input rule-input" placeholder="M" title="Months">
+                <input type="number" name="duration_days" class="form-control duration-input rule-input" placeholder="D" title="Days">
+                <input type="number" name="duration_hours" class="form-control duration-input rule-input" placeholder="H" title="Hours">
+                <input type="number" name="duration_minutes" class="form-control duration-input rule-input" placeholder="m" title="Minutes">
+                <input type="number" name="duration_seconds" class="form-control duration-input rule-input" placeholder="s" title="Seconds">
             </div>
+            <div id="rule-duration-preview" style="font-size: 0.8rem; color: #4CAF50; margin-top: 5px; min-height: 15px;"></div>
         </div>
         <div style="flex: 0.5;">
             <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Price</label>
@@ -604,6 +607,37 @@
         return parts.join(', ');
     }
 
+
+    // Live Form Preview Script
+    document.addEventListener('DOMContentLoaded', () => {
+        function calculatePreview(inputsClass, previewId) {
+            const inputs = document.querySelectorAll(inputsClass);
+            let m=0, d=0, h=0, min=0, s=0;
+            inputs.forEach(input => {
+                let val = parseInt(input.value) || 0;
+                if(input.name.includes('months')) m = val;
+                if(input.name.includes('days')) d = val;
+                if(input.name.includes('hours')) h = val;
+                if(input.name.includes('minutes')) min = val;
+                if(input.name.includes('seconds')) s = val;
+            });
+            let totalSecs = (m * 30 * 24 * 3600) + (d * 24 * 3600) + (h * 3600) + (min * 60) + s;
+            const previewEl = document.getElementById(previewId);
+            if(previewEl) {
+                previewEl.textContent = totalSecs > 0 ? "Equals: " + formatDurationSmart(totalSecs) : "";
+            }
+        }
+
+        const planInputs = document.querySelectorAll('.plan-input');
+        planInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.plan-input', 'plan-duration-preview')));
+        
+        const realInputs = document.querySelectorAll('.real-input');
+        realInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.real-input', 'real-duration-preview')));
+
+        const ruleInputs = document.querySelectorAll('.rule-input');
+        ruleInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.rule-input', 'rule-duration-preview')));
+    });
+
     // Tag Input Visual System
     document.addEventListener('DOMContentLoaded', () => {
         const visualContainer = document.getElementById('tags-visual-container');
@@ -861,6 +895,37 @@
         return parts.join(', ');
     }
 
+
+    // Live Form Preview Script
+    document.addEventListener('DOMContentLoaded', () => {
+        function calculatePreview(inputsClass, previewId) {
+            const inputs = document.querySelectorAll(inputsClass);
+            let m=0, d=0, h=0, min=0, s=0;
+            inputs.forEach(input => {
+                let val = parseInt(input.value) || 0;
+                if(input.name.includes('months')) m = val;
+                if(input.name.includes('days')) d = val;
+                if(input.name.includes('hours')) h = val;
+                if(input.name.includes('minutes')) min = val;
+                if(input.name.includes('seconds')) s = val;
+            });
+            let totalSecs = (m * 30 * 24 * 3600) + (d * 24 * 3600) + (h * 3600) + (min * 60) + s;
+            const previewEl = document.getElementById(previewId);
+            if(previewEl) {
+                previewEl.textContent = totalSecs > 0 ? "Equals: " + formatDurationSmart(totalSecs) : "";
+            }
+        }
+
+        const planInputs = document.querySelectorAll('.plan-input');
+        planInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.plan-input', 'plan-duration-preview')));
+        
+        const realInputs = document.querySelectorAll('.real-input');
+        realInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.real-input', 'real-duration-preview')));
+
+        const ruleInputs = document.querySelectorAll('.rule-input');
+        ruleInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.rule-input', 'rule-duration-preview')));
+    });
+
     // Tag Input Visual System
     document.addEventListener('DOMContentLoaded', () => {
         const visualContainer = document.getElementById('tags-visual-container');
@@ -1110,6 +1175,37 @@
         return parts.join(', ');
     }
 
+
+    // Live Form Preview Script
+    document.addEventListener('DOMContentLoaded', () => {
+        function calculatePreview(inputsClass, previewId) {
+            const inputs = document.querySelectorAll(inputsClass);
+            let m=0, d=0, h=0, min=0, s=0;
+            inputs.forEach(input => {
+                let val = parseInt(input.value) || 0;
+                if(input.name.includes('months')) m = val;
+                if(input.name.includes('days')) d = val;
+                if(input.name.includes('hours')) h = val;
+                if(input.name.includes('minutes')) min = val;
+                if(input.name.includes('seconds')) s = val;
+            });
+            let totalSecs = (m * 30 * 24 * 3600) + (d * 24 * 3600) + (h * 3600) + (min * 60) + s;
+            const previewEl = document.getElementById(previewId);
+            if(previewEl) {
+                previewEl.textContent = totalSecs > 0 ? "Equals: " + formatDurationSmart(totalSecs) : "";
+            }
+        }
+
+        const planInputs = document.querySelectorAll('.plan-input');
+        planInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.plan-input', 'plan-duration-preview')));
+        
+        const realInputs = document.querySelectorAll('.real-input');
+        realInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.real-input', 'real-duration-preview')));
+
+        const ruleInputs = document.querySelectorAll('.rule-input');
+        ruleInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.rule-input', 'rule-duration-preview')));
+    });
+
     // Tag Input Visual System
     document.addEventListener('DOMContentLoaded', () => {
         const visualContainer = document.getElementById('tags-visual-container');
@@ -1284,6 +1380,37 @@
         return parts.join(', ');
     }
 
+
+    // Live Form Preview Script
+    document.addEventListener('DOMContentLoaded', () => {
+        function calculatePreview(inputsClass, previewId) {
+            const inputs = document.querySelectorAll(inputsClass);
+            let m=0, d=0, h=0, min=0, s=0;
+            inputs.forEach(input => {
+                let val = parseInt(input.value) || 0;
+                if(input.name.includes('months')) m = val;
+                if(input.name.includes('days')) d = val;
+                if(input.name.includes('hours')) h = val;
+                if(input.name.includes('minutes')) min = val;
+                if(input.name.includes('seconds')) s = val;
+            });
+            let totalSecs = (m * 30 * 24 * 3600) + (d * 24 * 3600) + (h * 3600) + (min * 60) + s;
+            const previewEl = document.getElementById(previewId);
+            if(previewEl) {
+                previewEl.textContent = totalSecs > 0 ? "Equals: " + formatDurationSmart(totalSecs) : "";
+            }
+        }
+
+        const planInputs = document.querySelectorAll('.plan-input');
+        planInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.plan-input', 'plan-duration-preview')));
+        
+        const realInputs = document.querySelectorAll('.real-input');
+        realInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.real-input', 'real-duration-preview')));
+
+        const ruleInputs = document.querySelectorAll('.rule-input');
+        ruleInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.rule-input', 'rule-duration-preview')));
+    });
+
     // Tag Input Visual System
     document.addEventListener('DOMContentLoaded', () => {
         const visualContainer = document.getElementById('tags-visual-container');
@@ -1400,6 +1527,37 @@
         
         return parts.join(', ');
     }
+
+
+    // Live Form Preview Script
+    document.addEventListener('DOMContentLoaded', () => {
+        function calculatePreview(inputsClass, previewId) {
+            const inputs = document.querySelectorAll(inputsClass);
+            let m=0, d=0, h=0, min=0, s=0;
+            inputs.forEach(input => {
+                let val = parseInt(input.value) || 0;
+                if(input.name.includes('months')) m = val;
+                if(input.name.includes('days')) d = val;
+                if(input.name.includes('hours')) h = val;
+                if(input.name.includes('minutes')) min = val;
+                if(input.name.includes('seconds')) s = val;
+            });
+            let totalSecs = (m * 30 * 24 * 3600) + (d * 24 * 3600) + (h * 3600) + (min * 60) + s;
+            const previewEl = document.getElementById(previewId);
+            if(previewEl) {
+                previewEl.textContent = totalSecs > 0 ? "Equals: " + formatDurationSmart(totalSecs) : "";
+            }
+        }
+
+        const planInputs = document.querySelectorAll('.plan-input');
+        planInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.plan-input', 'plan-duration-preview')));
+        
+        const realInputs = document.querySelectorAll('.real-input');
+        realInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.real-input', 'real-duration-preview')));
+
+        const ruleInputs = document.querySelectorAll('.rule-input');
+        ruleInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.rule-input', 'rule-duration-preview')));
+    });
 
     // Tag Input Visual System
     document.addEventListener('DOMContentLoaded', () => {
