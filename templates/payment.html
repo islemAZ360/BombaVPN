@@ -556,19 +556,6 @@
         }
     });
 
-    // Live-polling for status updates (e.g. Admin approves via Telegram while user is waiting here)
-    setInterval(async () => {
-        try {
-            const response = await fetch('/api/user_status');
-            if (response.ok) {
-                const data = await response.json();
-                if (data.status === 'active') {
-                    window.location.href = '/dashboard';
-                }
-            }
-        } catch (err) {
-            console.error("Error polling user status:", err);
-        }
-    }, 5000);
+    // Polling removed: Users wait for approval on the dashboard, not the payment page.
 </script>
 {% endblock %}
