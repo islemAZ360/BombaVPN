@@ -29,8 +29,8 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 import secrets
-# Security fix: Use a strong random key by default if env variable is missing
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+# Security fix: Use a fixed fallback key so user subscription links don't break on server restart
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'bomba_vpn_fallback_secret_key_12345')
 app.config['SESSION_COOKIE_NAME'] = 'flask_session'
 
 # Serializer for secure subscription links
@@ -54,7 +54,8 @@ def page_not_found(e):
 @app.errorhandler(Exception)
 def handle_exception(e):
     import traceback
-    with open(r'C:\Users\1\OneDrive\Desktop\my own projects\test\BombaVPN\bomba_error.log', 'a', encoding='utf-8') as f:
+    log_path = os.path.join(app.root_path, 'bomba_error.log')
+    with open(log_path, 'a', encoding='utf-8') as f:
         f.write("EXCEPTION CAUGHT:\n")
         f.write(traceback.format_exc())
         f.write(str(e) + "\n\n")
