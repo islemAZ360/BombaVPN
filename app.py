@@ -967,8 +967,7 @@ def approve_request(request_id):
     hours = 0
     minutes = 0
     s_data = None
-    subdomain = None
-    
+        
     server_doc = db.collection('servers').document(server_id).get()
     if server_doc.exists:
         s_data = server_doc.to_dict()
@@ -982,9 +981,6 @@ def approve_request(request_id):
         email_val = user_data.get('email', '')
         if email_val:
             safe_prefix = email_val.replace('@', '-').replace('.', '-')
-                        subdomain = f"{safe_prefix}-{server_id[:6]}.{BASE_ZONE}"
-            # Create DNS record for this specific subscription
-            
     duration_delta = timedelta(days=days, hours=hours, minutes=minutes)
     expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + duration_delta
     
@@ -1008,7 +1004,7 @@ def approve_request(request_id):
     db.collection('subscriptions').add({
         'user_id': user_id,
         'server_id': server_id,
-        'allocated_subdomain': subdomain,
+        'allocated_subdomain': None,
         'status': 'active',
         'required_tags': s_data.get('tags', []) if s_data else [],
         'is_temporary': False,
@@ -1148,7 +1144,6 @@ def manage_subscription(sub_id):
         flash('تم إلغاء الاشتراك بنجاح / Subscription cancelled', 'success')
         
     elif action == 'delete':
-        if data.get('allocated_subdomain'):
         db.collection('subscriptions').document(sub_id).delete()
         flash('تم حذف الاشتراك نهائياً / Subscription deleted permanently', 'success')
         
@@ -1191,14 +1186,12 @@ def manage_subscription(sub_id):
             if s_doc.exists:
                 s_data = s_doc.to_dict()
                 email_val = user_data.get('email', f'user-{user_id}')
-                subdomain = f"{email_val.replace('@', '-').replace('.', '-')}-{sub_id[:4]}.{BASE_ZONE}"
                 
                 old_subdomain = data.get('allocated_subdomain')
-                if old_subdomain != subdomain or data.get('server_id') != server_id:
-                    if old_subdomain:                
-                db.collection('subscriptions').document(sub_id).update({
+                if data.get('server_id') != server_id:
+                    db.collection('subscriptions').document(sub_id).update({
                     'server_id': server_id,
-                    'allocated_subdomain': subdomain,
+                    'allocated_subdomain': None,
                     'status': 'active'
                 })
                 flash('تم تعيين السيرفر للاشتراك بنجاح / Server assigned to subscription', 'success')
@@ -1228,7 +1221,6 @@ def manage_user_sub(user_id):
                 
                 s_data = s_doc.to_dict()
                 email_val = user_data.get('email', f'user-{user_id}')
-                subdomain = f"{email_val.replace('@', '-').replace('.', '-')}-{sub_id_new[:4]}.{BASE_ZONE}"
                 
                 
                 plan_days = int(s_data.get('plan_days', 0))
@@ -1239,7 +1231,7 @@ def manage_user_sub(user_id):
                 new_sub_ref.set({
                     'user_id': user_id,
                     'server_id': server_id,
-                    'allocated_subdomain': subdomain,
+                    'allocated_subdomain': None,
                     'status': 'active',
                     'created_at': datetime.now(timezone.utc),
                     'expires_at': datetime.now(timezone.utc) + duration
@@ -1636,7 +1628,7 @@ def get_subscription(token):
     for sub_doc in subs:
         sub_data = sub_doc.to_dict()
         server_id = sub_data.get('server_id')
-        subdomain = sub_data.get('allocated_subdomain')
+        subdomain = None
         status = sub_data.get('status')
         expires_at = sub_data.get('expires_at')
         
@@ -1650,7 +1642,6 @@ def get_subscription(token):
                 is_expired = True
                 if status != 'expired':
                     db.collection('subscriptions').document(sub_doc.id).update({'status': 'expired'})
-                    if subdomain:
                 
         if server_id:
             server_doc = db.collection('servers').document(server_id).get()
@@ -1761,8 +1752,7 @@ def background_expiry_checker():
                         if datetime.now(timezone.utc) > expires_at:
                             print(f"Background check: Subscription {sub_id} expired.")
                             update_data = {'status': 'expired'}
-                            if sub.get('allocated_subdomain'):
-
+                            update_data['allocated_subdomain'] = None
                             db.collection('subscriptions').document(sub_id).update(update_data)
                             continue
                             
@@ -1800,13 +1790,12 @@ def background_expiry_checker():
                             if user_doc.exists:
                                 user_data = user_doc.to_dict()
                                 safe_prefix = user_data.get('email', '').replace('@', '-').replace('.', '-')
-                                subdomain = f"{safe_prefix}-{best_server['id'][:6]}.{BASE_ZONE}"
                                 
                                 
                                 
                                 db.collection('subscriptions').document(sub_id).update({
                                     'server_id': best_server['id'],
-                                    'allocated_subdomain': subdomain,
+                                    'allocated_subdomain': None,
                                     'is_temporary': new_temp
                                 })
                                 
