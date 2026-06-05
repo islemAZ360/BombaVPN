@@ -1061,9 +1061,6 @@ def delete_user(user_id):
     # 1. Delete all subscriptions and their DNS records
     subs = db.collection('subscriptions').where('user_id', '==', user_id).stream()
     for sub_doc in subs:
-        sub_data = sub_doc.to_dict()
-        subdomain = sub_data.get('allocated_subdomain')
-        if subdomain:
         db.collection('subscriptions').document(sub_doc.id).delete()
         
     # 2. Delete all purchase requests
@@ -1453,12 +1450,19 @@ def user_dashboard():
         try:
             user_doc = db.collection('users').document(user_id).get()
             if not user_doc.exists:
-                db.collection('users').document(user_id).set({
-                    'email': request.user['email'],
-                    'status': 'pending',
-                    'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
-                })
-                user_data = {'status': 'pending'}
+                try:
+                    firebase_auth.get_user(user_id)
+                    db.collection('users').document(user_id).set({
+                        'email': request.user['email'],
+                        'status': 'pending',
+                        'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
+                    })
+                    user_data = {'status': 'pending'}
+                except Exception as e:
+                    # User was deleted from Firebase Auth (e.g. by admin)
+                    response = make_response(redirect(url_for('login')))
+                    response.delete_cookie('session')
+                    return response
             else:
                 user_data = user_doc.to_dict()
         except Exception as e:
