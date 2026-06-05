@@ -2471,7 +2471,7 @@ def background_expiry_checker():
         except Exception as e:
             print(f"Background expiry checker error: {e}")
             
-        time.sleep(60)
+        time.sleep(30)
 
 @app.route('/ping')
 def ping():
