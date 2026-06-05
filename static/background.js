@@ -600,8 +600,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const gX = galaxyObj.x + px / galaxyObj.z;
             const gY = galaxyObj.y + py / galaxyObj.z;
             ctx.translate(gX, gY);
-            // Slowed down galaxy rotation as requested
-            galaxyObj.rot -= 0.00015;
+            // Speed up galaxy rotation slightly as requested
+            galaxyObj.rot -= 0.0004;
             ctx.rotate(galaxyObj.rot);
             ctx.globalCompositeOperation = 'screen';
             ctx.globalAlpha = 0.42;
