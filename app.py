@@ -1668,8 +1668,10 @@ def keep_alive():
     while True:
         time.sleep(10 * 60)  # Sleep 10 minutes
         try:
-            requests.get('https://bombavpn.onrender.com/ping', timeout=10)
-            print("Self-ping successful: Kept server awake.")
+            target_url = os.environ.get('RENDER_EXTERNAL_URL', 'http://127.0.0.1:10000')
+            if not target_url.endswith('/'): target_url += '/'
+            requests.get(f'{target_url}ping', timeout=10)
+            print(f"Self-ping successful: Kept server awake ({target_url}).")
         except Exception as e:
             print(f"Self-ping failed: {e}")
 
