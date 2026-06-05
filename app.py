@@ -249,6 +249,22 @@ def add_header(response):
             response.headers['Expires'] = '0'
     return response
 
+@app.route('/robots.txt')
+def robots():
+    content = f"User-agent: *\nDisallow: /admin/\nDisallow: /api/\nDisallow: /sub/\nSitemap: {request.url_root}sitemap.xml\n"
+    return content, 200, {'Content-Type': 'text/plain'}
+
+@app.route('/sitemap.xml')
+def sitemap():
+    pages = ['/', '/login', '/register']
+    base_url = request.url_root.rstrip('/')
+    urls = ""
+    for page in pages:
+        urls += f"  <url>\n    <loc>{base_url}{page}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>{1.0 if page == '/' else 0.8}</priority>\n  </url>\n"
+    
+    xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{urls}</urlset>'
+    return xml, 200, {'Content-Type': 'application/xml'}
+
 @app.route('/')
 def index():
     session_cookie = request.cookies.get('session')
