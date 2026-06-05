@@ -454,11 +454,11 @@ def admin_dashboard():
             
     server_stats = {
         'total': len(servers),
-        'gemini': sum(1 for s in servers if 'Gemini' in s.get('tags', [])),
-        'yt': sum(1 for s in servers if 'YT' in s.get('tags', [])),
-        'lte': sum(1 for s in servers if 'LTE' in s.get('tags', [])),
-        'ru': sum(1 for s in servers if 'RU' in s.get('tags', [])),
-        'torrent': sum(1 for s in servers if 'Torrent' in s.get('tags', []))
+        'gemini': sum(1 for s in servers if 'gemini' in [t.lower() for t in s.get('tags', [])]),
+        'yt': sum(1 for s in servers if 'yt' in [t.lower() for t in s.get('tags', [])]),
+        'lte': sum(1 for s in servers if 'lte' in [t.lower() for t in s.get('tags', [])]),
+        'ru': sum(1 for s in servers if 'ru' in [t.lower() for t in s.get('tags', [])]),
+        'torrent': sum(1 for s in servers if 'torrent' in [t.lower() for t in s.get('tags', [])])
     }
     
     return render_template('admin_dashboard.html', servers=servers, pending_users=pending_users, active_users=active_users, all_users=all_users, tickets=tickets, now=now, server_stats=server_stats)
@@ -1140,11 +1140,11 @@ def api_dashboard_sync():
             
     server_stats = {
         'total': len(servers_list),
-        'gemini': sum(1 for s in servers_list if 'Gemini' in s.get('tags', [])),
-        'yt': sum(1 for s in servers_list if 'YT' in s.get('tags', [])),
-        'lte': sum(1 for s in servers_list if 'LTE' in s.get('tags', [])),
-        'ru': sum(1 for s in servers_list if 'RU' in s.get('tags', [])),
-        'torrent': sum(1 for s in servers_list if 'Torrent' in s.get('tags', []))
+        'gemini': sum(1 for s in servers_list if 'gemini' in [t.lower() for t in s.get('tags', [])]),
+        'yt': sum(1 for s in servers_list if 'yt' in [t.lower() for t in s.get('tags', [])]),
+        'lte': sum(1 for s in servers_list if 'lte' in [t.lower() for t in s.get('tags', [])]),
+        'ru': sum(1 for s in servers_list if 'ru' in [t.lower() for t in s.get('tags', [])]),
+        'torrent': sum(1 for s in servers_list if 'torrent' in [t.lower() for t in s.get('tags', [])])
     }
     
     users_dict = {}
