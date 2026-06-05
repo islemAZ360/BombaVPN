@@ -91,11 +91,12 @@
         <div style="display: flex; gap: 2rem; background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 200px;">
                 <label style="font-size: 0.85rem; color: var(--primary); font-weight: bold; margin-bottom: 12px; display: block;">{{ _('PlanDurationLabel') }}</label>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 10px;">
                     <input type="number" name="plan_months" class="form-control" placeholder="Months">
                     <input type="number" name="plan_days" class="form-control" placeholder="{{ _('Days') }}">
                     <input type="number" name="plan_hours" class="form-control" placeholder="{{ _('Hours') }}">
                     <input type="number" name="plan_minutes" class="form-control" placeholder="{{ _('Minutes') }}">
+                    <input type="number" name="plan_seconds" class="form-control" placeholder="Seconds">
                 </div>
             </div>
             <div style="width: 2px; background: rgba(255,255,255,0.05); display: none;"></div>
@@ -129,11 +130,12 @@
         <div style="display: flex; gap: 20px; align-items: stretch; background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px;">
             <div style="flex: 1;">
                 <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: bold; margin-bottom: 12px; display: block;">{{ _('DurationTitle') }}</label>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 10px;">
                     <input type="number" name="real_months" class="form-control" placeholder="Months">
                     <input type="number" name="real_days" class="form-control" placeholder="{{ _('Days') }}" required>
                     <input type="number" name="real_hours" class="form-control" placeholder="{{ _('Hours') }}">
                     <input type="number" name="real_minutes" class="form-control" placeholder="{{ _('Minutes') }}">
+                    <input type="number" name="real_seconds" class="form-control" placeholder="Seconds">
                 </div>
             </div>
             <div style="width: 2px; background: rgba(255,255,255,0.05);"></div>
@@ -186,16 +188,18 @@
             <input type="hidden" name="tags" id="hidden-tags-input" required>
         </div>
         <div style="flex: 1;">
-            <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Duration (Months)</label>
-            <input type="number" name="duration_months" class="form-control" placeholder="e.g. 6">
+            <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Duration</label>
+            <div style="display:flex; gap: 5px;">
+                <input type="number" name="duration_months" class="form-control" placeholder="M" title="Months">
+                <input type="number" name="duration_days" class="form-control" placeholder="D" title="Days">
+                <input type="number" name="duration_hours" class="form-control" placeholder="H" title="Hours">
+                <input type="number" name="duration_minutes" class="form-control" placeholder="m" title="Minutes">
+                <input type="number" name="duration_seconds" class="form-control" placeholder="s" title="Seconds">
+            </div>
         </div>
-        <div style="flex: 1;">
-            <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Duration (Days)</label>
-            <input type="number" name="duration_days" class="form-control" placeholder="e.g. 30" value="0" required>
-        </div>
-        <div style="flex: 1;">
+        <div style="flex: 0.5;">
             <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Price</label>
-            <input type="number" name="price" class="form-control" placeholder="e.g. 500" required>
+            <input type="number" name="price" class="form-control" placeholder="500" required>
         </div>
         <div>
             <button type="submit" class="btn btn-primary">+ Add</button>
@@ -561,13 +565,28 @@
 <script>
 
     // Smart Duration Formatter
-    function formatDurationSmart(totalDays) {
-        if (!totalDays || totalDays === 0) return '0 Days';
-        let months = Math.floor(totalDays / 30);
-        let days = totalDays % 30;
+    function formatDurationSmart(totalSecs) {
+        if (!totalSecs || totalSecs === 0) return '0 Secs';
+        
+        let mths = Math.floor(totalSecs / (30 * 24 * 3600));
+        let rem1 = totalSecs % (30 * 24 * 3600);
+        
+        let dys = Math.floor(rem1 / (24 * 3600));
+        let rem2 = rem1 % (24 * 3600);
+        
+        let hrs = Math.floor(rem2 / 3600);
+        let rem3 = rem2 % 3600;
+        
+        let mins = Math.floor(rem3 / 60);
+        let secs = rem3 % 60;
+        
         let parts = [];
-        if (months > 0) parts.push(`${months} Months`);
-        if (days > 0) parts.push(`${days} Days`);
+        if (mths > 0) parts.push(`${mths} Months`);
+        if (dys > 0) parts.push(`${dys} Days`);
+        if (hrs > 0) parts.push(`${hrs} Hours`);
+        if (mins > 0) parts.push(`${mins} Mins`);
+        if (secs > 0) parts.push(`${secs} Secs`);
+        
         return parts.join(', ');
     }
 
@@ -795,13 +814,28 @@
 <script>
 
     // Smart Duration Formatter
-    function formatDurationSmart(totalDays) {
-        if (!totalDays || totalDays === 0) return '0 Days';
-        let months = Math.floor(totalDays / 30);
-        let days = totalDays % 30;
+    function formatDurationSmart(totalSecs) {
+        if (!totalSecs || totalSecs === 0) return '0 Secs';
+        
+        let mths = Math.floor(totalSecs / (30 * 24 * 3600));
+        let rem1 = totalSecs % (30 * 24 * 3600);
+        
+        let dys = Math.floor(rem1 / (24 * 3600));
+        let rem2 = rem1 % (24 * 3600);
+        
+        let hrs = Math.floor(rem2 / 3600);
+        let rem3 = rem2 % 3600;
+        
+        let mins = Math.floor(rem3 / 60);
+        let secs = rem3 % 60;
+        
         let parts = [];
-        if (months > 0) parts.push(`${months} Months`);
-        if (days > 0) parts.push(`${days} Days`);
+        if (mths > 0) parts.push(`${mths} Months`);
+        if (dys > 0) parts.push(`${dys} Days`);
+        if (hrs > 0) parts.push(`${hrs} Hours`);
+        if (mins > 0) parts.push(`${mins} Mins`);
+        if (secs > 0) parts.push(`${secs} Secs`);
+        
         return parts.join(', ');
     }
 
@@ -1021,13 +1055,28 @@
 <script>
 
     // Smart Duration Formatter
-    function formatDurationSmart(totalDays) {
-        if (!totalDays || totalDays === 0) return '0 Days';
-        let months = Math.floor(totalDays / 30);
-        let days = totalDays % 30;
+    function formatDurationSmart(totalSecs) {
+        if (!totalSecs || totalSecs === 0) return '0 Secs';
+        
+        let mths = Math.floor(totalSecs / (30 * 24 * 3600));
+        let rem1 = totalSecs % (30 * 24 * 3600);
+        
+        let dys = Math.floor(rem1 / (24 * 3600));
+        let rem2 = rem1 % (24 * 3600);
+        
+        let hrs = Math.floor(rem2 / 3600);
+        let rem3 = rem2 % 3600;
+        
+        let mins = Math.floor(rem3 / 60);
+        let secs = rem3 % 60;
+        
         let parts = [];
-        if (months > 0) parts.push(`${months} Months`);
-        if (days > 0) parts.push(`${days} Days`);
+        if (mths > 0) parts.push(`${mths} Months`);
+        if (dys > 0) parts.push(`${dys} Days`);
+        if (hrs > 0) parts.push(`${hrs} Hours`);
+        if (mins > 0) parts.push(`${mins} Mins`);
+        if (secs > 0) parts.push(`${secs} Secs`);
+        
         return parts.join(', ');
     }
 
@@ -1172,13 +1221,28 @@
 <script>
 
     // Smart Duration Formatter
-    function formatDurationSmart(totalDays) {
-        if (!totalDays || totalDays === 0) return '0 Days';
-        let months = Math.floor(totalDays / 30);
-        let days = totalDays % 30;
+    function formatDurationSmart(totalSecs) {
+        if (!totalSecs || totalSecs === 0) return '0 Secs';
+        
+        let mths = Math.floor(totalSecs / (30 * 24 * 3600));
+        let rem1 = totalSecs % (30 * 24 * 3600);
+        
+        let dys = Math.floor(rem1 / (24 * 3600));
+        let rem2 = rem1 % (24 * 3600);
+        
+        let hrs = Math.floor(rem2 / 3600);
+        let rem3 = rem2 % 3600;
+        
+        let mins = Math.floor(rem3 / 60);
+        let secs = rem3 % 60;
+        
         let parts = [];
-        if (months > 0) parts.push(`${months} Months`);
-        if (days > 0) parts.push(`${days} Days`);
+        if (mths > 0) parts.push(`${mths} Months`);
+        if (dys > 0) parts.push(`${dys} Days`);
+        if (hrs > 0) parts.push(`${hrs} Hours`);
+        if (mins > 0) parts.push(`${mins} Mins`);
+        if (secs > 0) parts.push(`${secs} Secs`);
+        
         return parts.join(', ');
     }
 
@@ -1266,13 +1330,28 @@
 <script>
 
     // Smart Duration Formatter
-    function formatDurationSmart(totalDays) {
-        if (!totalDays || totalDays === 0) return '0 Days';
-        let months = Math.floor(totalDays / 30);
-        let days = totalDays % 30;
+    function formatDurationSmart(totalSecs) {
+        if (!totalSecs || totalSecs === 0) return '0 Secs';
+        
+        let mths = Math.floor(totalSecs / (30 * 24 * 3600));
+        let rem1 = totalSecs % (30 * 24 * 3600);
+        
+        let dys = Math.floor(rem1 / (24 * 3600));
+        let rem2 = rem1 % (24 * 3600);
+        
+        let hrs = Math.floor(rem2 / 3600);
+        let rem3 = rem2 % 3600;
+        
+        let mins = Math.floor(rem3 / 60);
+        let secs = rem3 % 60;
+        
         let parts = [];
-        if (months > 0) parts.push(`${months} Months`);
-        if (days > 0) parts.push(`${days} Days`);
+        if (mths > 0) parts.push(`${mths} Months`);
+        if (dys > 0) parts.push(`${dys} Days`);
+        if (hrs > 0) parts.push(`${hrs} Hours`);
+        if (mins > 0) parts.push(`${mins} Mins`);
+        if (secs > 0) parts.push(`${secs} Secs`);
+        
         return parts.join(', ');
     }
 
@@ -1567,7 +1646,7 @@
                     let isExpired = s.expires_at ? new Date(s.expires_at) < new Date() : true;
                     let expStr = s.expires_at ? new Date(s.expires_at).toLocaleString() : 'No Expire Data';
                     let createdStr = s.created_at ? new Date(s.created_at).toLocaleString() : 'Unknown';
-                    let planDays = s.plan_days || 0;
+                    let planSecs = s.total_plan_seconds || (s.plan_days ? s.plan_days * 24 * 3600 : 0);
                     
                     let sourceLinkHtml = '';
                     if (s.source_link_id && data.source_links) {
@@ -1601,7 +1680,7 @@
                         <td style="vertical-align: middle;">
                             <div style="font-size: 0.8rem; color: #ccc;">
                                 <div style="margin-bottom: 2px;">📅 Uploaded: <span style="color: #fff;">${createdStr}</span></div>
-                                <div style="margin-bottom: 2px;">⏳ Plan: <span style="color: var(--primary); font-weight: bold;">${formatDurationSmart(planDays)}</span></div>
+                                <div style="margin-bottom: 2px;">⏳ Plan: <span style="color: var(--primary); font-weight: bold;">${formatDurationSmart(planSecs)}</span></div>
                                 <div style="${isExpired ? 'color: #F44336;' : 'color: #4CAF50;'}">
                                     ⏳ Expires: ${isExpired ? '<span style="margin-left: 8px; font-size: 0.7rem; background: #F44336; color: #fff; padding: 2px 6px; border-radius: 4px;">Expired</span>' : `<span class="live-countdown" data-expires="${s.expires_at || ''}">Calculating...</span>`}
                                 </div>

@@ -657,22 +657,24 @@ def add_servers():
     plan_days = int(request.form.get('plan_days') or 0)
     plan_hours = int(request.form.get('plan_hours') or 0)
     plan_minutes = int(request.form.get('plan_minutes') or 0)
+    plan_seconds = int(request.form.get('plan_seconds') or 0)
     
     real_months = int(request.form.get('real_months') or 0)
     real_days = int(request.form.get('real_days') or 0)
     real_hours = int(request.form.get('real_hours') or 0)
     real_minutes = int(request.form.get('real_minutes') or 0)
+    real_seconds = int(request.form.get('real_seconds') or 0)
     
     # Normalize mathematically
-    total_plan_days = (plan_months * 30) + plan_days
-    total_real_days = (real_months * 30) + real_days
+    total_plan_seconds = (plan_months * 30 * 24 * 3600) + (plan_days * 24 * 3600) + (plan_hours * 3600) + (plan_minutes * 60) + plan_seconds
+    total_real_seconds = (real_months * 30 * 24 * 3600) + (real_days * 24 * 3600) + (real_hours * 3600) + (real_minutes * 60) + real_seconds
     
     price = request.form.get('price') or ''
     
-    if total_real_days == 0 and real_hours == 0 and real_minutes == 0:
+    if total_real_seconds == 0:
         expires_at = None
     else:
-        expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=total_real_days, hours=real_hours, minutes=real_minutes)
+        expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=total_real_seconds)
     
     added = 0
     existing_servers = [s.to_dict().get('name', '') for s in db.collection('servers').stream()]
@@ -774,15 +776,17 @@ def import_servers():
     plan_days = int(request.form.get('plan_days') or 0)
     plan_hours = int(request.form.get('plan_hours') or 0)
     plan_minutes = int(request.form.get('plan_minutes') or 0)
+    plan_seconds = int(request.form.get('plan_seconds') or 0)
     
     real_months = int(request.form.get('real_months') or 0)
     real_days = int(request.form.get('real_days') or 0)
     real_hours = int(request.form.get('real_hours') or 0)
     real_minutes = int(request.form.get('real_minutes') or 0)
+    real_seconds = int(request.form.get('real_seconds') or 0)
     
     # Normalize mathematically
-    total_plan_days = (plan_months * 30) + plan_days
-    total_real_days = (real_months * 30) + real_days
+    total_plan_seconds = (plan_months * 30 * 24 * 3600) + (plan_days * 24 * 3600) + (plan_hours * 3600) + (plan_minutes * 60) + plan_seconds
+    total_real_seconds = (real_months * 30 * 24 * 3600) + (real_days * 24 * 3600) + (real_hours * 3600) + (real_minutes * 60) + real_seconds
     
     price_base = request.form.get('price_base') or ''
     rule_tags = request.form.getlist('rule_tags[]')
@@ -795,10 +799,10 @@ def import_servers():
             r['tags'] = set(r.get('tags', []))
             pricing_rules.append(r)
     
-    if total_real_days == 0 and real_hours == 0 and real_minutes == 0:
+    if total_real_seconds == 0:
         expires_at = None
     else:
-        expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=total_real_days, hours=real_hours, minutes=real_minutes)
+        expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=total_real_seconds)
     
     # Strip happ://add/ if present
     if subscription_text.startswith('happ://add/'):
@@ -813,12 +817,8 @@ def import_servers():
             # Save to source_links
             doc_ref = db.collection('source_links').add({
                 'url': original_url,
-                'plan_days': total_plan_days,
-                'plan_hours': plan_hours,
-                'plan_minutes': plan_minutes,
-                'real_days': total_real_days,
-                'real_hours': real_hours,
-                'real_minutes': real_minutes,
+                'total_plan_seconds': total_plan_seconds,
+                'total_real_seconds': total_real_seconds,
                 'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
             })
             source_link_id = doc_ref[1].id
@@ -931,8 +931,7 @@ def import_servers():
                 'json_config': content,
                 'vless_link': original_link,
                 'price': final_price,
-                'plan_days': total_plan_days,
-                'plan_hours': plan_hours,
+                'total_plan_seconds': total_plan_seconds,
                 'plan_minutes': plan_minutes,
                 'tags': keywords,
                 'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
@@ -1311,7 +1310,16 @@ def rescan_servers():
         
         matched_rules = []
         for rule in rules:
-            if rule['tags'].issubset(new_tags_set) and rule.get('duration_days', 0) == total_plan_days:
+            # Handle old and new schema
+            rule_secs = rule.get('total_duration_seconds')
+            if rule_secs is None:
+                rule_secs = rule.get('duration_days', 0) * 24 * 3600
+                
+            server_plan_secs = link_data.get('total_plan_seconds')
+            if server_plan_secs is None:
+                server_plan_secs = (link_data.get('plan_days', 0) * 24 * 3600) + (link_data.get('plan_hours', 0) * 3600) + (link_data.get('plan_minutes', 0) * 60)
+                
+            if rule['tags'].issubset(new_tags_set) and rule_secs == server_plan_secs:
                 matched_rules.append(rule)
                 
         if matched_rules:
