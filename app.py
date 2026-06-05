@@ -71,9 +71,14 @@ def inject_notifications():
 
 @app.context_processor
 def inject_locale():
-    lang = request.cookies.get('lang', 'ar')
-    if lang not in TRANSLATIONS:
+    lang = request.cookies.get('lang')
+    if not lang:
+        lang = request.accept_languages.best_match(TRANSLATIONS.keys())
+        if not lang:
+            lang = 'ar'
+    elif lang not in TRANSLATIONS:
         lang = 'ar'
+        
     def _(key, *args):
         text = TRANSLATIONS[lang].get(key, key)
         if args:
