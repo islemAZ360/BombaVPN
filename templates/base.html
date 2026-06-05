@@ -33,10 +33,10 @@
                 {% endif %}
             </a>
             {% endif %}
-            <select onchange="window.location.href=this.value">
-                <option value="{{ url_for('set_language', lang='ar') }}" {% if lang == 'ar' %}selected{% endif %}>العربية</option>
-                <option value="{{ url_for('set_language', lang='en') }}" {% if lang == 'en' %}selected{% endif %}>English</option>
-                <option value="{{ url_for('set_language', lang='ru') }}" {% if lang == 'ru' %}selected{% endif %}>Русский</option>
+            <select onchange="window.location.href=this.value" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(0, 255, 204, 0.3); color: white; padding: 6px 12px; border-radius: 8px; outline: none; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-size: 0.9rem; transition: all 0.3s ease;">
+                <option style="background: #0a1428; color: white;" value="{{ url_for('set_language', lang='ar') }}" {% if lang == 'ar' %}selected{% endif %}>العربية</option>
+                <option style="background: #0a1428; color: white;" value="{{ url_for('set_language', lang='en') }}" {% if lang == 'en' %}selected{% endif %}>English</option>
+                <option style="background: #0a1428; color: white;" value="{{ url_for('set_language', lang='ru') }}" {% if lang == 'ru' %}selected{% endif %}>Русский</option>
             </select>
         </div>
     </div>
