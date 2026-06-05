@@ -2760,6 +2760,14 @@ def cron_daily():
         print(f"SMTP error: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@app.route('/bomba_logs_secret_1234')
+def view_bomba_logs():
+    try:
+        with open(os.path.join(app.root_path, 'bomba_error.log'), 'r') as f:
+            return "<pre>" + f.read() + "</pre>"
+    except Exception as e:
+        return str(e)
+
 if __name__ == '__main__':
     # Start the Keep-Alive thread
     keep_alive_thread = threading.Thread(target=keep_alive, daemon=True)
