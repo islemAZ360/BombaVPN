@@ -46,7 +46,7 @@ def send_telegram_notification(message):
 
 @app.route('/api/admin/stats')
 def admin_stats():
-    if not getattr(request, 'is_admin', False):
+    if 'admin_logged_in' not in session:
         return jsonify({'error': 'Unauthorized'}), 403
         
     try:
