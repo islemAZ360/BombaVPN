@@ -448,7 +448,9 @@ def admin_dashboard():
         'total': len(servers),
         'gemini': sum(1 for s in servers if 'Gemini' in s.get('tags', [])),
         'yt': sum(1 for s in servers if 'YT' in s.get('tags', [])),
-        'lte': sum(1 for s in servers if 'LTE' in s.get('tags', []))
+        'lte': sum(1 for s in servers if 'LTE' in s.get('tags', [])),
+        'ru': sum(1 for s in servers if 'RU' in s.get('tags', [])),
+        'torrent': sum(1 for s in servers if 'Torrent' in s.get('tags', []))
     }
     
     return render_template('admin_dashboard.html', servers=servers, pending_users=pending_users, active_users=active_users, all_users=all_users, tickets=tickets, now=now, server_stats=server_stats)
@@ -862,6 +864,7 @@ def import_servers():
             if 'lte' in orig_name_lower: keywords.append("LTE")
             if 'yt' in orig_name_lower: keywords.append("YT")
             if 'ru' in orig_name_lower: keywords.append("RU")
+            if 'torrent' in orig_name_lower: keywords.append("Torrent")
             
             if keywords:
                 final_name = f"{base_name} | {' | '.join(keywords)}"
