@@ -414,11 +414,9 @@
                             <button type="button" class="icon-btn msg-btn" onclick="openMessageModal('{{ u.id }}', '{{ u.email }}')" title="Send Message" style="padding: 4px;">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                             </button>
-                            <form method="POST" action="{{ url_for('delete_user', user_id=u.id) }}" style="margin:0;" onsubmit="return confirm('Delete user completely?');">
-                                <button type="submit" class="icon-btn del-btn" title="Delete User" style="padding: 4px;">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                </button>
-                            </form>
+                            <button type="button" class="icon-btn del-btn" onclick="deleteUserAJAX('{{ u.id }}', this)" title="Delete User" style="padding: 4px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
                         </div>
                     </td>
                     <td>
@@ -1063,6 +1061,67 @@
     let pendingDeleteId = null;
     let isDeletingAll = false;
     let isRescanning = false;
+
+    function smoothNotification(msg, type='success') {
+        const div = document.createElement('div');
+        div.innerText = msg;
+        div.style.position = 'fixed';
+        div.style.bottom = '20px';
+        div.style.right = '20px';
+        div.style.backgroundColor = type === 'success' ? '#4CAF50' : '#F44336';
+        div.style.color = 'white';
+        div.style.padding = '12px 24px';
+        div.style.borderRadius = '8px';
+        div.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+        div.style.zIndex = '9999';
+        div.style.opacity = '0';
+        div.style.transform = 'translateY(20px)';
+        div.style.transition = 'all 0.3s ease';
+        document.body.appendChild(div);
+        
+        setTimeout(() => {
+            div.style.opacity = '1';
+            div.style.transform = 'translateY(0)';
+        }, 10);
+        
+        setTimeout(() => {
+            div.style.opacity = '0';
+            div.style.transform = 'translateY(20px)';
+            setTimeout(() => div.remove(), 300);
+        }, 3000);
+    }
+
+    async function deleteUserAJAX(userId, btn) {
+        if(!confirm('هل أنت متأكد من حذف هذا المستخدم وجميع اشتراكاته؟')) return;
+        
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+        
+        try {
+            const resp = await fetch('/admin/delete_user/' + userId, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if(resp.ok) {
+                smoothNotification('تم حذف المستخدم بنجاح', 'success');
+                const row = btn.closest('tr');
+                if(row) {
+                    row.style.transition = "all 0.3s ease";
+                    row.style.opacity = 0;
+                    setTimeout(() => row.remove(), 300);
+                }
+            } else {
+                smoothNotification('حدث خطأ أثناء الحذف', 'error');
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        } catch(e) {
+            smoothNotification('حدث خطأ في الاتصال', 'error');
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    }
 
     function setupTelegram() {
     if(confirm('هل أنت متأكد من ربط بوت التلغرام بهذا الرابط لتتمكن من القبول والرفض من التلغرام مباشرة؟')) {
@@ -2040,11 +2099,9 @@ function rescanServers() {
                                 <button type="button" class="icon-btn msg-btn" onclick="openMessageModal('${u.id}', '${u.email}')" title="Send Message" style="padding: 4px;">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                                 </button>
-                                <form method="POST" action="/admin/delete_user/${u.id}" onsubmit="return confirm('هل أنت متأكد من حذف هذا المستخدم وجميع اشتراكاته؟');" style="display:inline;">
-                                    <button type="submit" class="icon-btn reject-btn" title="Delete User" style="padding: 4px;">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"></path></svg>
-                                    </button>
-                                </form>
+                                <button type="button" class="icon-btn reject-btn" onclick="deleteUserAJAX('${u.id}', this)" title="Delete User" style="padding: 4px;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"></path></svg>
+                                </button>
                             </div>
                         </td>
                         <td>`;
@@ -2099,11 +2156,9 @@ function rescanServers() {
                                 <button type="button" class="icon-btn msg-btn" onclick="openMessageModal('${u.id}', '${u.email}')" title="Send Message" style="padding: 4px;">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                                 </button>
-                                <form method="POST" action="/admin/delete_user/${u.id}" onsubmit="return confirm('هل أنت متأكد من حذف هذا المستخدم وجميع اشتراكاته؟');" style="display:inline;">
-                                    <button type="submit" class="icon-btn reject-btn" title="Delete User" style="padding: 4px;">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"></path></svg>
-                                    </button>
-                                </form>
+                                <button type="button" class="icon-btn reject-btn" onclick="deleteUserAJAX('${u.id}', this)" title="Delete User" style="padding: 4px;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"></path></svg>
+                                </button>
                             </div>
                         </td>
                         <td style="vertical-align: middle;">${statusBadge}</td>

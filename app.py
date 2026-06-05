@@ -1403,6 +1403,9 @@ def delete_user(user_id):
     except Exception as e:
         print(f"Error deleting user from Firebase Auth: {e}")
         
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'status': 'success'})
+        
     flash('تم حذف المستخدم وجميع بياناته نهائياً / User and all data deleted completely', 'success')
     return redirect(url_for('admin_dashboard'))
 
