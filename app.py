@@ -229,7 +229,7 @@ def start_background_thread():
         pass
         
     # CSRF Protection: Validate Origin/Referer for POST requests
-    if request.method == 'POST' and request.endpoint not in ['ping', 'debug_check', 'session_login']:
+    if request.method == 'POST' and request.endpoint not in ['ping', 'debug_check', 'session_login', 'telegram_webhook']:
         origin = request.headers.get('Origin')
         referer = request.headers.get('Referer')
         host_url = request.host_url.rstrip('/')
