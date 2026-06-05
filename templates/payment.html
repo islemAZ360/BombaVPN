@@ -24,6 +24,17 @@
                 <button class="filter-chip" data-duration="31104000" onclick="setDurationFilter(31104000, this)">1 {{ _('Year') if _('Year') != 'Year' else 'Year' }}</button>
             </div>
         </div>
+        <!-- Country Filter -->
+        <div style="margin-bottom: 12px;">
+            <div style="font-size:0.8rem; color:var(--text-muted,#888); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                {{ _('FilterByCountry') if _('FilterByCountry') != 'FilterByCountry' else 'Filter by Country' }}
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;" id="country-filters">
+                <button class="filter-chip active" data-country="all" onclick="setCountryFilter('all', this)">{{ _('All') if _('All') != 'All' else 'All' }}</button>
+                <!-- flag chips injected by buildCountryFilters() -->
+            </div>
+        </div>
         <!-- Tag Filter -->
         <div>
             <div style="font-size: 0.8rem; color: var(--text-muted, #888); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
@@ -190,21 +201,68 @@
     // Filter State
     let activeDurationFilter = 'all';
     let activeTagFilter = 'all';
-    
+    let activeCountryFilter = 'all';
+
+    // Localized country name for the flag tooltip (graceful fallback to the code)
+    const countryLabel = (() => {
+        try {
+            const dn = new Intl.DisplayNames(['{{ lang or "en" }}'], { type: 'region' });
+            return c => { try { return dn.of(c.toUpperCase()) || c.toUpperCase(); } catch(e){ return c.toUpperCase(); } };
+        } catch(e) { return c => c.toUpperCase(); }
+    })();
+
+    let renderedCountrySig = null;
+    function buildCountryFilters() {
+        const container = document.getElementById('country-filters');
+        if (!container) return;
+
+        // Distinct country codes across ALL cards (incl. those hidden by other filters)
+        const codes = new Set();
+        document.querySelectorAll('#plans-container .plan-card').forEach(card => {
+            const c = (card.getAttribute('data-country') || '').trim().toLowerCase();
+            if (c) codes.add(c);
+        });
+        const sorted = [...codes].sort((a, b) => countryLabel(a).localeCompare(countryLabel(b)));
+
+        // Reset selection if the active country no longer exists
+        if (activeCountryFilter !== 'all' && !codes.has(activeCountryFilter)) {
+            activeCountryFilter = 'all';
+        }
+
+        // Skip re-render if the country set is unchanged (avoids flicker on 30s refresh)
+        const sig = sorted.join(',');
+        if (sig === renderedCountrySig) return;
+        renderedCountrySig = sig;
+
+        let html = `<button class="filter-chip ${activeCountryFilter === 'all' ? 'active' : ''}" data-country="all" onclick="setCountryFilter('all', this)">{{ _('All') if _('All') != 'All' else 'All' }}</button>`;
+        sorted.forEach(c => {
+            const active = activeCountryFilter === c ? 'active' : '';
+            html += `<button class="filter-chip ${active}" data-country="${c}" title="${countryLabel(c)}" onclick="setCountryFilter('${c}', this)" style="display:inline-flex; align-items:center; padding:6px 12px;"><img src="https://flagcdn.com/24x18/${c}.png" alt="${c}" style="border-radius:2px; display:block;"></button>`;
+        });
+        container.innerHTML = html;
+    }
+
     function setDurationFilter(value, btn) {
         activeDurationFilter = value;
         document.querySelectorAll('#duration-filters .filter-chip').forEach(c => c.classList.remove('active'));
         btn.classList.add('active');
         applyFilters();
     }
-    
+
     function setTagFilter(value, btn) {
         activeTagFilter = value;
         document.querySelectorAll('#tag-filters .filter-chip').forEach(c => c.classList.remove('active'));
         btn.classList.add('active');
         applyFilters();
     }
-    
+
+    function setCountryFilter(value, btn) {
+        activeCountryFilter = value;
+        document.querySelectorAll('#country-filters .filter-chip').forEach(c => c.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        applyFilters();
+    }
+
     function applyFilters() {
         const cards = document.querySelectorAll('#plans-container .plan-card');
         let visibleCount = 0;
@@ -213,7 +271,8 @@
         cards.forEach(card => {
             let showDuration = true;
             let showTag = true;
-            
+            let showCountry = true;
+
             // Duration filter
             if (activeDurationFilter !== 'all') {
                 const totalSecs = parseInt(card.getAttribute('data-total-seconds')) || 0;
@@ -222,14 +281,19 @@
                 const upper = targetSecs * (1 + tolerance);
                 showDuration = (totalSecs >= lower && totalSecs <= upper);
             }
-            
+
             // Tag filter
             if (activeTagFilter !== 'all') {
                 const tags = (card.getAttribute('data-tags') || '').toLowerCase().split(',').map(t => t.trim());
                 showTag = tags.includes(activeTagFilter);
             }
-            
-            if (showDuration && showTag) {
+
+            // Country filter
+            if (activeCountryFilter !== 'all') {
+                showCountry = ((card.getAttribute('data-country') || '').toLowerCase() === activeCountryFilter);
+            }
+
+            if (showDuration && showTag && showCountry) {
                 card.classList.remove('hidden-by-filter');
                 card.style.animation = 'fadeInCard 0.3s ease';
                 visibleCount++;
@@ -402,7 +466,8 @@
                 serverContainer.appendChild(card);
             });
             
-            // Re-apply active filters
+            // Rebuild country chips (new countries appear automatically) and re-filter
+            buildCountryFilters();
             applyFilters();
         } catch(e) {
             console.log('Auto-refresh error:', e);
@@ -417,6 +482,9 @@
             const durEl = card.querySelector('.plan-duration');
             if (durEl) durEl.textContent = formatPlanDuration(card.getAttribute('data-total-seconds'));
         });
+
+        // Build the country flag chips from the initial cards
+        buildCountryFilters();
 
         const urlParams = new URLSearchParams(window.location.search);
         const renewServerId = urlParams.get('renew_server_id');
