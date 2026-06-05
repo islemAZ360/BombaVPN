@@ -156,6 +156,7 @@ def start_background_thread():
                     db.collection('messages').on_snapshot(on_messages_snapshot)
                     db.collection('subscriptions').on_snapshot(on_subscriptions_snapshot)
                     db.collection('pricing_rules').on_snapshot(on_pricing_rules_snapshot)
+                    db.collection('source_links').on_snapshot(on_source_links_snapshot)
                     
                     thread_started = True
                 except Exception as e:
@@ -791,9 +792,25 @@ def import_servers():
     if subscription_text.startswith('happ://add/'):
         subscription_text = subscription_text.replace('happ://add/', '')
     
+    source_link_id = None
+    original_url = subscription_text
+    
     # If the text is a URL, fetch it
     if subscription_text.startswith('http://') or subscription_text.startswith('https://'):
         try:
+            # Save to source_links
+            doc_ref = db.collection('source_links').add({
+                'url': original_url,
+                'plan_days': plan_days,
+                'plan_hours': plan_hours,
+                'plan_minutes': plan_minutes,
+                'real_days': real_days,
+                'real_hours': real_hours,
+                'real_minutes': real_minutes,
+                'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
+            })
+            source_link_id = doc_ref[1].id
+            
             resp = requests.get(subscription_text, timeout=10, headers={'User-Agent': 'v2rayNG'})
             if resp.status_code == 200:
                 subscription_text = resp.text
@@ -896,6 +913,7 @@ def import_servers():
             
             db.collection('servers').add({
                 'name': final_name,
+                'source_link_id': source_link_id,
                 'original_ip': ip,
                 'country_code': cc.lower() if cc else None,
                 'json_config': content,
@@ -2007,6 +2025,18 @@ def on_messages_snapshot(col_snapshot, changes, read_time):
             elif change.type.name == 'REMOVED':
                 messages_cache.pop(change.document.id, None)
 
+
+
+source_links_cache = {}
+source_links_cache_lock = threading.Lock()
+
+def on_source_links_snapshot(col_snapshot, changes, read_time):
+    with source_links_cache_lock:
+        for change in changes:
+            if change.type.name == 'ADDED' or change.type.name == 'MODIFIED':
+                source_links_cache[change.document.id] = change.document.to_dict()
+            elif change.type.name == 'REMOVED':
+                source_links_cache.pop(change.document.id, None)
 
 pricing_rules_cache = {}
 pricing_rules_cache_lock = threading.Lock()
