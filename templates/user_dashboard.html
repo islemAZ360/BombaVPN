@@ -74,7 +74,7 @@
                         {% else %}
                             <div style="display: flex; gap: 10px; align-items: center;">
                                 <span class="badge" style="background: rgba(255, 71, 87, 0.1); border: 1px solid #ff4757; color: #ff4757; padding: 4px 12px; border-radius: 50px; font-size: 0.8rem; font-weight: bold;">EXPIRED</span>
-                                <a href="{{ url_for('pay') }}?renew={{ sub.server_id }}" class="btn" style="background: rgba(0, 255, 204, 0.15); border: 1px solid #00ffcc; color: #00ffcc; padding: 4px 12px; border-radius: 50px; font-size: 0.8rem; font-weight: bold; text-decoration: none; transition: all 0.3s;" onmouseover="this.style.background='#00ffcc'; this.style.color='#000';" onmouseout="this.style.background='rgba(0, 255, 204, 0.15)'; this.style.color='#00ffcc';">{{ _('Renew') }}</a>
+                                <a href="{{ url_for('pay') }}?renew_sub_id={{ sub.id }}&renew_server_id={{ sub.server_id }}" class="btn" style="background: rgba(0, 255, 204, 0.15); border: 1px solid #00ffcc; color: #00ffcc; padding: 4px 12px; border-radius: 50px; font-size: 0.8rem; font-weight: bold; text-decoration: none; transition: all 0.3s;" onmouseover="this.style.background='#00ffcc'; this.style.color='#000';" onmouseout="this.style.background='rgba(0, 255, 204, 0.15)'; this.style.color='#00ffcc';">{{ _('Renew') }}</a>
                             </div>
                         {% endif %}
                     </div>

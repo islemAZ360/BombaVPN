@@ -62,6 +62,7 @@
         
         <form method="POST" enctype="multipart/form-data" id="payment-form">
             <input type="hidden" name="server_id" id="selected_server_id" required>
+            <input type="hidden" name="renew_sub_id" id="renew_sub_id">
             
             <div class="form-group" style="margin-bottom: 1.5rem;">
                 <label style="font-size: 0.9rem; color: var(--text-primary);">{{ _('UploadReceipt') }}</label>
@@ -229,12 +230,22 @@
 
     window.addEventListener("DOMContentLoaded", () => {
         const urlParams = new URLSearchParams(window.location.search);
-        const renewId = urlParams.get('renew');
-        if(renewId) {
-            const card = document.querySelector(`.plan-card[data-id="${renewId}"]`);
-            if(card) {
-                openPaymentModal(card);
-            }
+        const renewServerId = urlParams.get('renew_server_id');
+        const renewSubId = urlParams.get('renew_sub_id');
+        
+        if (renewSubId) {
+            document.getElementById('renew_sub_id').value = renewSubId;
+        }
+
+        if(renewServerId) {
+            setTimeout(() => {
+                const card = document.querySelector(`.plan-card[data-id="${renewServerId}"]`);
+                if(card) {
+                    openPaymentModal(card);
+                } else {
+                    alert('عذراً، هذه الباقة/السيرفر لم يعد متوفراً. الرجاء اختيار باقة أخرى من القائمة لترقية اشتراكك.');
+                }
+            }, 500); // Wait for fetch servers to render
         }
     });
 </script>

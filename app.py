@@ -15,7 +15,6 @@ from translations import TRANSLATIONS
 
 from utils import extract_ip_from_json, modify_json_address, extract_name_from_json
 from vless_parser import extract_vless_from_text
-from dns_manager import create_dns_record, delete_dns_record
 
 app = Flask(__name__)
 import secrets
@@ -96,9 +95,6 @@ except Exception as e:
     print(f"Error initializing Firebase Admin SDK: {e}")
     FIREBASE_READY = False
 
-# Configuration for Dynv6
-DYNV6_TOKEN = os.environ.get('DYNV6_TOKEN', 'YOUR_DYNV6_TOKEN_HERE')
-BASE_ZONE = os.environ.get('BASE_ZONE', 'galaxyvpn.dynv6.net')
 
 # Auth Decorator
 def login_required(f):
@@ -319,10 +315,12 @@ def pay():
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             
             # Save the new purchase request in the dedicated collection
+            renew_sub_id = request.form.get('renew_sub_id')
             db.collection('purchase_requests').add({
                 'user_id': user_id,
                 'email': request.user['email'],
                 'server_id': server_id,
+                'renew_sub_id': renew_sub_id,
                 'receipt_url': filename,
                 'status': 'pending',
                 'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
@@ -934,13 +932,6 @@ def edit_server(server_id):
 @login_required
 def delete_server(server_id):
     if not request.is_admin: return "Unauthorized", 403
-    
-    # Flag users for auto-recovery
-    users_on_server = db.collection('users').where('allocated_server_id', '==', server_id).stream()
-    for udoc in users_on_server:
-        db.collection('users').document(udoc.id).update({
-            'is_in_debt': True
-        })
         
     db.collection('servers').document(server_id).delete()
     
@@ -991,10 +982,8 @@ def approve_request(request_id):
         email_val = user_data.get('email', '')
         if email_val:
             safe_prefix = email_val.replace('@', '-').replace('.', '-')
-            # Unique subdomain per subscription: prefix-serverid.dynv6.net
-            subdomain = f"{safe_prefix}-{server_id[:6]}.{BASE_ZONE}"
+                        subdomain = f"{safe_prefix}-{server_id[:6]}.{BASE_ZONE}"
             # Create DNS record for this specific subscription
-            create_dns_record(subdomain, s_data['original_ip'], DYNV6_TOKEN)
             
     duration_delta = timedelta(days=days, hours=hours, minutes=minutes)
     expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + duration_delta
@@ -1075,7 +1064,6 @@ def delete_user(user_id):
         sub_data = sub_doc.to_dict()
         subdomain = sub_data.get('allocated_subdomain')
         if subdomain:
-            delete_dns_record(subdomain, DYNV6_TOKEN)
         db.collection('subscriptions').document(sub_doc.id).delete()
         
     # 2. Delete all purchase requests
@@ -1157,7 +1145,6 @@ def manage_subscription(sub_id):
     if action == 'cancel':
         update_data = {'status': 'expired'}
         if data.get('allocated_subdomain'):
-            delete_dns_record(data['allocated_subdomain'], DYNV6_TOKEN)
             update_data['allocated_subdomain'] = None
             update_data['server_id'] = None
         db.collection('subscriptions').document(sub_id).update(update_data)
@@ -1165,7 +1152,6 @@ def manage_subscription(sub_id):
         
     elif action == 'delete':
         if data.get('allocated_subdomain'):
-            delete_dns_record(data['allocated_subdomain'], DYNV6_TOKEN)
         db.collection('subscriptions').document(sub_id).delete()
         flash('تم حذف الاشتراك نهائياً / Subscription deleted permanently', 'success')
         
@@ -1212,9 +1198,7 @@ def manage_subscription(sub_id):
                 
                 old_subdomain = data.get('allocated_subdomain')
                 if old_subdomain != subdomain or data.get('server_id') != server_id:
-                    if old_subdomain: delete_dns_record(old_subdomain, DYNV6_TOKEN)
-                    create_dns_record(subdomain, s_data['original_ip'], DYNV6_TOKEN)
-                
+                    if old_subdomain:                
                 db.collection('subscriptions').document(sub_id).update({
                     'server_id': server_id,
                     'allocated_subdomain': subdomain,
@@ -1249,7 +1233,6 @@ def manage_user_sub(user_id):
                 email_val = user_data.get('email', f'user-{user_id}')
                 subdomain = f"{email_val.replace('@', '-').replace('.', '-')}-{sub_id_new[:4]}.{BASE_ZONE}"
                 
-                create_dns_record(subdomain, s_data['original_ip'], DYNV6_TOKEN)
                 
                 plan_days = int(s_data.get('plan_days', 0))
                 plan_hours = int(s_data.get('plan_hours', 0))
@@ -1643,8 +1626,7 @@ def get_subscription(token):
     import re
     import base64
     from datetime import datetime, timezone
-    from dns_manager import delete_dns_record
-    
+        
     now = datetime.now(timezone.utc)
     
     for sub_doc in subs:
@@ -1665,7 +1647,6 @@ def get_subscription(token):
                 if status != 'expired':
                     db.collection('subscriptions').document(sub_doc.id).update({'status': 'expired'})
                     if subdomain:
-                        delete_dns_record(subdomain, DYNV6_TOKEN)
                 
         if server_id:
             server_doc = db.collection('servers').document(server_id).get()
@@ -1777,7 +1758,7 @@ def background_expiry_checker():
                             print(f"Background check: Subscription {sub_id} expired.")
                             update_data = {'status': 'expired'}
                             if sub.get('allocated_subdomain'):
-                                delete_dns_record(sub.get('allocated_subdomain'), DYNV6_TOKEN)
+
                             db.collection('subscriptions').document(sub_id).update(update_data)
                             continue
                             
@@ -1817,10 +1798,7 @@ def background_expiry_checker():
                                 safe_prefix = user_data.get('email', '').replace('@', '-').replace('.', '-')
                                 subdomain = f"{safe_prefix}-{best_server['id'][:6]}.{BASE_ZONE}"
                                 
-                                old_subdomain = sub.get('allocated_subdomain')
-                                if old_subdomain and old_subdomain != subdomain:
-                                    delete_dns_record(old_subdomain, DYNV6_TOKEN)
-                                create_dns_record(subdomain, best_server['original_ip'], DYNV6_TOKEN)
+                                
                                 
                                 db.collection('subscriptions').document(sub_id).update({
                                     'server_id': best_server['id'],
