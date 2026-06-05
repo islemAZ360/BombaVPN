@@ -226,5 +226,16 @@
     }
     
     setInterval(refreshServers, 30000);
+
+    window.addEventListener("DOMContentLoaded", () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const renewId = urlParams.get('renew');
+        if(renewId) {
+            const card = document.querySelector(`.plan-card[data-id="${renewId}"]`);
+            if(card) {
+                openPaymentModal(card);
+            }
+        }
+    });
 </script>
 {% endblock %}
