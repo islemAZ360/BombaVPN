@@ -5,19 +5,7 @@
     <button id="logout-btn" class="btn btn-transparent-danger btn-small">{{ _('Logout') }}</button>
 </div>
 
-;">
-                <p style="margin: 0; font-size: 0.95rem;">{{ msg.message }}</p>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
-                    <small style="color: var(--text-muted);">{{ msg.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
-                    {% if not msg.is_read %}
-                        <button class="btn btn-primary btn-small" onclick="markMessageRead('{{ msg.id }}', this)">Mark as Read</button>
-                    {% endif %}
-                </div>
-            </div>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
+
 
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
