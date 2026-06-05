@@ -1327,32 +1327,49 @@ def telegram_webhook():
             success = False
             result_text = ""
             
-            if action == 'approve':
-                success, _ = _approve_request_logic(req_id)
-                result_text = "✅ Approved by Admin via Telegram"
-            elif action == 'reject':
-                success, _ = _reject_request_logic(req_id)
-                result_text = "❌ Rejected by Admin via Telegram"
+            try:
+                if action == 'approve':
+                    success, msg_text = _approve_request_logic(req_id)
+                    result_text = "✅ Approved by Admin via Telegram" if success else f"❌ Failed: {msg_text}"
+                elif action == 'reject':
+                    success, msg_text = _reject_request_logic(req_id)
+                    result_text = "❌ Rejected by Admin via Telegram" if success else f"❌ Failed: {msg_text}"
+                    
+                if success and chat_id and message_id and bot_token:
+                    # Remove buttons and append result
+                    original_caption = message.get('caption', '')
+                    new_caption = f"{original_caption}\n\n{result_text}"
+                    
+                    url = f"https://api.telegram.org/bot{bot_token}/editMessageCaption"
+                    requests.post(url, json={
+                        'chat_id': chat_id,
+                        'message_id': message_id,
+                        'caption': new_caption,
+                        'reply_markup': {'inline_keyboard': []} # Remove buttons
+                    }, timeout=10)
+                    
+                # Answer callback to remove loading state
+                requests.post(f"https://api.telegram.org/bot{bot_token}/answerCallbackQuery", json={
+                    'callback_query_id': callback.get('id'),
+                    'text': result_text if success else "Action failed or already processed."
+                }, timeout=10)
                 
-            if success and chat_id and message_id and bot_token:
-                # Remove buttons and append result
-                original_caption = message.get('caption', '')
-                new_caption = f"{original_caption}\n\n{result_text}"
+            except Exception as e:
+                import traceback
+                error_trace = traceback.format_exc()
+                print(f"Webhook Error: {error_trace}")
+                try:
+                    with open(os.path.join(app.root_path, 'bomba_error.log'), 'a', encoding='utf-8') as f:
+                        f.write(f"WEBHOOK EXCEPTION:\n{error_trace}\n")
+                    # Try to answer the callback with the error
+                    requests.post(f"https://api.telegram.org/bot{bot_token}/answerCallbackQuery", json={
+                        'callback_query_id': callback.get('id'),
+                        'text': f"Error: {str(e)[:50]}"
+                    }, timeout=10)
+                except:
+                    pass
+                return "Error", 500
                 
-                url = f"https://api.telegram.org/bot{bot_token}/editMessageCaption"
-                requests.post(url, json={
-                    'chat_id': chat_id,
-                    'message_id': message_id,
-                    'caption': new_caption,
-                    'reply_markup': {'inline_keyboard': []} # Remove buttons
-                })
-                
-            # Answer callback to remove loading state
-            requests.post(f"https://api.telegram.org/bot{bot_token}/answerCallbackQuery", json={
-                'callback_query_id': callback.get('id'),
-                'text': result_text if success else "Action failed or already processed."
-            })
-            
     return "OK", 200
 
 @app.route('/api/admin/setup_telegram', methods=['POST'])
