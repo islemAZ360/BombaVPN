@@ -45,28 +45,28 @@ def send_telegram_notification(message):
             print(f"Telegram notification failed: {e}")
 
 def send_telegram_receipt_review(req_id, user_email, server_name, receipt_filename, price):
-    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
-    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
-    if bot_token and chat_id:
-        url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], receipt_filename)
-        
-        caption = f"💳 *New Payment Receipt!*\n\n" \
-                  f"👤 *User:* `{user_email}`\n" \
-                  f"💻 *Server:* {server_name}\n" \
-                  f"💰 *Price:* {price} ₽\n\n" \
-                  f"Please review the receipt image and approve or reject."
-                  
-        reply_markup = {
-            "inline_keyboard": [
-                [
-                    {"text": "✅ Approve", "callback_data": f"approve_{req_id}"},
-                    {"text": "❌ Reject", "callback_data": f"reject_{req_id}"}
+    try:
+        bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+        chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+        if bot_token and chat_id:
+            url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], receipt_filename)
+            
+            caption = f"💳 *New Payment Receipt!*\n\n" \
+                      f"👤 *User:* `{user_email}`\n" \
+                      f"💻 *Server:* {server_name}\n" \
+                      f"💰 *Price:* {price} ₽\n\n" \
+                      f"Please review the receipt image and approve or reject."
+                      
+            reply_markup = {
+                "inline_keyboard": [
+                    [
+                        {"text": "✅ Approve", "callback_data": f"approve_{req_id}"},
+                        {"text": "❌ Reject", "callback_data": f"reject_{req_id}"}
+                    ]
                 ]
-            ]
-        }
-        
-        try:
+            }
+            
             if os.path.exists(file_path):
                 with open(file_path, 'rb') as photo:
                     files = {'photo': photo}
@@ -80,8 +80,8 @@ def send_telegram_receipt_review(req_id, user_email, server_name, receipt_filena
             else:
                 # Fallback to text if file missing
                 send_telegram_notification(caption)
-        except Exception as e:
-            print(f"Telegram receipt review failed: {e}")
+    except Exception as e:
+        print(f"Telegram receipt review failed: {e}")
 
 @app.route('/api/admin/stats')
 def admin_stats():
@@ -427,7 +427,8 @@ def pay():
             
             # Save the new purchase request in the dedicated collection
             renew_sub_id = request.form.get('renew_sub_id')
-            doc_ref = db.collection('purchase_requests').add({
+            doc_ref = db.collection('purchase_requests').document()
+            doc_ref.set({
                 'user_id': user_id,
                 'email': request.user['email'],
                 'server_id': server_id,
@@ -446,8 +447,11 @@ def pay():
                 price = s_doc.to_dict().get('price', 0)
             
             # إرسال صورة الوصل لتيليجرام مع أزرار القبول والرفض
-            req_id = doc_ref[1].id
-            send_telegram_receipt_review(req_id, request.user['email'], server_name, filename, price)
+            req_id = doc_ref.id
+            try:
+                send_telegram_receipt_review(req_id, request.user['email'], server_name, filename, price)
+            except Exception as e:
+                print(f"Error calling send_telegram_receipt_review: {e}")
             
             flash('تم إرسال الطلب بنجاح. جاري مراجعته من قبل الإدارة. / Request submitted successfully. Under review.', 'success')
             return redirect(url_for('user_dashboard'))
