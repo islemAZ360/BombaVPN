@@ -103,11 +103,14 @@
             <div style="width: 2px; background: rgba(255,255,255,0.05); display: none;"></div>
             <div style="flex: 1; min-width: 200px;">
                 <label style="font-size: 0.85rem; color: #ff003c; font-weight: bold; margin-bottom: 12px; display: block;">{{ _('RealDurationLabel') }}</label>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-                    <input type="number" name="real_days" class="form-control" placeholder="{{ _('Days') }}">
-                    <input type="number" name="real_hours" class="form-control" placeholder="{{ _('Hours') }}">
-                    <input type="number" name="real_minutes" class="form-control" placeholder="{{ _('Minutes') }}">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 10px;">
+                    <input type="number" name="real_months" class="form-control duration-input real-input" placeholder="Months">
+                    <input type="number" name="real_days" class="form-control duration-input real-input" placeholder="{{ _('Days') }}">
+                    <input type="number" name="real_hours" class="form-control duration-input real-input" placeholder="{{ _('Hours') }}">
+                    <input type="number" name="real_minutes" class="form-control duration-input real-input" placeholder="{{ _('Minutes') }}">
+                    <input type="number" name="real_seconds" class="form-control duration-input real-input" placeholder="Seconds">
                 </div>
+                <div id="json-real-duration-preview" style="font-size: 0.8rem; color: #4CAF50; margin-top: 5px; min-height: 15px;"></div>
             </div>
         </div>
 
@@ -132,22 +135,25 @@
             <div style="flex: 1;">
                 <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: bold; margin-bottom: 12px; display: block;">{{ _('DurationTitle') }}</label>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 10px;">
+                    <input type="number" name="plan_months" class="form-control duration-input plan-input" placeholder="Months">
+                    <input type="number" name="plan_days" class="form-control duration-input plan-input" placeholder="{{ _('Days') }}" required>
+                    <input type="number" name="plan_hours" class="form-control duration-input plan-input" placeholder="{{ _('Hours') }}">
+                    <input type="number" name="plan_minutes" class="form-control duration-input plan-input" placeholder="{{ _('Minutes') }}">
+                    <input type="number" name="plan_seconds" class="form-control duration-input plan-input" placeholder="Seconds">
+                </div>
+                <div id="auto-plan-duration-preview" style="font-size: 0.8rem; color: #4CAF50; margin-top: 5px; min-height: 15px;"></div>
+            </div>
+            <div style="width: 2px; background: rgba(255,255,255,0.05);"></div>
+            <div style="flex: 1;">
+                <label style="font-size: 0.85rem; color: #ff003c; font-weight: bold; margin-bottom: 12px; display: block;">{{ _('RealDurationLabel') }}</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 10px;">
                     <input type="number" name="real_months" class="form-control duration-input real-input" placeholder="Months">
                     <input type="number" name="real_days" class="form-control duration-input real-input" placeholder="{{ _('Days') }}" required>
                     <input type="number" name="real_hours" class="form-control duration-input real-input" placeholder="{{ _('Hours') }}">
                     <input type="number" name="real_minutes" class="form-control duration-input real-input" placeholder="{{ _('Minutes') }}">
                     <input type="number" name="real_seconds" class="form-control duration-input real-input" placeholder="Seconds">
                 </div>
-                <div id="real-duration-preview" style="font-size: 0.8rem; color: #4CAF50; margin-top: 5px; min-height: 15px;"></div>
-            </div>
-            <div style="width: 2px; background: rgba(255,255,255,0.05);"></div>
-            <div style="flex: 1;">
-                <label style="font-size: 0.85rem; color: #ff003c; font-weight: bold; margin-bottom: 12px; display: block;">{{ _('RealDurationLabel') }}</label>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-                    <input type="number" name="real_days" class="form-control" placeholder="{{ _('Days') }}" required>
-                    <input type="number" name="real_hours" class="form-control" placeholder="{{ _('Hours') }}">
-                    <input type="number" name="real_minutes" class="form-control" placeholder="{{ _('Minutes') }}">
-                </div>
+                <div id="auto-real-duration-preview" style="font-size: 0.8rem; color: #4CAF50; margin-top: 5px; min-height: 15px;"></div>
             </div>
         </div>
 
@@ -633,10 +639,17 @@
         }
 
         const planInputs = document.querySelectorAll('.plan-input');
-        planInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.plan-input', 'plan-duration-preview')));
+        planInputs.forEach(i => i.addEventListener('input', () => {
+            calculatePreview('.plan-input', 'plan-duration-preview');
+            calculatePreview('.plan-input', 'auto-plan-duration-preview');
+        }));
         
         const realInputs = document.querySelectorAll('.real-input');
-        realInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.real-input', 'real-duration-preview')));
+        realInputs.forEach(i => i.addEventListener('input', () => {
+            calculatePreview('.real-input', 'real-duration-preview');
+            calculatePreview('.real-input', 'json-real-duration-preview');
+            calculatePreview('.real-input', 'auto-real-duration-preview');
+        }));
 
         const ruleInputs = document.querySelectorAll('.rule-input');
         ruleInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.rule-input', 'rule-duration-preview')));
@@ -925,10 +938,17 @@
         }
 
         const planInputs = document.querySelectorAll('.plan-input');
-        planInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.plan-input', 'plan-duration-preview')));
+        planInputs.forEach(i => i.addEventListener('input', () => {
+            calculatePreview('.plan-input', 'plan-duration-preview');
+            calculatePreview('.plan-input', 'auto-plan-duration-preview');
+        }));
         
         const realInputs = document.querySelectorAll('.real-input');
-        realInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.real-input', 'real-duration-preview')));
+        realInputs.forEach(i => i.addEventListener('input', () => {
+            calculatePreview('.real-input', 'real-duration-preview');
+            calculatePreview('.real-input', 'json-real-duration-preview');
+            calculatePreview('.real-input', 'auto-real-duration-preview');
+        }));
 
         const ruleInputs = document.querySelectorAll('.rule-input');
         ruleInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.rule-input', 'rule-duration-preview')));
@@ -1209,10 +1229,17 @@
         }
 
         const planInputs = document.querySelectorAll('.plan-input');
-        planInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.plan-input', 'plan-duration-preview')));
+        planInputs.forEach(i => i.addEventListener('input', () => {
+            calculatePreview('.plan-input', 'plan-duration-preview');
+            calculatePreview('.plan-input', 'auto-plan-duration-preview');
+        }));
         
         const realInputs = document.querySelectorAll('.real-input');
-        realInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.real-input', 'real-duration-preview')));
+        realInputs.forEach(i => i.addEventListener('input', () => {
+            calculatePreview('.real-input', 'real-duration-preview');
+            calculatePreview('.real-input', 'json-real-duration-preview');
+            calculatePreview('.real-input', 'auto-real-duration-preview');
+        }));
 
         const ruleInputs = document.querySelectorAll('.rule-input');
         ruleInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.rule-input', 'rule-duration-preview')));
@@ -1418,10 +1445,17 @@
         }
 
         const planInputs = document.querySelectorAll('.plan-input');
-        planInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.plan-input', 'plan-duration-preview')));
+        planInputs.forEach(i => i.addEventListener('input', () => {
+            calculatePreview('.plan-input', 'plan-duration-preview');
+            calculatePreview('.plan-input', 'auto-plan-duration-preview');
+        }));
         
         const realInputs = document.querySelectorAll('.real-input');
-        realInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.real-input', 'real-duration-preview')));
+        realInputs.forEach(i => i.addEventListener('input', () => {
+            calculatePreview('.real-input', 'real-duration-preview');
+            calculatePreview('.real-input', 'json-real-duration-preview');
+            calculatePreview('.real-input', 'auto-real-duration-preview');
+        }));
 
         const ruleInputs = document.querySelectorAll('.rule-input');
         ruleInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.rule-input', 'rule-duration-preview')));
@@ -1570,10 +1604,17 @@
         }
 
         const planInputs = document.querySelectorAll('.plan-input');
-        planInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.plan-input', 'plan-duration-preview')));
+        planInputs.forEach(i => i.addEventListener('input', () => {
+            calculatePreview('.plan-input', 'plan-duration-preview');
+            calculatePreview('.plan-input', 'auto-plan-duration-preview');
+        }));
         
         const realInputs = document.querySelectorAll('.real-input');
-        realInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.real-input', 'real-duration-preview')));
+        realInputs.forEach(i => i.addEventListener('input', () => {
+            calculatePreview('.real-input', 'real-duration-preview');
+            calculatePreview('.real-input', 'json-real-duration-preview');
+            calculatePreview('.real-input', 'auto-real-duration-preview');
+        }));
 
         const ruleInputs = document.querySelectorAll('.rule-input');
         ruleInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.rule-input', 'rule-duration-preview')));
