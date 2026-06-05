@@ -765,6 +765,135 @@ def add_servers():
     flash(f'تمت إضافة {added} سيرفرات بنجاح!', 'success')
     return redirect(url_for('admin_dashboard'))
 
+
+def _import_vless_servers(subscription_text, total_plan_seconds, total_real_seconds,
+                          plan_days, plan_minutes, price_base, pricing_rules,
+                          source_link_id, dedup=False):
+    """Parse VLESS configs from `subscription_text` and add new servers to the DB.
+
+    Shared by the manual import flow and the per-link Sync flow. Returns a tuple
+    (found, added) where `found` is the number of VLESS configs parsed and `added`
+    is the number of brand-new servers created. When `dedup` is True, configs whose
+    vless_link already exists are skipped (so re-syncing a link is idempotent).
+    """
+    parsed_configs = extract_vless_from_text(subscription_text)
+    if not parsed_configs:
+        return 0, 0
+
+    if total_real_seconds == 0:
+        expires_at = None
+    else:
+        expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=total_real_seconds)
+
+    existing_docs = [s.to_dict() for s in db.collection('servers').stream()]
+    existing_servers = [d.get('name', '') for d in existing_docs]
+    existing_links = set(d.get('vless_link') for d in existing_docs if d.get('vless_link'))
+
+    config_data_list = []
+    ips_to_query = []
+    for config_dict in parsed_configs:
+        original_link = config_dict.pop('_original_link', '')
+        content = json.dumps(config_dict, ensure_ascii=False)
+        ip = extract_ip_from_json(content)
+        config_data_list.append((config_dict, content, ip, original_link))
+        if ip:
+            ips_to_query.append(ip)
+
+    country_map = get_country_info_bulk(ips_to_query)
+
+    added = 0
+    for config_dict, content, ip, original_link in config_data_list:
+        if ip:
+            if dedup and original_link and original_link in existing_links:
+                continue
+
+            orig_name = extract_name_from_json(content) or "Imported Server"
+            orig_name_lower = orig_name.lower()
+
+            country_name = "Unknown"
+            cc = None
+            if ip in country_map:
+                country_name, cc = country_map[ip]
+
+            if country_name == "Unknown":
+                n_lower = orig_name_lower.replace('-', ' ').replace('_', ' ').replace('|', ' ')
+                words = n_lower.split()
+                if 'russia' in n_lower or 'ru' in words: country_name, cc = "Russia", "RU"
+                elif 'germany' in n_lower or 'de' in words: country_name, cc = "Germany", "DE"
+                elif 'estonia' in n_lower or 'ee' in words: country_name, cc = "Estonia", "EE"
+                elif 'latvia' in n_lower or 'lv' in words: country_name, cc = "Latvia", "LV"
+                elif 'netherlands' in n_lower or 'nl' in words: country_name, cc = "Netherlands", "NL"
+                elif 'france' in n_lower or 'fr' in words: country_name, cc = "France", "FR"
+                elif 'uk' in words or 'united kingdom' in n_lower: country_name, cc = "United Kingdom", "GB"
+                elif 'usa' in words or 'us' in words or 'america' in n_lower: country_name, cc = "United States", "US"
+
+            max_num = 0
+            for s_name in existing_servers:
+                base_part = s_name.split('|')[0].strip()
+                if base_part == country_name:
+                    if max_num < 1: max_num = 1
+                elif base_part.startswith(f"{country_name} #"):
+                    try:
+                        num = int(base_part.replace(f"{country_name} #", ""))
+                        if num > max_num: max_num = num
+                    except:
+                        pass
+
+            count = max_num + 1
+            if count == 1:
+                base_name = country_name
+            else:
+                base_name = f"{country_name} #{count}"
+
+            keywords = []
+            if 'gemini' in orig_name_lower: keywords.append("Gemini")
+            if 'lte' in orig_name_lower: keywords.append("LTE")
+            if 'yt' in orig_name_lower: keywords.append("YT")
+            if 'ru' in orig_name_lower: keywords.append("RU")
+            if 'torrent' in orig_name_lower: keywords.append("Torrent")
+
+            if keywords:
+                final_name = f"{base_name} | {' | '.join(keywords)}"
+            else:
+                final_name = base_name
+
+            # Determine price based on rules
+            final_price = price_base
+            keywords_lower = set(k.lower() for k in keywords)
+
+            matched_rules = []
+            for rule in pricing_rules:
+                if rule['tags'].issubset(keywords_lower) and rule.get('duration_days', 0) == plan_days:
+                    matched_rules.append(rule)
+
+            if matched_rules:
+                # Prioritize the rule with the most matching tags (highest specificity)
+                best_rule = max(matched_rules, key=lambda r: len(r['tags']))
+                final_price = best_rule['price']
+
+            existing_servers.append(final_name)
+            if original_link:
+                existing_links.add(original_link)
+
+            db.collection('servers').add({
+                'name': final_name,
+                'source_link_id': source_link_id,
+                'original_ip': ip,
+                'country_code': cc.lower() if cc else None,
+                'json_config': content,
+                'vless_link': original_link,
+                'price': final_price,
+                'total_plan_seconds': total_plan_seconds,
+                'plan_minutes': plan_minutes,
+                'tags': keywords,
+                'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
+                'expires_at': expires_at
+            })
+            added += 1
+
+    return len(parsed_configs), added
+
+
 @app.route('/admin/import_servers', methods=['POST'])
 @login_required
 def import_servers():
@@ -798,12 +927,7 @@ def import_servers():
             r = r_dict.copy()
             r['tags'] = set(r.get('tags', []))
             pricing_rules.append(r)
-    
-    if total_real_seconds == 0:
-        expires_at = None
-    else:
-        expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=total_real_seconds)
-    
+
     # Strip happ://add/ if present
     if subscription_text.startswith('happ://add/'):
         subscription_text = subscription_text.replace('happ://add/', '')
@@ -833,112 +957,16 @@ def import_servers():
             flash(f'حدث خطأ أثناء جلب الرابط: {e}', 'error')
             return redirect(url_for('admin_dashboard'))
             
-    # Parse the VLESS links
-    parsed_configs = extract_vless_from_text(subscription_text)
-    
-    if not parsed_configs:
+    # Parse and add servers (shared with the per-link Sync flow)
+    found, added = _import_vless_servers(
+        subscription_text, total_plan_seconds, total_real_seconds,
+        plan_days, plan_minutes, price_base, pricing_rules, source_link_id
+    )
+
+    if found == 0:
         flash('لم يتم العثور على سيرفرات VLESS صالحة في الرابط أو النص.', 'error')
         return redirect(url_for('admin_dashboard'))
-        
-    added = 0
-    existing_servers = [s.to_dict().get('name', '') for s in db.collection('servers').stream()]
-    
-    config_data_list = []
-    ips_to_query = []
-    for config_dict in parsed_configs:
-        original_link = config_dict.pop('_original_link', '')
-        content = json.dumps(config_dict, ensure_ascii=False)
-        ip = extract_ip_from_json(content)
-        config_data_list.append((config_dict, content, ip, original_link))
-        if ip:
-            ips_to_query.append(ip)
-            
-    country_map = get_country_info_bulk(ips_to_query)
-    
-    for config_dict, content, ip, original_link in config_data_list:
-        if ip:
-            orig_name = extract_name_from_json(content) or "Imported Server"
-            orig_name_lower = orig_name.lower()
-            
-            country_name = "Unknown"
-            cc = None
-            if ip in country_map:
-                country_name, cc = country_map[ip]
-            
-            if country_name == "Unknown":
-                n_lower = orig_name_lower.replace('-', ' ').replace('_', ' ').replace('|', ' ')
-                words = n_lower.split()
-                if 'russia' in n_lower or 'ru' in words: country_name, cc = "Russia", "RU"
-                elif 'germany' in n_lower or 'de' in words: country_name, cc = "Germany", "DE"
-                elif 'estonia' in n_lower or 'ee' in words: country_name, cc = "Estonia", "EE"
-                elif 'latvia' in n_lower or 'lv' in words: country_name, cc = "Latvia", "LV"
-                elif 'netherlands' in n_lower or 'nl' in words: country_name, cc = "Netherlands", "NL"
-                elif 'france' in n_lower or 'fr' in words: country_name, cc = "France", "FR"
-                elif 'uk' in words or 'united kingdom' in n_lower: country_name, cc = "United Kingdom", "GB"
-                elif 'usa' in words or 'us' in words or 'america' in n_lower: country_name, cc = "United States", "US"
-                
-            max_num = 0
-            for s_name in existing_servers:
-                base_part = s_name.split('|')[0].strip()
-                if base_part == country_name:
-                    if max_num < 1: max_num = 1
-                elif base_part.startswith(f"{country_name} #"):
-                    try:
-                        num = int(base_part.replace(f"{country_name} #", ""))
-                        if num > max_num: max_num = num
-                    except:
-                        pass
-            
-            count = max_num + 1
-            if count == 1:
-                base_name = country_name
-            else:
-                base_name = f"{country_name} #{count}"
-            
-            keywords = []
-            if 'gemini' in orig_name_lower: keywords.append("Gemini")
-            if 'lte' in orig_name_lower: keywords.append("LTE")
-            if 'yt' in orig_name_lower: keywords.append("YT")
-            if 'ru' in orig_name_lower: keywords.append("RU")
-            if 'torrent' in orig_name_lower: keywords.append("Torrent")
-            
-            if keywords:
-                final_name = f"{base_name} | {' | '.join(keywords)}"
-            else:
-                final_name = base_name
-                
-            # Determine price based on rules
-            final_price = price_base
-            keywords_lower = set(k.lower() for k in keywords)
-            
-            matched_rules = []
-            for rule in pricing_rules:
-                if rule['tags'].issubset(keywords_lower) and rule.get('duration_days', 0) == plan_days:
-                    matched_rules.append(rule)
-                    
-            if matched_rules:
-                # Prioritize the rule with the most matching tags (highest specificity)
-                best_rule = max(matched_rules, key=lambda r: len(r['tags']))
-                final_price = best_rule['price']
 
-            existing_servers.append(final_name)
-            
-            db.collection('servers').add({
-                'name': final_name,
-                'source_link_id': source_link_id,
-                'original_ip': ip,
-                'country_code': cc.lower() if cc else None,
-                'json_config': content,
-                'vless_link': original_link,
-                'price': final_price,
-                'total_plan_seconds': total_plan_seconds,
-                'plan_minutes': plan_minutes,
-                'tags': keywords,
-                'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
-                'expires_at': expires_at
-            })
-            added += 1
-            
     flash(f'تمت إضافة {added} سيرفرات VLESS مستوردة بنجاح!', 'success')
     return redirect(url_for('admin_dashboard'))
 
@@ -1209,12 +1237,29 @@ def api_dashboard_sync():
                 elif isinstance(v, (dict, list)):
                     serialize_dates(v)
                     
+    # Fetch source links
+    source_links_list = []
+    try:
+        for doc in db.collection('source_links').stream():
+            sl = doc.to_dict()
+            sl['id'] = doc.id
+            if sl.get('created_at') and isinstance(sl['created_at'], datetime):
+                sl['created_at'] = sl['created_at'].replace(tzinfo=None)
+            # Count servers linked to this source
+            linked_servers = [s for s in servers_list if s.get('source_link_id') == doc.id]
+            sl['server_count'] = len(linked_servers)
+            sl['servers'] = [{'id': s['id'], 'name': s.get('name', ''), 'country_code': s.get('country_code', '')} for s in linked_servers]
+            source_links_list.append(sl)
+    except Exception as e:
+        print(f"Error fetching source_links: {e}")
+    
     payload = {
         'server_stats': server_stats,
         'all_users': all_users,
         'active_users': active_users,
         'servers': servers_list,
-        'tickets': tickets
+        'tickets': tickets,
+        'source_links': source_links_list
     }
     serialize_dates(payload)
     
@@ -1344,6 +1389,55 @@ def rescan_servers():
         return jsonify({'status': 'success', 'updated': updated_count})
     flash(f'تم تحديث {updated_count} سيرفرات بنجاح.', 'success')
     return redirect(url_for('admin_dashboard'))
+
+
+@app.route('/api/admin/sync_link/<link_id>', methods=['POST'])
+@login_required
+def sync_link(link_id):
+    if not getattr(request, 'is_admin', False):
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+
+    # Load the saved source link
+    try:
+        doc = db.collection('source_links').document(link_id).get()
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 400
+
+    if not doc.exists:
+        return jsonify({'status': 'error', 'message': 'الرابط غير موجود'}), 404
+
+    link = doc.to_dict()
+    url = link.get('url')
+    if not url:
+        return jsonify({'status': 'error', 'message': 'لا يوجد رابط محفوظ'}), 400
+
+    total_plan_seconds = link.get('total_plan_seconds', 0) or 0
+    total_real_seconds = link.get('total_real_seconds', 0) or 0
+
+    # Re-fetch the subscription content from the saved URL
+    try:
+        resp = requests.get(url, timeout=10, headers={'User-Agent': 'v2rayNG'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'فشل جلب الرابط: {e}'}), 400
+
+    if resp.status_code != 200:
+        return jsonify({'status': 'error', 'message': f'فشل جلب الرابط، الكود: {resp.status_code}'}), 400
+
+    pricing_rules = []
+    with pricing_rules_cache_lock:
+        for r_id, r_dict in pricing_rules_cache.items():
+            r = r_dict.copy()
+            r['tags'] = set(r.get('tags', []))
+            pricing_rules.append(r)
+
+    plan_days = total_plan_seconds // (24 * 3600)
+
+    found, added = _import_vless_servers(
+        resp.text, total_plan_seconds, total_real_seconds,
+        plan_days, 0, '', pricing_rules, link_id, dedup=True
+    )
+
+    return jsonify({'status': 'success', 'found': found, 'added': added})
 
 
 @app.route('/api/admin/debts_sync')

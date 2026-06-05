@@ -1884,6 +1884,48 @@
     // Also fetch every 10 seconds just in case
     setInterval(fetchPricingRules, 10000);
 
+    // Track which source-link cards are expanded so the 5s poll doesn't collapse them
+    const expandedLinks = new Set();
+
+    function toggleSourceLink(id) {
+        const panel = document.getElementById('source-link-servers-' + id);
+        if (!panel) return;
+        const isOpen = expandedLinks.has(id);
+        if (isOpen) {
+            expandedLinks.delete(id);
+            panel.style.display = 'none';
+        } else {
+            expandedLinks.add(id);
+            panel.style.display = 'grid';
+        }
+        const arrow = document.getElementById('source-link-arrow-' + id);
+        if (arrow) arrow.style.transform = expandedLinks.has(id) ? 'rotate(90deg)' : 'rotate(0deg)';
+    }
+
+    async function syncSourceLink(id, btn) {
+        const original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '⏳';
+        try {
+            const resp = await fetch('/api/admin/sync_link/' + id, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await resp.json();
+            if (resp.ok && data.status === 'success') {
+                showToast('success', 'Sync', `تم فحص ${data.found} سيرفر، وإضافة ${data.added} سيرفر جديد ✅`);
+                fetchDashboardSync();
+            } else {
+                showToast('error', 'Sync', data.message || 'حدث خطأ أثناء المزامنة');
+            }
+        } catch(e) {
+            showToast('error', 'Sync', e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = original;
+        }
+    }
+
     async function fetchDashboardSync() {
         try {
             const resp = await fetch('/api/admin/dashboard_sync');
@@ -2019,8 +2061,7 @@
                             sourceLinkHtml = `
                             <div style="margin-top: 5px; display: flex; align-items: center; gap: 5px;">
                                 <span style="font-size: 0.7rem; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; color: #aaa; border: 1px solid rgba(255,255,255,0.1);">🔗 ${shortUrl}</span>
-                                <button type="button" onclick="document.getElementById('form-sync-${s.source_link_id}').submit();" style="background: none; border: none; cursor: pointer; color: var(--primary);" title="Sync Link">🔄</button>
-                                <form id="form-sync-${s.source_link_id}" method="POST" action="/api/admin/sync_link/${s.source_link_id}" style="display:none;"></form>
+                                <button type="button" onclick="syncSourceLink('${s.source_link_id}', this)" style="background: none; border: none; cursor: pointer; color: var(--primary);" title="Sync Link">🔄</button>
                             </div>`;
                         }
                     }
@@ -2062,6 +2103,52 @@
                 });
                 if(data.servers.length === 0) html = '<tr><td colspan="5" style="text-align: center; color: #aaa;">No servers found.</td></tr>';
                 serversTbody.innerHTML = html;
+            }
+
+            // 4b. Update Provider Subscriptions (Source Links) panel
+            const sourceLinksContainer = document.getElementById('saved-source-links');
+            if (sourceLinksContainer && data.source_links) {
+                if (data.source_links.length === 0) {
+                    sourceLinksContainer.innerHTML = '<p style="color:#aaa; font-style:italic; text-align:center; padding:15px;">لا توجد روابط مصدر محفوظة بعد. قم باستيراد سيرفرات من رابط ليظهر هنا.</p>';
+                } else {
+                    let slHtml = '';
+                    data.source_links.forEach(sl => {
+                        const isOpen = expandedLinks.has(sl.id);
+                        const createdStr = sl.created_at ? new Date(sl.created_at).toLocaleString() : '';
+                        let serversHtml = '';
+                        (sl.servers || []).forEach(srv => {
+                            const cc = srv.country_code || '';
+                            serversHtml += `
+                                <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; background:rgba(255,255,255,0.03); border-radius:6px; border:1px solid rgba(255,255,255,0.06);">
+                                    ${cc ? `<img src="https://flagcdn.com/24x18/${cc}.png" alt="flag" style="border-radius:2px;">` : '<span>🌐</span>'}
+                                    <span style="color:#fff; font-size:0.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${srv.name || 'Unnamed'}</span>
+                                </div>`;
+                        });
+                        if ((sl.servers || []).length === 0) {
+                            serversHtml = '<span style="color:#aaa; font-style:italic; font-size:0.85rem;">لا توجد سيرفرات مرتبطة بهذا الرابط حالياً.</span>';
+                        }
+                        slHtml += `
+                        <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; overflow:hidden;">
+                            <div onclick="toggleSourceLink('${sl.id}')" style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 15px; cursor:pointer;">
+                                <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                                    <span id="source-link-arrow-${sl.id}" style="transition:transform 0.2s; transform:rotate(${isOpen ? 90 : 0}deg); color:var(--primary); flex-shrink:0;">▶</span>
+                                    <div style="min-width:0;">
+                                        <div style="color:#fff; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60vw;" title="${sl.url}">🔗 ${sl.url}</div>
+                                        <div style="color:#aaa; font-size:0.75rem; margin-top:3px;">📅 ${createdStr}</div>
+                                    </div>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+                                    <span style="background:rgba(255,255,255,0.08); color:var(--primary); border:1px solid rgba(255,255,255,0.15); padding:3px 10px; border-radius:20px; font-size:0.75rem; white-space:nowrap;">${sl.server_count} سيرفر</span>
+                                    <button type="button" onclick="event.stopPropagation(); syncSourceLink('${sl.id}', this)" class="btn btn-primary btn-small" style="padding:5px 12px; font-size:0.8rem; white-space:nowrap;">🔄 Sync</button>
+                                </div>
+                            </div>
+                            <div id="source-link-servers-${sl.id}" style="display:${isOpen ? 'grid' : 'none'}; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:8px; padding:0 15px 15px 15px;">
+                                ${serversHtml}
+                            </div>
+                        </div>`;
+                    });
+                    sourceLinksContainer.innerHTML = slHtml;
+                }
             }
 
             // 5. Update Tickets Table
