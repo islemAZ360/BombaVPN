@@ -222,29 +222,44 @@
         }
     }
     
+    // Smart duration: show the largest single clean unit (e.g. 30 days -> 1 Month,
+    // 90 days -> 3 Months, 360 days -> 1 Year) instead of "0 Months 29 Days".
+    const DURATION_LABELS = {
+        year:   { one: '{{ _("Year") }}',   many: '{{ _("Years") }}' },
+        month:  { one: '{{ _("Month") }}',  many: '{{ _("Months") }}' },
+        day:    { one: '{{ _("Day") }}',    many: '{{ _("Days") }}' },
+        hour:   { one: '{{ _("Hour") }}',   many: '{{ _("Hours") }}' },
+        minute: { one: '{{ _("Minute") }}', many: '{{ _("Minutes") }}' },
+        second: { one: '{{ _("Second") }}', many: '{{ _("Seconds") }}' },
+    };
+    function formatPlanDuration(totalSecs) {
+        totalSecs = parseInt(totalSecs) || 0;
+        if (totalSecs <= 0) return '—';
+        const DAY = 86400, MONTH = 30 * DAY, YEAR = 360 * DAY;
+        let n, unit;
+        if (totalSecs % YEAR === 0)       { n = totalSecs / YEAR;  unit = 'year'; }
+        else if (totalSecs % MONTH === 0) { n = totalSecs / MONTH; unit = 'month'; }
+        else if (totalSecs % DAY === 0)   { n = totalSecs / DAY;   unit = 'day'; }
+        else if (totalSecs % 3600 === 0)  { n = totalSecs / 3600;  unit = 'hour'; }
+        else if (totalSecs % 60 === 0)    { n = totalSecs / 60;    unit = 'minute'; }
+        else                              { n = totalSecs;         unit = 'second'; }
+        return n + ' ' + (n === 1 ? DURATION_LABELS[unit].one : DURATION_LABELS[unit].many);
+    }
+
     // Modal Logic
     const paymentModal = document.getElementById('payment-modal');
-    
+
     function openPaymentModal(cardElement) {
         const id = cardElement.getAttribute('data-id');
         const name = cardElement.getAttribute('data-name');
         const price = cardElement.getAttribute('data-price');
-        const days = cardElement.getAttribute('data-days');
-        const hours = cardElement.getAttribute('data-hours');
-        const minutes = cardElement.getAttribute('data-minutes');
-        
+        const totalSecs = cardElement.getAttribute('data-total-seconds');
+
         document.getElementById('selected_server_id').value = id;
         document.getElementById('modal-plan-name').textContent = name;
         document.getElementById('modal-plan-price').textContent = `${price} ₽`;
-        
-        let duration = '';
-        if (days && days > 0) duration += `${days} {{ _("Days") }} `;
-        if (hours && hours > 0) duration += `${hours} {{ _("Hours") }} `;
-        if (minutes && minutes > 0) duration += `${minutes} {{ _("Minutes") }}`;
-        if (!duration) duration = `0 {{ _("Days") }}`;
-        
-        document.getElementById('modal-plan-duration').textContent = duration;
-        
+        document.getElementById('modal-plan-duration').textContent = formatPlanDuration(totalSecs);
+
         paymentModal.style.display = 'flex';
     }
     
@@ -350,12 +365,8 @@
                     ? `<img src="https://flagcdn.com/24x18/${server.country_code}.png" alt="${server.country_code}" style="border-radius: 2px;">` 
                     : '';
                 
-                let duration = '';
-                if (server.plan_days) duration += server.plan_days + ' {{ _("Days") }} ';
-                if (server.plan_hours) duration += server.plan_hours + ' {{ _("Hours") }} ';
-                if (server.plan_minutes) duration += server.plan_minutes + ' {{ _("Minutes") }}';
-                if (!duration) duration = '0 {{ _("Days") }}';
-                
+                const duration = formatPlanDuration(totalSecs);
+
                 card.innerHTML = `
                     <div class="plan-name" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                         ${flagImg} ${server.name}
@@ -376,6 +387,12 @@
     setInterval(refreshServers, 30000);
 
     window.addEventListener("DOMContentLoaded", () => {
+        // Format the durations of the initial (server-rendered) cards
+        document.querySelectorAll('#plans-container .plan-card').forEach(card => {
+            const durEl = card.querySelector('.plan-duration');
+            if (durEl) durEl.textContent = formatPlanDuration(card.getAttribute('data-total-seconds'));
+        });
+
         const urlParams = new URLSearchParams(window.location.search);
         const renewServerId = urlParams.get('renew_server_id');
         const renewSubId = urlParams.get('renew_sub_id');
