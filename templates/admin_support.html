@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
+    <h2>{{ _('Support') }}</h2>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-small">🔙 Back to Dashboard</a>
+</div>
+
+<div class="card" style="padding: 0; display: flex; height: 75vh; overflow: hidden; border-radius: 16px; background: var(--card-bg, #1a1a2e);">
+    <!-- Conversations List (Left Pane) -->
+    <div style="width: 350px; border-right: 1px solid var(--border-color, #333); display: flex; flex-direction: column; background: rgba(0,0,0,0.2);">
+        <div style="padding: 1rem; border-bottom: 1px solid var(--border-color, #333);">
+            <h3 style="margin: 0; font-size: 1.1rem; color: #fff;">Conversations</h3>
+        </div>
+        <div style="flex: 1; overflow-y: auto;">
+            {% for conv in conversations %}
+            <div class="conv-item" onclick="openChat('{{ conv.user_id }}', '{{ conv.email }}')" style="padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: background 0.2s;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px;">
+                    <strong style="color: #fff; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;">{{ conv.email }}</strong>
+                    <small style="color: #aaa; font-size: 0.75rem;">{{ conv.last_msg.strftime('%Y-%m-%d') if conv.last_msg else '' }}</small>
+                </div>
+                <div style="color: #888; font-size: 0.85rem;">Click to view chat...</div>
+            </div>
+            {% else %}
+            <div style="padding: 2rem; text-align: center; color: #888; font-style: italic;">No conversations found.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Chat View (Right Pane) -->
+    <div id="chat-view" style="flex: 1; display: flex; flex-direction: column; background: transparent; position: relative;">
+        <!-- Empty State -->
+        <div id="chat-empty" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #888; background: var(--card-bg, #1a1a2e); z-index: 10;">
+            Select a conversation to start chatting
+        </div>
+
+        <!-- Active Chat State -->
+        <div style="padding: 1rem; border-bottom: 1px solid var(--border-color, #333); display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02);">
+            <h3 style="margin: 0; font-size: 1.1rem; color: #fff; display: flex; align-items: center; gap: 10px;">
+                <span id="active-user-email"></span>
+            </h3>
+            <button class="btn btn-transparent-danger btn-small" onclick="deleteConversation()" id="delete-chat-btn" style="display:none; padding: 5px 10px;">🗑️ Delete Chat</button>
+        </div>
+        
+        <div id="chat-history" style="flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 15px;">
+            <!-- Bubbles injected here -->
+        </div>
+
+        <form id="message-form" method="POST" onsubmit="submitChatMessage(event)" style="padding: 1rem; border-top: 1px solid var(--border-color, #333); background: rgba(0,0,0,0.1);">
+            <input type="hidden" id="active-user-id" value="">
+            <div style="display: flex; gap: 10px; align-items: flex-end;">
+                <textarea id="chat-input" name="message" class="form-control" rows="2" placeholder="Type your message..." style="flex: 1; resize: none; border-radius: 8px; padding: 10px; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1);" required onkeydown="if(event.keyCode===13 && !event.shiftKey){event.preventDefault();submitChatMessage(event);}"></textarea>
+                <button type="submit" id="chat-submit-btn" class="btn btn-primary" style="padding: 0 1.5rem; height: 44px; border-radius: 8px;">
+                    Send
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.conv-item:hover { background: rgba(0, 255, 204, 0.05) !important; }
+.conv-active { background: rgba(0, 255, 204, 0.1) !important; border-left: 3px solid var(--primary); }
+</style>
+
+<script>
+    async function openChat(userId, email) {
+        // Update UI states
+        document.getElementById('chat-empty').style.display = 'none';
+        document.getElementById('active-user-email').textContent = email;
+        document.getElementById('active-user-id').value = userId;
+        document.getElementById('delete-chat-btn').style.display = 'block';
+        
+        // Highlight selected conv
+        document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('conv-active'));
+        event.currentTarget.classList.add('conv-active');
+        
+        const chatContainer = document.getElementById('chat-history');
+        chatContainer.innerHTML = '<div style="text-align:center; color:#888; font-size:0.9rem; margin-top:20px;">Loading chat history...</div>';
+        
+        try {
+            const resp = await fetch(`/admin/api/chat/${userId}`);
+            const data = await resp.json();
+            
+            chatContainer.innerHTML = '';
+            if (data.chat && data.chat.length > 0) {
+                data.chat.forEach(msg => appendChatBubble(msg));
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            } else {
+                chatContainer.innerHTML = '<div style="text-align:center; color:#888; font-size:0.9rem; margin-top:20px;">No messages yet.</div>';
+            }
+        } catch(e) {
+            chatContainer.innerHTML = '<div style="text-align:center; color:red; font-size:0.9rem; margin-top:20px;">Failed to load chat history.</div>';
+        }
+    }
+    
+    function appendChatBubble(msg) {
+        const chatContainer = document.getElementById('chat-history');
+        const bubble = document.createElement('div');
+        const isAdmin = msg.sender === 'admin';
+        
+        bubble.style.maxWidth = '75%';
+        bubble.style.padding = '10px 14px';
+        bubble.style.borderRadius = '12px';
+        bubble.style.position = 'relative';
+        
+        if (isAdmin) {
+            bubble.style.alignSelf = 'flex-end';
+            bubble.style.background = 'rgba(0, 255, 204, 0.1)';
+            bubble.style.border = '1px solid rgba(0, 255, 204, 0.2)';
+            bubble.style.borderBottomRightRadius = '4px';
+            bubble.style.color = '#fff';
+        } else {
+            bubble.style.alignSelf = 'flex-start';
+            bubble.style.background = 'rgba(255, 255, 255, 0.05)';
+            bubble.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+            bubble.style.borderBottomLeftRadius = '4px';
+            bubble.style.color = '#ccc';
+        }
+        
+        bubble.innerHTML = `
+            <div style="font-size: 0.95rem; margin-bottom: 4px; word-wrap: break-word;">${msg.text.replace(/\n/g, '<br>')}</div>
+            <div style="font-size: 0.7rem; color: ${isAdmin ? 'rgba(0,255,204,0.6)' : 'rgba(255,255,255,0.4)'}; text-align: right;">${msg.timestamp}</div>
+        `;
+        
+        if (chatContainer.querySelector('div[style*="No messages"]')) {
+            chatContainer.innerHTML = '';
+        }
+        chatContainer.appendChild(bubble);
+    }
+    
+    async function submitChatMessage(e) {
+        e.preventDefault();
+        const input = document.getElementById('chat-input');
+        const btn = document.getElementById('chat-submit-btn');
+        const userId = document.getElementById('active-user-id').value;
+        const text = input.value.trim();
+        
+        if (!text || !userId) return;
+        
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        
+        try {
+            const formData = new FormData();
+            formData.append('message', text);
+            
+            const resp = await fetch(`/admin/send_message/${userId}`, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            });
+            
+            const result = await resp.json();
+            if (resp.ok && result.status === 'success') {
+                input.value = '';
+                appendChatBubble(result.chat_message);
+                const chatContainer = document.getElementById('chat-history');
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            } else {
+                alert(result.error || 'Failed to send message');
+            }
+        } catch(err) {
+            alert('Network error occurred');
+        } finally {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            input.focus();
+        }
+    }
+    
+    async function deleteConversation() {
+        const userId = document.getElementById('active-user-id').value;
+        if (!userId) return;
+        
+        if (!confirm('Are you sure you want to delete the entire chat history with this user?')) return;
+        
+        try {
+            const resp = await fetch(`/admin/api/delete_chat/${userId}`, { method: 'POST' });
+            if (resp.ok) {
+                document.getElementById('chat-history').innerHTML = '<div style="text-align:center; color:#888; font-size:0.9rem; margin-top:20px;">Chat deleted.</div>';
+                // optionally reload page to refresh list
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                alert('Failed to delete chat.');
+            }
+        } catch(e) {
+            alert('Network error occurred.');
+        }
+    }
+</script>
+{% endblock %}

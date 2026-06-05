@@ -1260,7 +1260,8 @@ def send_admin_message(user_id):
 @app.route('/admin/api/chat/<user_id>', methods=['GET'])
 @login_required
 def get_user_chat(user_id):
-    if not request.is_admin: return jsonify({"error": "Unauthorized"}), 403
+    if not getattr(request, 'is_admin', False) and request.user.get('uid') != user_id:
+        return jsonify({"error": "Unauthorized"}), 403
     
     chat = []
     
@@ -1320,6 +1321,66 @@ def read_admin_message(msg_id):
     if doc.exists and doc.to_dict().get('user_id') == user_id:
         db.collection('admin_messages').document(msg_id).update({'is_read': True})
     return jsonify({'success': True})
+
+@app.route('/admin/api/delete_chat/<user_id>', methods=['POST'])
+@login_required
+def delete_chat(user_id):
+    if not getattr(request, 'is_admin', False): return jsonify({"error": "Unauthorized"}), 403
+    try:
+        # Delete user -> admin messages
+        msgs = db.collection('messages').where('user_id', '==', user_id).stream()
+        for msg in msgs:
+            db.collection('messages').document(msg.id).delete()
+            
+        # Delete admin -> user messages
+        admin_msgs = db.collection('admin_messages').where('user_id', '==', user_id).stream()
+        for am in admin_msgs:
+            db.collection('admin_messages').document(am.id).delete()
+            
+        return jsonify({'status': 'success'}), 200
+    except Exception as e:
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+@app.route('/admin/support', methods=['GET'])
+@login_required
+def admin_support():
+    if not getattr(request, 'is_admin', False): return "Unauthorized", 403
+    
+    # Fetch all unique users who have a chat history
+    conversations = {}
+    
+    try:
+        msgs = db.collection('messages').stream()
+        for m in msgs:
+            d = m.to_dict()
+            uid = d.get('user_id')
+            if uid:
+                if uid not in conversations:
+                    conversations[uid] = {'email': d.get('email', 'Unknown'), 'last_msg': d.get('created_at', datetime.min), 'user_id': uid}
+                elif d.get('created_at') and d['created_at'] > conversations[uid]['last_msg']:
+                    conversations[uid]['last_msg'] = d['created_at']
+                    
+        admin_msgs = db.collection('admin_messages').stream()
+        for am in admin_msgs:
+            d = am.to_dict()
+            uid = d.get('user_id')
+            if uid:
+                if uid not in conversations:
+                    # Fetch email from users collection
+                    try:
+                        u_doc = db.collection('users').document(uid).get()
+                        email = u_doc.to_dict().get('email', 'Unknown') if u_doc.exists else 'Unknown'
+                    except:
+                        email = 'Unknown'
+                    conversations[uid] = {'email': email, 'last_msg': d.get('created_at', datetime.min), 'user_id': uid}
+                elif d.get('created_at') and d['created_at'] > conversations[uid]['last_msg']:
+                    conversations[uid]['last_msg'] = d['created_at']
+                    
+    except Exception as e:
+        print("Error fetching conversations:", e)
+        
+    sorted_convs = sorted(list(conversations.values()), key=lambda x: x['last_msg'], reverse=True)
+    return render_template('admin_support.html', conversations=sorted_convs, now=datetime.now(timezone.utc).replace(tzinfo=None))
 
 @app.route('/admin/delete_message/<message_id>', methods=['POST'])
 @login_required
@@ -1454,19 +1515,27 @@ def user_dashboard():
 @app.route('/api/message', methods=['POST'])
 @login_required
 def send_message():
-    text = request.form.get('message')
-    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    text = request.json.get('message') if request.is_json else request.form.get('message')
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json
     
     if text:
+        dt_now = datetime.now(timezone.utc).replace(tzinfo=None)
         db.collection('messages').add({
             'user_id': request.user['uid'],
             'email': request.user['email'],
             'message': text,
-            'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
+            'created_at': dt_now,
             'admin_reply': None
         })
         if is_ajax:
-            return jsonify({'status': 'success', 'message': TRANSLATIONS.get(request.cookies.get('lang', 'ar'), {}).get('Message sent successfully', 'Message sent successfully'), 'action': 'clear'}), 200
+            return jsonify({
+                'status': 'success', 
+                'chat_message': {
+                    'sender': 'user',
+                    'text': text,
+                    'timestamp': dt_now.strftime('%Y-%m-%d %H:%M')
+                }
+            }), 200
         flash('تم إرسال رسالتك بنجاح', 'success')
     return redirect(url_for('user_dashboard'))
 
