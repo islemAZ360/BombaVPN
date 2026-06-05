@@ -12,11 +12,22 @@ import requests
 import threading
 import time
 from translations import TRANSLATIONS
+import urllib.parse
+import socket
+import ipaddress
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 from utils import extract_ip_from_json, modify_json_address, extract_name_from_json
 from vless_parser import extract_vless_from_text
 
 app = Flask(__name__)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=[],
+    storage_uri="memory://"
+)
 import secrets
 # Security fix: Use a strong random key by default if env variable is missing
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
@@ -142,6 +153,21 @@ def start_background_thread():
             f.write(f"[{datetime.datetime.now()}] REQUEST HIT: {request.method} {request.url}\n")
     except:
         pass
+        
+    # CSRF Protection: Validate Origin/Referer for POST requests
+    if request.method == 'POST' and request.endpoint not in ['ping', 'debug_check', 'session_login']:
+        origin = request.headers.get('Origin')
+        referer = request.headers.get('Referer')
+        host_url = request.host_url.rstrip('/')
+        
+        valid = False
+        if origin and origin == host_url:
+            valid = True
+        elif referer and referer.startswith(host_url):
+            valid = True
+            
+        if not valid:
+            return "CSRF Token Validation Failed", 403
 
     global thread_started
     if not thread_started:
@@ -211,6 +237,7 @@ def debug_check():
     return f"Server code v2 running OK at {datetime.now()}", 200
 
 @app.route('/api/sessionLogin', methods=['POST'])
+@limiter.limit("5 per minute")
 def session_login():
     id_token = request.json.get('idToken')
     expires_in = timedelta(days=5)
@@ -280,6 +307,7 @@ def api_available_servers():
 
 @app.route('/pay', methods=['GET', 'POST'])
 @login_required
+@limiter.limit("10 per minute")
 def pay():
     user_id = request.user['uid']
     user_doc = db.collection('users').document(user_id).get()
@@ -318,7 +346,7 @@ def pay():
             return redirect(request.url)
             
         if file and allowed_file(file.filename):
-            ext = file.filename.rsplit('.', 1)[1].lower()
+            ext = secure_filename(file.filename).rsplit('.', 1)[1].lower() if '.' in file.filename else 'png'
             filename = f"receipt_{user_id}_{uuid.uuid4().hex[:8]}.{ext}"
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             
@@ -765,6 +793,25 @@ def add_servers():
     flash(f'تمت إضافة {added} سيرفرات بنجاح!', 'success')
     return redirect(url_for('admin_dashboard'))
 
+def is_safe_url(target_url):
+    """Check if a URL is safe to fetch (prevent SSRF)."""
+    try:
+        parsed = urllib.parse.urlparse(target_url)
+        if parsed.scheme not in ('http', 'https'):
+            return False
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+            
+        ip_addr = socket.gethostbyname(hostname)
+        ip = ipaddress.ip_address(ip_addr)
+        
+        # Block private, loopback, and reserved IPs
+        if ip.is_private or ip.is_loopback or ip.is_reserved or ip.is_multicast:
+            return False
+        return True
+    except Exception:
+        return False
 
 def _import_vless_servers(subscription_text, total_plan_seconds, total_real_seconds,
                           plan_days, plan_minutes, price_base, pricing_rules,
@@ -956,6 +1003,10 @@ def import_servers():
                     'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
                 })
                 source_link_id = doc_ref[1].id
+
+            if not is_safe_url(subscription_text):
+                flash('رابط الاستيراد المرفق غير آمن أو يستهدف عناوين محلية محظورة.', 'error')
+                return redirect(url_for('admin_dashboard'))
 
             resp = requests.get(subscription_text, timeout=10, headers={'User-Agent': 'v2rayNG'})
             if resp.status_code == 200:
@@ -1433,6 +1484,9 @@ def sync_link(link_id):
 
     total_plan_seconds = link.get('total_plan_seconds', 0) or 0
     total_real_seconds = link.get('total_real_seconds', 0) or 0
+
+    if not is_safe_url(url):
+        return jsonify({'status': 'error', 'message': 'الرابط غير آمن أو يستهدف شبكة محلية.'}), 400
 
     # Re-fetch the subscription content from the saved URL
     try:
