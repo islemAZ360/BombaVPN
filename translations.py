@@ -144,7 +144,13 @@ TRANSLATIONS = {
         'Feature3Title': 'Support for All Devices',
         'Feature3Desc': 'Our servers work efficiently on all devices: Android, iPhone, and Windows via the V2Ray app.',
         'UnblockedAppsTitle': 'Enjoy freedom of access to all sites and apps',
-        'ServersWorldwideTitle': 'Fast servers all over the world'
+        'ServersWorldwideTitle': 'Fast servers all over the world',
+        'ServersExplanation': 'Here is the list of available servers. All our servers have blazing fast speeds, work flawlessly on WiFi and Mobile Data (4G/5G), and unblock all restricted sites and apps. Distance to the server country does not matter much, as they all provide excellent performance. Here is a quick guide to the server tags:',
+        'TagYT_Desc': 'Unblocks everything (ChatGPT, Claude, Facebook, etc.) EXCEPT Gemini. Specifically runs YouTube without annoying ads.',
+        'TagGemini_Desc': 'Unblocks all restricted sites and apps, AND successfully unblocks Gemini (which is notoriously difficult for most other VPNs).',
+        'TagLTE_Desc': 'Unblocks everything (except Gemini). Designed to work reliably even during severe internet disruptions or drone interference (e.g. in Russia). Highly recommended when using a SIM card / mobile data.',
+        'TagRU_Desc': 'Specifically optimized to work inside Russia. Successfully bypasses "white list" blocks and unblocks all restricted sites efficiently.',
+        'TagTorrent_Desc': 'Unblocks everything (except Gemini), and allows high-speed, secure Torrent downloading.'
     },
     'ar': {
         'Login': 'تسجيل الدخول',
@@ -294,7 +300,13 @@ TRANSLATIONS = {
         'Feature3Title': 'دعم لكل الأجهزة',
         'Feature3Desc': 'تعمل السيرفرات لدينا بكفاءة على جميع الأجهزة: أندرويد، آيفون، وويندوز عبر تطبيق V2Ray.',
         'UnblockedAppsTitle': 'استمتع بحرية الوصول إلى جميع المواقع والتطبيقات',
-        'ServersWorldwideTitle': 'سيرفرات سريعة في مختلف أنحاء العالم'
+        'ServersWorldwideTitle': 'سيرفرات سريعة في مختلف أنحاء العالم',
+        'ServersExplanation': 'هنا ستجد قائمة بالسيرفرات المتاحة لك. جميع سيرفراتنا بلا استثناء تتميز بسرعات جبارة، وتعمل بكفاءة عالية على شبكات الوايفاي (WiFi) وبيانات الهاتف (4G/5G). كما أنها تفتح جميع المواقع والبرامج المحجوبة. لا يهم اختيار دولة قريبة منك، فجميعها تقدم أداءً ممتازاً. إليك دليلاً مبسطاً لمعاني الأوسمة (Tags) المرفقة ببعض السيرفرات:',
+        'TagYT_Desc': 'يفتح كل شيء (ChatGPT، كلود، فيسبوك...) ما عدا Gemini. الميزة الأساسية أنه يقوم بتشغيل اليوتيوب بدون أي إعلانات مزعجة.',
+        'TagGemini_Desc': 'يفتح جميع البرامج والمواقع المحجوبة بالإضافة إلى فك حظر Gemini، والذي يُعتبر فك حظره أمراً صعباً جداً على أغلب الـ VPNs الأخرى.',
+        'TagLTE_Desc': 'يفتح كل شيء (ما عدا Gemini). مصمم ليعمل بكفاءة حتى في أسوأ ظروف انقطاع الإنترنت أو وجود تشويش من طائرات الدرون (مثلما يحدث في روسيا). يُنصح به بشدة عند استخدام بطاقة الـ SIM (بيانات الهاتف).',
+        'TagRU_Desc': 'مخصص بشكل أساسي للعمل داخل روسيا. قادر على تخطي حجب "القائمة البيضاء" بنجاح، ويفتح كل المواقع والبرامج المحجوبة بكفاءة.',
+        'TagTorrent_Desc': 'يفتح كل شيء (ما عدا Gemini)، ويسمح أيضاً بتحميل التورنت بسرعة وأمان.'
     },
     'ru': {
         'Login': 'Вход',
@@ -444,6 +456,12 @@ TRANSLATIONS = {
         'Feature3Title': 'Поддержка всех устройств',
         'Feature3Desc': 'Наши серверы эффективно работают на всех устройствах: Android, iPhone и Windows через приложение V2Ray.',
         'UnblockedAppsTitle': 'Наслаждайтесь свободным доступом ко всем сайтам и приложениям',
-        'ServersWorldwideTitle': 'Быстрые серверы по всему миру'
+        'ServersWorldwideTitle': 'Быстрые серверы по всему миру',
+        'ServersExplanation': 'Здесь представлен список доступных серверов. Все наши серверы обладают невероятной скоростью, отлично работают на WiFi и мобильном интернете (4G/5G), и разблокируют все заблокированные сайты и приложения. Расстояние до страны сервера не имеет большого значения, так как все они обеспечивают отличную производительность. Вот краткое руководство по тегам серверов:',
+        'TagYT_Desc': 'Разблокирует все (ChatGPT, Claude, Facebook и т.д.) КРОМЕ Gemini. Специально работает с YouTube без назойливой рекламы.',
+        'TagGemini_Desc': 'Разблокирует все заблокированные сайты и приложения, А ТАКЖЕ успешно разблокирует Gemini (что очень сложно для большинства других VPN).',
+        'TagLTE_Desc': 'Разблокирует все (кроме Gemini). Разработан для надежной работы даже во время серьезных сбоев в работе интернета или помех от дронов (например, в России). Настоятельно рекомендуется при использовании SIM-карты / мобильного интернета.',
+        'TagRU_Desc': 'Специально оптимизирован для работы в России. Успешно обходит блокировки "белого списка" и эффективно разблокирует все заблокированные сайты.',
+        'TagTorrent_Desc': 'Разблокирует все (кроме Gemini) и позволяет быстро и безопасно скачивать торренты.'
     }
 }

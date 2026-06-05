@@ -8,6 +8,33 @@
 <div class="card card-flush" style="max-width: 800px; margin: 0 auto;">
     <h3 style="text-align: center; margin-bottom: 1.5rem;">{{ _('SelectPlan') }}</h3>
     
+    <!-- Tags Explanation -->
+    <div class="tags-explanation-box" style="margin-bottom: 1.5rem; background: var(--bg-card); border: 1px solid var(--glass-border); border-radius: 16px; padding: 1.25rem; color: var(--text-primary); font-size: 0.9rem; line-height: 1.6; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+        <p style="margin-top: 0; margin-bottom: 1rem; font-weight: 500;">{{ _('ServersExplanation') }}</p>
+        <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px;">
+            <li style="display: flex; align-items: flex-start; gap: 10px;">
+                <span class="filter-chip" style="padding: 4px 10px; pointer-events:none; flex-shrink: 0; font-size: 0.75rem; background: rgba(0, 255, 204, 0.05); color: var(--primary); border-color: rgba(0, 255, 204, 0.2);">▶️ YouTube</span> 
+                <span style="color: var(--text-secondary); font-size: 0.85rem;">{{ _('TagYT_Desc') }}</span>
+            </li>
+            <li style="display: flex; align-items: flex-start; gap: 10px;">
+                <span class="filter-chip" style="padding: 4px 10px; pointer-events:none; flex-shrink: 0; font-size: 0.75rem; background: rgba(59, 130, 246, 0.05); color: var(--info); border-color: rgba(59, 130, 246, 0.2);">🌀 Gemini</span> 
+                <span style="color: var(--text-secondary); font-size: 0.85rem;">{{ _('TagGemini_Desc') }}</span>
+            </li>
+            <li style="display: flex; align-items: flex-start; gap: 10px;">
+                <span class="filter-chip" style="padding: 4px 10px; pointer-events:none; flex-shrink: 0; font-size: 0.75rem; background: rgba(245, 158, 11, 0.05); color: var(--warning); border-color: rgba(245, 158, 11, 0.2);">📶 LTE</span> 
+                <span style="color: var(--text-secondary); font-size: 0.85rem;">{{ _('TagLTE_Desc') }}</span>
+            </li>
+            <li style="display: flex; align-items: flex-start; gap: 10px;">
+                <span class="filter-chip" style="padding: 4px 10px; pointer-events:none; flex-shrink: 0; font-size: 0.75rem; background: rgba(239, 68, 68, 0.05); color: var(--danger); border-color: rgba(239, 68, 68, 0.2);">🇷🇺 Russia</span> 
+                <span style="color: var(--text-secondary); font-size: 0.85rem;">{{ _('TagRU_Desc') }}</span>
+            </li>
+            <li style="display: flex; align-items: flex-start; gap: 10px;">
+                <span class="filter-chip" style="padding: 4px 10px; pointer-events:none; flex-shrink: 0; font-size: 0.75rem; background: rgba(16, 185, 129, 0.05); color: var(--success); border-color: rgba(16, 185, 129, 0.2);">🔗 Torrent</span> 
+                <span style="color: var(--text-secondary); font-size: 0.85rem;">{{ _('TagTorrent_Desc') }}</span>
+            </li>
+        </ul>
+    </div>
+    
     <!-- Filter Bar -->
     <div id="filter-bar" style="margin-bottom: 1.5rem;">
         <!-- Duration Filter -->
