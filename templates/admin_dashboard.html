@@ -72,6 +72,38 @@
 </div>
 
 
+<div class="card" style="margin-bottom: 20px;">
+    <h3>{{ _('UploadJson') }}</h3>
+    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">{{ _('UploadJsonDesc') }}</p>
+    <form method="POST" action="{{ url_for('add_servers') }}" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div style="display: flex; gap: 1rem; align-items: flex-end;">
+            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                <input type="file" id="json_files_input" name="json_files" accept=".json" class="form-control" multiple required>
+            </div>
+            <div class="form-group" style="width: 120px; margin-bottom: 0;">
+                <input type="text" name="price" class="form-control" placeholder="{{ _('Price') }}" required>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 2rem; background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 200px;">
+                <label style="font-size: 0.85rem; color: var(--primary); font-weight: bold; margin-bottom: 12px; display: block;">{{ _('PlanDurationLabel') }}</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                    <input type="number" name="plan_days" class="form-control" placeholder="{{ _('Days') }}">
+                    <input type="number" name="plan_hours" class="form-control" placeholder="{{ _('Hours') }}">
+                    <input type="number" name="plan_minutes" class="form-control" placeholder="{{ _('Minutes') }}">
+                </div>
+            </div>
+            <div style="width: 2px; background: rgba(255,255,255,0.05); display: none;"></div>
+            <div style="flex: 1; min-width: 200px;">
+                <label style="font-size: 0.85rem; color: #ff003c; font-weight: bold; margin-bottom: 12px; display: block;">{{ _('RealDurationLabel') }}</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                    <input type="number" name="real_days" class="form-control" placeholder="{{ _('Days') }}">
+                    <input type="number" name="real_hours" class="form-control" placeholder="{{ _('Hours') }}">
+                    <input type="number" name="real_minutes" class="form-control" placeholder="{{ _('Minutes') }}">
+                </div>
+            </div>
+        </div>
 
         <button type="submit" class="btn btn-primary" style="width: fit-content; align-self: flex-end;">{{ _('AddServers') }}</button>
     </form>
