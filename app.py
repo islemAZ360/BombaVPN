@@ -1083,26 +1083,20 @@ def edit_server(server_id):
             if new_price is not None:
                 update_data['price'] = new_price
                 
-            new_total_plan_seconds = request.form.get('total_plan_seconds')
-            if new_total_plan_seconds is not None:
+            new_plan_minutes = request.form.get('plan_minutes_input')
+            if new_plan_minutes:
                 try:
-                    update_data['total_plan_seconds'] = int(new_total_plan_seconds)
+                    update_data['total_plan_seconds'] = int(new_plan_minutes) * 60
                 except ValueError:
                     pass
                     
-            new_expires_at = request.form.get('expires_at')
-            if new_expires_at is not None:
-                if new_expires_at.strip() == '':
-                    update_data['expires_at'] = None
-                else:
-                    try:
-                        if len(new_expires_at) == 16:
-                            parsed_date = datetime.strptime(new_expires_at, '%Y-%m-%dT%H:%M')
-                        else:
-                            parsed_date = datetime.strptime(new_expires_at[:19], '%Y-%m-%dT%H:%M:%S')
-                        update_data['expires_at'] = parsed_date
-                    except ValueError:
-                        pass
+            new_expires_minutes = request.form.get('expires_minutes_input')
+            if new_expires_minutes:
+                try:
+                    mins = int(new_expires_minutes)
+                    update_data['expires_at'] = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=mins)
+                except ValueError:
+                    pass
                 
             db.collection('servers').document(server_id).update(update_data)
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':

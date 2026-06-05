@@ -310,13 +310,14 @@
                     <div style="font-size: 0.8rem; color: #ccc;">
                         <div style="margin-bottom: 2px;">📅 Uploaded: <span style="color: #fff;">{{ s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else 'Unknown' }}</span></div>
                         <div style="margin-bottom: 4px; display:flex; align-items:center; gap:5px;">
-                            ⏳ Plan (Secs): 
-                            <input type="number" name="total_plan_seconds" value="{{ s.total_plan_seconds or (s.plan_days * 24 * 3600 if s.plan_days else 0) }}" class="form-control" style="width: 80px; padding: 0.1rem 0.3rem; font-size: 0.75rem;">
+                            ⏳ Plan (Mins): 
+                            <input type="number" name="plan_minutes_input" value="{{ ((s.total_plan_seconds or (s.plan_days * 24 * 3600 if s.plan_days else 0)) // 60) | int }}" class="form-control" style="width: 70px; padding: 0.1rem 0.3rem; font-size: 0.75rem;">
                             <span class="smart-duration" data-seconds="{{ s.total_plan_seconds or (s.plan_days * 24 * 3600 if s.plan_days else 0) }}" style="color: var(--primary); font-weight: bold; font-size:0.7rem;"></span>
                         </div>
-                        <div style="display:flex; align-items:center; gap:5px;">
+                        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:5px;">
                             ⏳ Expires: 
-                            <input type="datetime-local" name="expires_at" value="{{ s.expires_at.strftime('%Y-%m-%dT%H:%M') if s.expires_at else '' }}" class="form-control" style="width: 140px; padding: 0.1rem 0.3rem; font-size: 0.75rem;">
+                            <span class="live-countdown" data-expires="{{ s.expires_at.isoformat() if s.expires_at else '' }}" style="font-size: 0.75rem; color: #ffeb3b; font-weight: bold;">Calculating...</span>
+                            <input type="number" name="expires_minutes_input" placeholder="+ Mins" class="form-control" style="width: 70px; padding: 0.1rem 0.3rem; font-size: 0.75rem;" title="Set expiration in minutes from now">
                         </div>
                     </div>
                 </td>
@@ -2130,13 +2131,14 @@
                             <div style="font-size: 0.8rem; color: #ccc;">
                                 <div style="margin-bottom: 2px;">📅 Uploaded: <span style="color: #fff;">${createdStr}</span></div>
                                 <div style="margin-bottom: 4px; display:flex; align-items:center; gap:5px;">
-                                    ⏳ Plan (Secs):
-                                    <input type="number" name="total_plan_seconds" value="${planSecs}" class="form-control" style="width: 80px; padding: 0.1rem 0.3rem; font-size: 0.75rem;">
+                                    ⏳ Plan (Mins):
+                                    <input type="number" name="plan_minutes_input" value="${Math.floor(planSecs / 60)}" class="form-control" style="width: 70px; padding: 0.1rem 0.3rem; font-size: 0.75rem;">
                                     <span style="color: var(--primary); font-weight: bold; font-size:0.7rem;">${formatDurationSmart(planSecs)}</span>
                                 </div>
-                                <div style="display:flex; align-items:center; gap:5px;">
+                                <div style="display:flex; flex-wrap:wrap; align-items:center; gap:5px;">
                                     ⏳ Expires:
-                                    <input type="datetime-local" name="expires_at" value="${s.expires_at ? s.expires_at.substring(0,16) : ''}" class="form-control" style="width: 140px; padding: 0.1rem 0.3rem; font-size: 0.75rem;">
+                                    <span class="live-countdown" data-expires="${s.expires_at || ''}" style="font-size: 0.75rem; color: #ffeb3b; font-weight: bold;">Calculating...</span>
+                                    <input type="number" name="expires_minutes_input" placeholder="+ Mins" class="form-control" style="width: 70px; padding: 0.1rem 0.3rem; font-size: 0.75rem;" title="Set expiration in minutes from now">
                                     ${isExpired ? '<span style="font-size: 0.7rem; background: #F44336; color: #fff; padding: 2px 6px; border-radius: 4px;">Expired</span>' : ''}
                                 </div>
                             </div>
