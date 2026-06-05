@@ -1319,7 +1319,13 @@ def rescan_servers():
             if server_plan_secs is None:
                 server_plan_secs = (link_data.get('plan_days', 0) * 24 * 3600) + (link_data.get('plan_hours', 0) * 3600) + (link_data.get('plan_minutes', 0) * 60)
                 
-            if rule['tags'].issubset(new_tags_set) and rule_secs == server_plan_secs:
+            tags_match = False
+            if not rule['tags'] and not new_tags_set:
+                tags_match = True
+            elif rule['tags'] and rule['tags'].issubset(new_tags_set):
+                tags_match = True
+                
+            if tags_match and rule_secs == server_plan_secs:
                 matched_rules.append(rule)
                 
         if matched_rules:

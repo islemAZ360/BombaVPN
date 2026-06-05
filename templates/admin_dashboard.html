@@ -207,16 +207,12 @@
             <div id="tags-visual-container" class="form-control" style="min-height: 42px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; cursor: text; padding: 5px;">
                 <input type="text" id="tag-input-visual" placeholder="e.g. torrent" style="background: transparent; border: none; outline: none; color: white; min-width: 60px; flex-grow: 1;">
             </div>
-            <input type="hidden" name="tags" id="hidden-tags-input" required>
+            <input type="hidden" name="tags" id="hidden-tags-input">
         </div>
         <div style="flex: 1;">
             <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Duration</label>
             <div style="display:flex; gap: 5px;">
-                <input type="number" name="duration_months" class="form-control duration-input rule-input" placeholder="M" title="Months">
-                <input type="number" name="duration_days" class="form-control duration-input rule-input" placeholder="D" title="Days">
-                <input type="number" name="duration_hours" class="form-control duration-input rule-input" placeholder="H" title="Hours">
-                <input type="number" name="duration_minutes" class="form-control duration-input rule-input" placeholder="m" title="Minutes">
-                <input type="number" name="duration_seconds" class="form-control duration-input rule-input" placeholder="s" title="Seconds">
+                <input type="number" name="duration_days" class="form-control duration-input rule-input" placeholder="Total Days" title="Days" required>
             </div>
             <div id="rule-duration-preview" style="font-size: 0.8rem; color: #4CAF50; margin-top: 5px; min-height: 15px;"></div>
         </div>
