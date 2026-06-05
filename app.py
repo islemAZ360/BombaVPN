@@ -386,10 +386,9 @@ def api_available_servers():
 def pay():
     user_id = request.user['uid']
     user_doc = db.collection('users').document(user_id).get()
-    
+    data = {}
     if user_doc.exists:
         data = user_doc.to_dict()
-        
     servers = []
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     for doc in db.collection('servers').stream():
@@ -430,7 +429,7 @@ def pay():
             doc_ref = db.collection('purchase_requests').document()
             doc_ref.set({
                 'user_id': user_id,
-                'email': request.user['email'],
+                'email': request.user.get('email', data.get('email', 'Unknown')),
                 'server_id': server_id,
                 'renew_sub_id': renew_sub_id,
                 'receipt_url': filename,
@@ -449,7 +448,7 @@ def pay():
             # إرسال صورة الوصل لتيليجرام مع أزرار القبول والرفض
             req_id = doc_ref.id
             try:
-                send_telegram_receipt_review(req_id, request.user['email'], server_name, filename, price)
+                send_telegram_receipt_review(req_id, request.user.get('email', data.get('email', 'Unknown')), server_name, filename, price)
             except Exception as e:
                 print(f"Error calling send_telegram_receipt_review: {e}")
             
