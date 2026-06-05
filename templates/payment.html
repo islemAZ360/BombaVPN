@@ -180,9 +180,9 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-success" style="width:100%; display:flex; justify-content:center; align-items:center; gap:8px; font-size:1.02rem; font-weight:700; padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg,#00ffcc,#00a3ff); color:#06121f; cursor:pointer; box-shadow:0 8px 22px rgba(0,255,204,0.25); transition:transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 12px 28px rgba(0,255,204,0.35)';" onmouseout="this.style.transform='none';this.style.boxShadow='0 8px 22px rgba(0,255,204,0.25)';">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                {{ _('Submit') }}
+            <button type="submit" id="submit-btn" class="btn btn-success" style="width:100%; display:flex; justify-content:center; align-items:center; gap:8px; font-size:1.02rem; font-weight:700; padding:14px; border:none; border-radius:12px; background:linear-gradient(135deg,#00ffcc,#00a3ff); color:#06121f; cursor:pointer; box-shadow:0 8px 22px rgba(0,255,204,0.25); transition:all 0.15s;" onmouseover="if(!this.disabled){this.style.transform='translateY(-1px)';this.style.boxShadow='0 12px 28px rgba(0,255,204,0.35)';}" onmouseout="if(!this.disabled){this.style.transform='none';this.style.boxShadow='0 8px 22px rgba(0,255,204,0.25)';}">
+                <svg id="submit-spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none; animation:spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
+                <span id="submit-text">{{ _('Submit') }}</span>
             </button>
         </form>
         </div>
@@ -190,6 +190,7 @@
 </div>
 <style>
     @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
     #drop-zone.drag-over, #drop-zone:hover { border-color: var(--primary) !important; background: rgba(0,255,204,0.08) !important; }
     .pay-modal-card::-webkit-scrollbar { width: 8px; }
     .pay-modal-card::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
@@ -410,6 +411,28 @@
     function updateDropZoneText(file) {
         dropZoneText.innerHTML = `Selected: <strong style="color:var(--primary)">${file.name}</strong>`;
         dropZone.style.borderColor = 'var(--success)';
+    }
+
+    // Prevent double form submission
+    const paymentForm = document.getElementById('payment-form');
+    if (paymentForm) {
+        paymentForm.addEventListener('submit', function(e) {
+            // Check if file is selected
+            if (fileInput.files.length === 0) {
+                e.preventDefault();
+                alert('الرجاء اختيار صورة الوصل / Please select a receipt image');
+                return;
+            }
+            const btn = paymentForm.querySelector('button[type="submit"]');
+            if (btn) {
+                setTimeout(() => {
+                    btn.disabled = true;
+                    btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 10 10"></path></svg> Processing...`;
+                    btn.style.opacity = '0.7';
+                    btn.style.cursor = 'not-allowed';
+                }, 10);
+            }
+        });
     }
 
     // Auto-refresh available servers every 30 seconds
