@@ -1315,9 +1315,9 @@ def rescan_servers():
             if rule_secs is None:
                 rule_secs = rule.get('duration_days', 0) * 24 * 3600
                 
-            server_plan_secs = link_data.get('total_plan_seconds')
+            server_plan_secs = s_dict.get('total_plan_seconds')
             if server_plan_secs is None:
-                server_plan_secs = (link_data.get('plan_days', 0) * 24 * 3600) + (link_data.get('plan_hours', 0) * 3600) + (link_data.get('plan_minutes', 0) * 60)
+                server_plan_secs = (s_dict.get('plan_days', 0) * 24 * 3600) + (s_dict.get('plan_hours', 0) * 3600) + (s_dict.get('plan_minutes', 0) * 60)
                 
             tags_match = False
             if not rule['tags'] and not new_tags_set:
