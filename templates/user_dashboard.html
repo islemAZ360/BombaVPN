@@ -110,6 +110,20 @@
         {% endfor %}
         </div>
         
+        <!-- Referral Section -->
+        {% if user.get('referral_code') %}
+        <div style="margin-top: 2rem; background: rgba(0,255,204,0.05); border: 1px solid rgba(0,255,204,0.2); border-radius: 12px; padding: 1.5rem;">
+            <h3 style="margin-bottom: 0.5rem; color: #00ffcc; font-size: 1.2rem;">🎁 اربح أياما مجانية!</h3>
+            <p style="color: #aaa; font-size: 0.95rem; margin-bottom: 1rem;">انسخ هذا الرابط وأرسله لأصدقائك. إذا سجل صديقك واشترى اشتراكاً، ستحصل تلقائياً على <strong>7 أيام مجانية</strong> تضاف لاشتراكك!</p>
+            <div style="display: flex; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden;">
+                <div id="ref-link-text" style="padding: 12px 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1; font-family: 'Space Mono', monospace; color: #00ffcc; font-size: 0.9rem;">{{ request.host_url }}login?ref={{ user.referral_code }}</div>
+                <button type="button" style="background: rgba(255,255,255,0.05); border: none; border-left: 1px solid rgba(255,255,255,0.1); color: var(--primary); padding: 0 20px; cursor: pointer; font-weight: bold; transition: all 0.2s; display: flex; align-items: center; gap: 8px;" onclick="copySpecificLink(document.getElementById('ref-link-text').innerText.trim(), this)" onmouseover="this.style.background='rgba(0,255,204,0.1)';" onmouseout="this.style.background='rgba(255,255,255,0.05)';">
+                    <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    <span>{{ _('CopyBtn') }}</span>
+                </button>
+            </div>
+        </div>
+        {% endif %}
         <script>
         function copySpecificLink(link, btn) {
             navigator.clipboard.writeText(link).then(() => {

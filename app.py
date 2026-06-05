@@ -243,20 +243,8 @@ def index():
                 return redirect(url_for('admin_dashboard'))
             return redirect(url_for('user_dashboard'))
         except:
-            # محاولة الجلسة المحلية
-            is_production = os.environ.get('FLASK_ENV') == 'production' or os.environ.get('RENDER') == 'true'
-            if not is_production:
-                try:
-                    from itsdangerous import URLSafeTimedSerializer
-                    local_serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-                    data = local_serializer.loads(session_cookie, max_age=5*24*3600)
-                    if data.get('is_local_session'):
-                        if data.get('email') == 'islamazaizia360@gmail.com':
-                            return redirect(url_for('admin_dashboard'))
-                        return redirect(url_for('user_dashboard'))
-                except:
-                    pass
-    return redirect(url_for('login'))
+            pass
+    return render_template('index.html')
 
 @app.route('/login')
 def login():
@@ -275,20 +263,33 @@ def debug_check():
 @limiter.limit("5 per minute")
 def session_login():
     id_token = request.json.get('idToken')
+    ref_code = request.json.get('ref_code')
     expires_in = timedelta(days=5)
     is_production = os.environ.get('FLASK_ENV') == 'production' or os.environ.get('RENDER') == 'true'
     
-    # تسجيل تشخيصي
-    with open('debug_log.txt', 'a', encoding='utf-8') as f:
-        f.write(f"\n[{datetime.now()}] sessionLogin called. is_production={is_production}, token_len={len(id_token) if id_token else 0}\n")
-    
     try:
+        # Decode token to get user info
+        decoded_token = firebase_auth.verify_id_token(id_token)
+        uid = decoded_token['uid']
+        
+        # Check if user exists, if not, create them with referral data
+        user_ref = db.collection('users').document(uid)
+        user_doc = user_ref.get()
+        if not user_doc.exists:
+            user_data = {
+                'email': decoded_token.get('email'),
+                'status': 'pending',
+                'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
+                'referral_code': uid[:8],
+            }
+            if ref_code and ref_code != uid[:8]:
+                user_data['referred_by'] = ref_code
+            user_ref.set(user_data)
+        
         session_cookie = firebase_auth.create_session_cookie(id_token, expires_in=expires_in)
         response = jsonify({'status': 'success'})
         expires = datetime.now() + expires_in
         response.set_cookie('session', session_cookie, expires=expires, httponly=True, secure=is_production, samesite='Lax')
-        with open('debug_log.txt', 'a', encoding='utf-8') as f:
-            f.write(f"[{datetime.now()}] create_session_cookie SUCCESS\n")
         return response
     except Exception as e:
         with open('debug_log.txt', 'a', encoding='utf-8') as f:
@@ -1191,6 +1192,23 @@ def approve_request(request_id):
     # Update user status if they were new
     if user_data.get('status') != 'active':
         user_doc_ref.update({'status': 'active'})
+        
+    # Process Referral Reward
+    if user_data.get('referred_by'):
+        referrer_code = user_data['referred_by']
+        referrer_docs = db.collection('users').where('referral_code', '==', referrer_code).limit(1).stream()
+        for r_doc in referrer_docs:
+            r_user = r_doc.to_dict()
+            r_subs = db.collection('subscriptions').where('user_id', '==', r_doc.id).where('status', '==', 'active').stream()
+            # Add 7 days to ALL active subs of the referrer, or just the first one
+            for r_sub_doc in r_subs:
+                r_sub = r_sub_doc.to_dict()
+                if 'expires_at' in r_sub and r_sub['expires_at']:
+                    new_expiry = r_sub['expires_at'].replace(tzinfo=timezone.utc) + timedelta(days=7)
+                    db.collection('subscriptions').document(r_sub_doc.id).update({'expires_at': new_expiry})
+                    send_telegram_notification(f"🎉 مكافأة إحالة!\nالمستخدم {user_data.get('email')} اشترى باقة عبر رابط دعوة من {r_user.get('email')}.\nتمت إضافة 7 أيام لاشتراكه بنجاح.")
+        # Remove referred_by so it only triggers on first purchase
+        user_doc_ref.update({'referred_by': firestore.DELETE_FIELD})
     
     flash('تم الموافقة على الطلب وإنشاء الاشتراك بنجاح / Request approved successfully', 'success')
     return redirect(url_for('admin_dashboard'))
@@ -1999,9 +2017,10 @@ def user_dashboard():
                     db.collection('users').document(user_id).set({
                         'email': request.user['email'],
                         'status': 'pending',
-                        'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
+                        'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
+                        'referral_code': user_id[:8]
                     })
-                    user_data = {'status': 'pending'}
+                    user_data = {'status': 'pending', 'referral_code': user_id[:8]}
                 except Exception as e:
                     # User was deleted from Firebase Auth (e.g. by admin)
                     response = make_response(redirect(url_for('login')))
@@ -2009,9 +2028,12 @@ def user_dashboard():
                     return response
             else:
                 user_data = user_doc.to_dict()
+                if 'referral_code' not in user_data:
+                    user_data['referral_code'] = user_id[:8]
+                    db.collection('users').document(user_id).update({'referral_code': user_id[:8]})
         except Exception as e:
             print(f"Error fetching user doc in dashboard: {e}")
-            user_data = {'status': 'pending', 'error': 'db_quota'}
+            user_data = {'status': 'pending', 'error': 'db_quota', 'referral_code': user_id[:8]}
 
     subscriptions = []
     has_active = False
@@ -2483,6 +2505,92 @@ def migrate_db_once():
                 reqs_count += 1
                 
     return f"Migrated {subs_count} active subscriptions and {reqs_count} pending requests."
+
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+@app.route('/api/cron/daily', methods=['GET', 'POST'])
+def cron_daily():
+    # This endpoint should be triggered by cron-job.org once a day
+    smtp_email = os.environ.get('SMTP_EMAIL')
+    smtp_password = os.environ.get('SMTP_PASSWORD')
+    
+    if not smtp_email or not smtp_password:
+        return jsonify({'status': 'error', 'message': 'SMTP not configured'}), 400
+        
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    reminder_threshold = now + timedelta(days=2) # 48 hours from now
+    
+    # Get all active subscriptions
+    active_subs = db.collection('subscriptions').where('status', '==', 'active').stream()
+    
+    emails_sent = 0
+    
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(smtp_email, smtp_password)
+        
+        for sub_doc in active_subs:
+            sub = sub_doc.to_dict()
+            expires_at = sub.get('expires_at')
+            if not expires_at:
+                continue
+                
+            # Make timezone naive
+            if hasattr(expires_at, 'tzinfo') and expires_at.tzinfo is not None:
+                expires_at = expires_at.replace(tzinfo=None)
+                
+            # If expiring within 48 hours but strictly in the future
+            if now < expires_at <= reminder_threshold:
+                # Check if reminder already sent recently
+                last_sent = sub.get('reminder_sent_at')
+                if last_sent:
+                    if hasattr(last_sent, 'tzinfo') and last_sent.tzinfo is not None:
+                        last_sent = last_sent.replace(tzinfo=None)
+                    if (now - last_sent).days < 2:
+                        continue # Already sent within the last 48 hours
+                
+                # Fetch user email
+                user_id = sub.get('user_id')
+                user_doc = db.collection('users').document(user_id).get()
+                if user_doc.exists:
+                    user_email = user_doc.to_dict().get('email')
+                    if user_email:
+                        # Construct email
+                        msg = MIMEMultipart()
+                        msg['From'] = smtp_email
+                        msg['To'] = user_email
+                        msg['Subject'] = "تذكير: اشتراكك في GalaxyVPN قارب على الانتهاء"
+                        
+                        body = f"""
+                        أهلاً بك،
+                        
+                        نود تذكيرك بأن اشتراكك في GalaxyVPN سينتهي خلال أقل من 48 ساعة.
+                        يرجى تجديد الاشتراك لتجنب انقطاع الخدمة.
+                        
+                        رابط التجديد: {request.host_url}pay
+                        
+                        مع تحيات فريق GalaxyVPN.
+                        """
+                        msg.attach(MIMEText(body, 'plain'))
+                        
+                        try:
+                            server.send_message(msg)
+                            db.collection('subscriptions').document(sub_doc.id).update({
+                                'reminder_sent_at': now
+                            })
+                            emails_sent += 1
+                        except Exception as e:
+                            print(f"Failed to send email to {user_email}: {e}")
+                            
+        server.quit()
+        return jsonify({'status': 'success', 'emails_sent': emails_sent})
+        
+    except Exception as e:
+        print(f"SMTP error: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == '__main__':
     # Start the Keep-Alive thread

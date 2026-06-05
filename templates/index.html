@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Home') }} | GalaxyVPN{% endblock %}
+{% block content %}
+<style>
+    .hero-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        min-height: 70vh;
+        padding: 40px 20px;
+    }
+    .hero-title {
+        font-size: 3.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #fff, #00ffcc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 20px;
+        filter: drop-shadow(0 0 10px rgba(0, 255, 204, 0.3));
+    }
+    .hero-subtitle {
+        font-size: 1.2rem;
+        color: var(--text-muted);
+        max-width: 600px;
+        margin-bottom: 40px;
+        line-height: 1.6;
+    }
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 30px;
+        margin-top: 50px;
+        width: 100%;
+        max-width: 1000px;
+    }
+    .feature-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 30px;
+        text-align: center;
+        backdrop-filter: blur(10px);
+        transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+    .feature-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--primary);
+    }
+    .feature-icon {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 20px auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 255, 204, 0.1);
+        border-radius: 50%;
+        color: var(--primary);
+    }
+    .pricing-table {
+        margin-top: 80px;
+        text-align: center;
+        width: 100%;
+        max-width: 800px;
+    }
+    .pricing-table h2 {
+        font-size: 2.5rem;
+        margin-bottom: 40px;
+        color: #fff;
+    }
+    .price-card {
+        background: linear-gradient(180deg, rgba(0,255,204,0.1) 0%, rgba(255,255,255,0.02) 100%);
+        border: 1px solid rgba(0,255,204,0.3);
+        border-radius: 20px;
+        padding: 40px;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .price-card h3 {
+        font-size: 1.8rem;
+        color: #fff;
+        margin-bottom: 15px;
+    }
+    .price-card .price {
+        font-size: 3rem;
+        font-weight: 800;
+        color: var(--primary);
+        margin-bottom: 30px;
+    }
+    .price-card ul {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 40px 0;
+        text-align: left;
+    }
+    .price-card ul li {
+        margin-bottom: 15px;
+        color: #ddd;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .price-card ul li svg {
+        color: var(--primary);
+    }
+    .cta-buttons {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        margin-top: 20px;
+    }
+</style>
+
+<div class="hero-section">
+    <div style="margin-bottom: 2rem;">
+        <img src="{{ url_for('static', filename='icon-512.png') }}" alt="GalaxyVPN Logo" style="width: 120px; height: 120px; border-radius: 24px; filter: drop-shadow(0 0 30px rgba(0,255,204,0.4));">
+    </div>
+    
+    <h1 class="hero-title">GalaxyVPN</h1>
+    <p class="hero-subtitle">استكشف فضاء الإنترنت بحرية مطلقة. سرعة لا تضاهى، أمان تام، وتجاوز للقيود بكل سهولة وبضغطة زر واحدة.</p>
+    
+    <div class="cta-buttons">
+        <a href="{{ url_for('login') }}" class="btn btn-primary" style="padding: 15px 40px; font-size: 1.2rem; font-weight: 600;">ابدأ الآن / تسجيل الدخول</a>
+    </div>
+
+    <!-- Features Section -->
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+            </div>
+            <h3>سرعة خارقة</h3>
+            <p style="color: #aaa; margin-top: 10px;">سيرفرات مخصصة ببروتوكول V2Ray تضمن لك تجربة تصفح ومشاهدة سلسة بدون تقطيع.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <h3>أمان وتشفير</h3>
+            <p style="color: #aaa; margin-top: 10px;">نحمي بياناتك وخصوصيتك بأقوى تقنيات التشفير، لتتصفح بأمان حتى في الشبكات العامة.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path><path d="M2 12h20"></path></svg>
+            </div>
+            <h3>دعم لكل الأجهزة</h3>
+            <p style="color: #aaa; margin-top: 10px;">تعمل السيرفرات لدينا بكفاءة على جميع الأجهزة: أندرويد، آيفون، وويندوز عبر تطبيق V2Ray.</p>
+        </div>
+    </div>
+
+    <!-- Pricing Section -->
+    <div class="pricing-table">
+        <h2>خطط الأسعار</h2>
+        <div class="price-card" style="margin: 0 auto; max-width: 400px;">
+            <h3>الاشتراك الشهري</h3>
+            <div class="price">150 دج <span style="font-size:1.2rem; color:#aaa;">/ شهر</span></div>
+            <ul>
+                <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> تصفح غير محدود لجميع المواقع</li>
+                <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> سرعات تحميل ومشاهدة فائقة</li>
+                <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> حماية للخصوصية وإخفاء للـ IP</li>
+                <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> دعم فني مباشر متوفر دائماً</li>
+            </ul>
+            <a href="{{ url_for('login') }}" class="btn btn-primary" style="width: 100%; padding: 15px;">احصل عليه الآن</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -61,6 +61,13 @@
         btn.innerHTML = originalBtnContent;
     }
 
+    // Check for referral code in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const refParam = urlParams.get('ref');
+    if (refParam) {
+        localStorage.setItem('ref_code', refParam);
+    }
+
     // Google Sign-In button click
     btn.addEventListener('click', () => {
         btn.disabled = true;
@@ -68,7 +75,29 @@
         
         signInWithPopup(auth, googleProvider).then((result) => {
             if (result && result.user) {
-                handleSessionLogin(result.user);
+                // Get ref_code from storage
+                const savedRef = localStorage.getItem('ref_code');
+                
+                result.user.getIdToken(true).then(idToken => {
+                    fetch('/api/sessionLogin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ idToken: idToken, ref_code: savedRef })
+                    }).then(async (response) => {
+                        if (response.ok) {
+                            localStorage.removeItem('ref_code'); // clean up
+                            showToast('success', '{{ _("LoginSuccessTitle") }}', '{{ _("LoginSuccessMsg") }}');
+                            setTimeout(() => { window.location.href = '/'; }, 1000);
+                        } else {
+                            resetBtn();
+                            const data = await response.json().catch(() => ({}));
+                            showToast('error', '{{ _("Error") }}', data.error || 'Login Error');
+                        }
+                    }).catch(err => {
+                        resetBtn();
+                        showToast('error', '{{ _("Error") }}', err.message);
+                    });
+                });
             }
         }).catch((error) => {
             resetBtn();
