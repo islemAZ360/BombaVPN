@@ -615,7 +615,10 @@ def add_servers():
     
     price = request.form.get('price') or ''
     
-    expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=real_days, hours=real_hours, minutes=real_minutes)
+    if real_days == 0 and real_hours == 0 and real_minutes == 0:
+        expires_at = None
+    else:
+        expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=real_days, hours=real_hours, minutes=real_minutes)
     
     added = 0
     existing_servers = [s.to_dict().get('name', '') for s in db.collection('servers').stream()]
@@ -732,7 +735,10 @@ def import_servers():
             if tags_set:
                 pricing_rules.append({'tags': tags_set, 'price': p_str.strip()})
     
-    expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=real_days, hours=real_hours, minutes=real_minutes)
+    if real_days == 0 and real_hours == 0 and real_minutes == 0:
+        expires_at = None
+    else:
+        expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=real_days, hours=real_hours, minutes=real_minutes)
     
     # Strip happ://add/ if present
     if subscription_text.startswith('happ://add/'):
