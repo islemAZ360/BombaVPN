@@ -1247,19 +1247,29 @@ def api_dashboard_sync():
                 elif isinstance(v, (dict, list)):
                     serialize_dates(v)
                     
-    # Fetch source links
+    # Fetch source links, grouping any duplicates (same URL) into a single entry
     source_links_list = []
     try:
+        docs_by_url = {}
         for doc in db.collection('source_links').stream():
-            sl = doc.to_dict()
-            sl['id'] = doc.id
-            if sl.get('created_at') and isinstance(sl['created_at'], datetime):
-                sl['created_at'] = sl['created_at'].replace(tzinfo=None)
-            # Count servers linked to this source
-            linked_servers = [s for s in servers_list if s.get('source_link_id') == doc.id]
-            sl['server_count'] = len(linked_servers)
-            sl['servers'] = [{'id': s['id'], 'name': s.get('name', ''), 'country_code': s.get('country_code', '')} for s in linked_servers]
-            source_links_list.append(sl)
+            d = doc.to_dict()
+            d['id'] = doc.id
+            if d.get('created_at') and isinstance(d['created_at'], datetime):
+                d['created_at'] = d['created_at'].replace(tzinfo=None)
+            docs_by_url.setdefault(d.get('url', ''), []).append(d)
+
+        for url, docs in docs_by_url.items():
+            ids = {d['id'] for d in docs}
+            linked_servers = [s for s in servers_list if s.get('source_link_id') in ids]
+            # Representative doc: the one with the most linked servers (so Sync targets the live record)
+            rep = max(docs, key=lambda d: sum(1 for s in servers_list if s.get('source_link_id') == d['id']))
+            source_links_list.append({
+                'id': rep['id'],
+                'url': url,
+                'created_at': rep.get('created_at'),
+                'server_count': len(linked_servers),
+                'servers': [{'id': s['id'], 'name': s.get('name', ''), 'country_code': s.get('country_code', '')} for s in linked_servers],
+            })
     except Exception as e:
         print(f"Error fetching source_links: {e}")
     
@@ -1457,10 +1467,21 @@ def delete_source_link(link_id):
         return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
 
     try:
-        # Detach the link from any servers that reference it (keep the servers)
-        for s in db.collection('servers').where('source_link_id', '==', link_id).stream():
-            db.collection('servers').document(s.id).update({'source_link_id': None})
-        db.collection('source_links').document(link_id).delete()
+        # Resolve every source_links doc sharing this link's URL (covers old duplicates)
+        target_ids = [link_id]
+        doc = db.collection('source_links').document(link_id).get()
+        if doc.exists:
+            url = doc.to_dict().get('url')
+            if url:
+                target_ids = [d.id for d in db.collection('source_links').where('url', '==', url).stream()]
+                if link_id not in target_ids:
+                    target_ids.append(link_id)
+
+        for lid in target_ids:
+            # Detach the link from any servers that reference it (keep the servers)
+            for s in db.collection('servers').where('source_link_id', '==', lid).stream():
+                db.collection('servers').document(s.id).update({'source_link_id': None})
+            db.collection('source_links').document(lid).delete()
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 400
 
