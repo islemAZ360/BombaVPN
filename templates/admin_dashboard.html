@@ -263,8 +263,8 @@
 <div class="card">
     <h3 style="display: flex; align-items: center; justify-content: space-between;">
         <span>{{ _('Servers') }}</span>
-        <button id="rescan-btn" class="btn btn-primary btn-small" onclick="rescanServers()">🔄 إعادة فحص السيرفرات (Re-Scan)</button>
         <div style="display: flex; gap: 10px;">
+            <button id="rescan-btn" class="btn btn-hollow-primary btn-small" onclick="rescanServers()" style="font-size: 0.75rem; padding: 4px 10px;">🔄 Re-Scan</button>
             <button id="save-all-btn" class="btn btn-hollow-primary btn-small" onclick="saveAllServers()">{{ _('SaveAll') }}</button>
             <button id="delete-all-btn" class="btn btn-hollow-danger btn-small" onclick="deleteAllServers()">{{ _('DeleteAll') }}</button>
         </div>
