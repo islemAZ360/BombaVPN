@@ -263,9 +263,7 @@
 <div class="card">
     <h3 style="display: flex; align-items: center; justify-content: space-between;">
         <span>{{ _('Servers') }}</span>
-        <form method="POST" action="/api/admin/rescan_servers" onsubmit="return confirm('هل أنت متأكد من إعادة فحص جميع السيرفرات؟ سيتم تحديث الأسعار والوسوم.');">
-            <button type="submit" class="btn btn-primary btn-small">إعادة فحص السيرفرات (Re-Scan)</button>
-        </form>
+        <button id="rescan-btn" class="btn btn-primary btn-small" onclick="rescanServers()">🔄 إعادة فحص السيرفرات (Re-Scan)</button>
         <div style="display: flex; gap: 10px;">
             <button id="save-all-btn" class="btn btn-hollow-primary btn-small" onclick="saveAllServers()">{{ _('SaveAll') }}</button>
             <button id="delete-all-btn" class="btn btn-hollow-danger btn-small" onclick="deleteAllServers()">{{ _('DeleteAll') }}</button>
@@ -1035,6 +1033,16 @@
 
     let pendingDeleteId = null;
     let isDeletingAll = false;
+    let isRescanning = false;
+
+    function rescanServers() {
+        isRescanning = true;
+        isDeletingAll = false;
+        pendingDeleteId = null;
+        confirmMsg.textContent = 'سيتم إعادة فحص جميع السيرفرات وتحديث الأسعار والوسوم تلقائياً. هل أنت متأكد؟';
+        document.getElementById('confirm-yes').textContent = '✅ نعم، ابدأ الفحص';
+        modal.style.display = 'flex';
+    }
     const modal = document.getElementById('confirm-modal');
     const confirmYes = document.getElementById('confirm-yes');
     const confirmNo = document.getElementById('confirm-no');
@@ -1058,6 +1066,8 @@
         modal.style.display = 'none';
         pendingDeleteId = null;
         isDeletingAll = false;
+        isRescanning = false;
+        document.getElementById('confirm-yes').textContent = '{{ _("Delete") }}';
     });
     
     modal.addEventListener('click', (e) => {
@@ -1065,11 +1075,44 @@
             modal.style.display = 'none';
             pendingDeleteId = null;
             isDeletingAll = false;
+            isRescanning = false;
+            document.getElementById('confirm-yes').textContent = '{{ _("Delete") }}';
         }
     });
     
     confirmYes.addEventListener('click', async () => {
         modal.style.display = 'none';
+        document.getElementById('confirm-yes').textContent = '{{ _("Delete") }}';
+        
+        // Handle Re-Scan
+        if (isRescanning) {
+            isRescanning = false;
+            const rescanBtn = document.getElementById('rescan-btn');
+            const originalText = rescanBtn.textContent;
+            rescanBtn.disabled = true;
+            rescanBtn.textContent = '⏳ جاري الفحص...';
+            rescanBtn.style.opacity = '0.6';
+            
+            try {
+                const resp = await fetch('/api/admin/rescan_servers', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    showToast('success', 'Re-Scan', 'تم تحديث ' + (data.updated || 0) + ' سيرفر بنجاح ✅');
+                } else {
+                    showToast('error', 'Re-Scan', data.error || 'حدث خطأ أثناء الفحص');
+                }
+            } catch(e) {
+                showToast('error', 'Re-Scan', e.message);
+            } finally {
+                rescanBtn.disabled = false;
+                rescanBtn.textContent = originalText;
+                rescanBtn.style.opacity = '1';
+            }
+            return;
+        }
         
         if (isDeletingAll) {
             const deleteBtn = document.getElementById('delete-all-btn');
