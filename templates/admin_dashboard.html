@@ -585,8 +585,11 @@
     function formatDurationSmart(totalSecs) {
         if (!totalSecs || totalSecs === 0) return '0 Secs';
         
-        let mths = Math.floor(totalSecs / (30 * 24 * 3600));
-        let rem1 = totalSecs % (30 * 24 * 3600);
+        let yrs = Math.floor(totalSecs / (360 * 24 * 3600));
+        let rem0 = totalSecs % (360 * 24 * 3600);
+
+        let mths = Math.floor(rem0 / (30 * 24 * 3600));
+        let rem1 = rem0 % (30 * 24 * 3600);
         
         let dys = Math.floor(rem1 / (24 * 3600));
         let rem2 = rem1 % (24 * 3600);
@@ -598,6 +601,7 @@
         let secs = rem3 % 60;
         
         let parts = [];
+        if (yrs > 0) parts.push(`${yrs} Years`);
         if (mths > 0) parts.push(`${mths} Months`);
         if (dys > 0) parts.push(`${dys} Days`);
         if (hrs > 0) parts.push(`${hrs} Hours`);
@@ -873,8 +877,11 @@
     function formatDurationSmart(totalSecs) {
         if (!totalSecs || totalSecs === 0) return '0 Secs';
         
-        let mths = Math.floor(totalSecs / (30 * 24 * 3600));
-        let rem1 = totalSecs % (30 * 24 * 3600);
+        let yrs = Math.floor(totalSecs / (360 * 24 * 3600));
+        let rem0 = totalSecs % (360 * 24 * 3600);
+
+        let mths = Math.floor(rem0 / (30 * 24 * 3600));
+        let rem1 = rem0 % (30 * 24 * 3600);
         
         let dys = Math.floor(rem1 / (24 * 3600));
         let rem2 = rem1 % (24 * 3600);
@@ -886,6 +893,7 @@
         let secs = rem3 % 60;
         
         let parts = [];
+        if (yrs > 0) parts.push(`${yrs} Years`);
         if (mths > 0) parts.push(`${mths} Months`);
         if (dys > 0) parts.push(`${dys} Days`);
         if (hrs > 0) parts.push(`${hrs} Hours`);
@@ -1153,8 +1161,11 @@
     function formatDurationSmart(totalSecs) {
         if (!totalSecs || totalSecs === 0) return '0 Secs';
         
-        let mths = Math.floor(totalSecs / (30 * 24 * 3600));
-        let rem1 = totalSecs % (30 * 24 * 3600);
+        let yrs = Math.floor(totalSecs / (360 * 24 * 3600));
+        let rem0 = totalSecs % (360 * 24 * 3600);
+
+        let mths = Math.floor(rem0 / (30 * 24 * 3600));
+        let rem1 = rem0 % (30 * 24 * 3600);
         
         let dys = Math.floor(rem1 / (24 * 3600));
         let rem2 = rem1 % (24 * 3600);
@@ -1166,6 +1177,7 @@
         let secs = rem3 % 60;
         
         let parts = [];
+        if (yrs > 0) parts.push(`${yrs} Years`);
         if (mths > 0) parts.push(`${mths} Months`);
         if (dys > 0) parts.push(`${dys} Days`);
         if (hrs > 0) parts.push(`${hrs} Hours`);
@@ -1358,8 +1370,11 @@
     function formatDurationSmart(totalSecs) {
         if (!totalSecs || totalSecs === 0) return '0 Secs';
         
-        let mths = Math.floor(totalSecs / (30 * 24 * 3600));
-        let rem1 = totalSecs % (30 * 24 * 3600);
+        let yrs = Math.floor(totalSecs / (360 * 24 * 3600));
+        let rem0 = totalSecs % (360 * 24 * 3600);
+
+        let mths = Math.floor(rem0 / (30 * 24 * 3600));
+        let rem1 = rem0 % (30 * 24 * 3600);
         
         let dys = Math.floor(rem1 / (24 * 3600));
         let rem2 = rem1 % (24 * 3600);
@@ -1371,6 +1386,7 @@
         let secs = rem3 % 60;
         
         let parts = [];
+        if (yrs > 0) parts.push(`${yrs} Years`);
         if (mths > 0) parts.push(`${mths} Months`);
         if (dys > 0) parts.push(`${dys} Days`);
         if (hrs > 0) parts.push(`${hrs} Hours`);
@@ -1506,8 +1522,11 @@
     function formatDurationSmart(totalSecs) {
         if (!totalSecs || totalSecs === 0) return '0 Secs';
         
-        let mths = Math.floor(totalSecs / (30 * 24 * 3600));
-        let rem1 = totalSecs % (30 * 24 * 3600);
+        let yrs = Math.floor(totalSecs / (360 * 24 * 3600));
+        let rem0 = totalSecs % (360 * 24 * 3600);
+
+        let mths = Math.floor(rem0 / (30 * 24 * 3600));
+        let rem1 = rem0 % (30 * 24 * 3600);
         
         let dys = Math.floor(rem1 / (24 * 3600));
         let rem2 = rem1 % (24 * 3600);
@@ -1519,6 +1538,7 @@
         let secs = rem3 % 60;
         
         let parts = [];
+        if (yrs > 0) parts.push(`${yrs} Years`);
         if (mths > 0) parts.push(`${mths} Months`);
         if (dys > 0) parts.push(`${dys} Days`);
         if (hrs > 0) parts.push(`${hrs} Hours`);
