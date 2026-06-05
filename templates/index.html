@@ -162,10 +162,10 @@
     </div>
     
     <h1 class="hero-title">GalaxyVPN</h1>
-    <p class="hero-subtitle">استكشف فضاء الإنترنت بحرية مطلقة. سرعة لا تضاهى، أمان تام، وتجاوز للقيود بكل سهولة وبضغطة زر واحدة.</p>
+    <p class="hero-subtitle">{{ _('HeroSubtitle') }}</p>
     
     <div class="cta-buttons">
-        <a href="{{ url_for('login') }}" class="btn btn-primary" style="padding: 15px 40px; font-size: 1.2rem; font-weight: 600;">ابدأ الآن / تسجيل الدخول</a>
+        <a href="{{ url_for('login') }}" class="btn btn-primary" style="padding: 15px 40px; font-size: 1.2rem; font-weight: 600;">{{ _('StartNowBtn') }}</a>
     </div>
 
     <!-- Features Section -->
@@ -174,67 +174,67 @@
             <div class="feature-icon">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
             </div>
-            <h3>سرعة خارقة</h3>
-            <p style="color: #aaa; margin-top: 10px;">سيرفرات مخصصة ببروتوكول V2Ray تضمن لك تجربة تصفح ومشاهدة سلسة بدون تقطيع.</p>
+            <h3>{{ _('Feature1Title') }}</h3>
+            <p style="color: #aaa; margin-top: 10px;">{{ _('Feature1Desc') }}</p>
         </div>
         <div class="feature-card">
             <div class="feature-icon">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
             </div>
-            <h3>أمان وتشفير</h3>
-            <p style="color: #aaa; margin-top: 10px;">نحمي بياناتك وخصوصيتك بأقوى تقنيات التشفير، لتتصفح بأمان حتى في الشبكات العامة.</p>
+            <h3>{{ _('Feature2Title') }}</h3>
+            <p style="color: #aaa; margin-top: 10px;">{{ _('Feature2Desc') }}</p>
         </div>
         <div class="feature-card">
             <div class="feature-icon">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path><path d="M2 12h20"></path></svg>
             </div>
-            <h3>دعم لكل الأجهزة</h3>
-            <p style="color: #aaa; margin-top: 10px;">تعمل السيرفرات لدينا بكفاءة على جميع الأجهزة: أندرويد، آيفون، وويندوز عبر تطبيق V2Ray.</p>
+            <h3>{{ _('Feature3Title') }}</h3>
+            <p style="color: #aaa; margin-top: 10px;">{{ _('Feature3Desc') }}</p>
         </div>
     </div>
 
     <!-- Unblocked Apps Section -->
     <div style="margin-top: 80px; width: 100%;">
-        <h2 style="font-size: 2rem; margin-bottom: 20px; color: #fff;">استمتع بحرية الوصول إلى جميع المواقع والتطبيقات</h2>
+        <h2 style="font-size: 2rem; margin-bottom: 20px; color: #fff;">{{ _('UnblockedAppsTitle') }}</h2>
         <div class="marquee-container">
             <div class="marquee-content">
-                <div class="marquee-item"><span style="font-size: 1.5rem;">🤖</span> ChatGPT</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">📸</span> Instagram</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">📱</span> TikTok</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">👍</span> Facebook</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">🎬</span> Netflix</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">🐦</span> Twitter (X)</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">📞</span> WhatsApp</div>
+                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg" alt="ChatGPT"> ChatGPT</div>
+                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg" alt="Instagram"> Instagram</div>
+                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/en/a/a9/TikTok_logo.svg" alt="TikTok"> TikTok</div>
+                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png" alt="Facebook"> Facebook</div>
+                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" alt="Netflix"> Netflix</div>
+                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/c/ce/X_logo_2023.svg" style="background:white; padding:2px;" alt="X"> Twitter (X)</div>
+                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp"> WhatsApp</div>
                 <!-- Duplicate -->
-                <div class="marquee-item"><span style="font-size: 1.5rem;">🤖</span> ChatGPT</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">📸</span> Instagram</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">📱</span> TikTok</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">👍</span> Facebook</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">🎬</span> Netflix</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">🐦</span> Twitter (X)</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">📞</span> WhatsApp</div>
+                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg" alt="ChatGPT"> ChatGPT</div>
+                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg" alt="Instagram"> Instagram</div>
+                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/en/a/a9/TikTok_logo.svg" alt="TikTok"> TikTok</div>
+                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png" alt="Facebook"> Facebook</div>
+                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" alt="Netflix"> Netflix</div>
+                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/c/ce/X_logo_2023.svg" style="background:white; padding:2px;" alt="X"> Twitter (X)</div>
+                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp"> WhatsApp</div>
             </div>
         </div>
     </div>
 
     <!-- Servers Section -->
     <div style="margin-top: 40px; width: 100%;">
-        <h2 style="font-size: 2rem; margin-bottom: 20px; color: #fff;">سيرفرات سريعة في مختلف أنحاء العالم</h2>
+        <h2 style="font-size: 2rem; margin-bottom: 20px; color: #fff;">{{ _('ServersWorldwideTitle') }}</h2>
         <div class="marquee-container">
             <div class="marquee-content reverse">
-                <div class="marquee-item"><span style="font-size: 1.5rem;">🇩🇪</span> ألمانيا (أوروبا)</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">🇫🇷</span> فرنسا (أوروبا)</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">🇺🇸</span> أمريكا (نيويورك)</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">🇬🇧</span> بريطانيا (لندن)</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">🇳🇱</span> هولندا (أمستردام)</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">🇹🇷</span> تركيا (إسطنبول)</div>
+                <div class="marquee-item"><img src="https://flagcdn.com/w40/de.png" alt="DE"> Germany</div>
+                <div class="marquee-item"><img src="https://flagcdn.com/w40/fr.png" alt="FR"> France</div>
+                <div class="marquee-item"><img src="https://flagcdn.com/w40/us.png" alt="US"> USA</div>
+                <div class="marquee-item"><img src="https://flagcdn.com/w40/gb.png" alt="UK"> UK</div>
+                <div class="marquee-item"><img src="https://flagcdn.com/w40/nl.png" alt="NL"> Netherlands</div>
+                <div class="marquee-item"><img src="https://flagcdn.com/w40/tr.png" alt="TR"> Turkey</div>
                 <!-- Duplicate -->
-                <div class="marquee-item"><span style="font-size: 1.5rem;">🇩🇪</span> ألمانيا (أوروبا)</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">🇫🇷</span> فرنسا (أوروبا)</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">🇺🇸</span> أمريكا (نيويورك)</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">🇬🇧</span> بريطانيا (لندن)</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">🇳🇱</span> هولندا (أمستردام)</div>
-                <div class="marquee-item"><span style="font-size: 1.5rem;">🇹🇷</span> تركيا (إسطنبول)</div>
+                <div class="marquee-item"><img src="https://flagcdn.com/w40/de.png" alt="DE"> Germany</div>
+                <div class="marquee-item"><img src="https://flagcdn.com/w40/fr.png" alt="FR"> France</div>
+                <div class="marquee-item"><img src="https://flagcdn.com/w40/us.png" alt="US"> USA</div>
+                <div class="marquee-item"><img src="https://flagcdn.com/w40/gb.png" alt="UK"> UK</div>
+                <div class="marquee-item"><img src="https://flagcdn.com/w40/nl.png" alt="NL"> Netherlands</div>
+                <div class="marquee-item"><img src="https://flagcdn.com/w40/tr.png" alt="TR"> Turkey</div>
             </div>
         </div>
     </div>
