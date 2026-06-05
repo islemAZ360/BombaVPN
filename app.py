@@ -1257,13 +1257,34 @@ def _approve_request_logic(request_id):
         referrer_docs = db.collection('users').where('referral_code', '==', referrer_code).limit(1).stream()
         for r_doc in referrer_docs:
             r_user = r_doc.to_dict()
-            r_subs = db.collection('subscriptions').where('user_id', '==', r_doc.id).where('status', '==', 'active').stream()
-            for r_sub_doc in r_subs:
-                r_sub = r_sub_doc.to_dict()
-                if 'expires_at' in r_sub and r_sub['expires_at']:
-                    new_expiry = r_sub['expires_at'].replace(tzinfo=timezone.utc) + timedelta(days=7)
-                    db.collection('subscriptions').document(r_sub_doc.id).update({'expires_at': new_expiry})
-                    send_telegram_notification(f"🎉 مكافأة إحالة!\nالمستخدم {user_data.get('email')} اشترى باقة عبر رابط دعوة من {r_user.get('email')}.\nتمت إضافة 7 أيام لاشتراكه بنجاح.")
+            all_r_subs = list(db.collection('subscriptions').where('user_id', '==', r_doc.id).stream())
+            
+            if not all_r_subs:
+                send_telegram_notification(f"⚠️ إحالة بدون مكافأة!\nالمستخدم {user_data.get('email')} اشترى باقة عبر رابط {r_user.get('email')}، لكن صاحب الرابط لا يملك أي اشتراك سابق لنضيف له الأيام.")
+                continue
+
+            active_subs = [d for d in all_r_subs if d.to_dict().get('status') == 'active']
+            if active_subs:
+                for r_sub_doc in active_subs:
+                    r_sub = r_sub_doc.to_dict()
+                    if 'expires_at' in r_sub and r_sub['expires_at']:
+                        new_expiry = r_sub['expires_at'].replace(tzinfo=timezone.utc) + timedelta(days=7)
+                        db.collection('subscriptions').document(r_sub_doc.id).update({'expires_at': new_expiry})
+                send_telegram_notification(f"🎉 مكافأة إحالة!\nالمستخدم {user_data.get('email')} اشترى باقة عبر رابط {r_user.get('email')}.\nتمت إضافة 7 أيام لاشتراكه النشط.")
+            else:
+                expired_subs = [d for d in all_r_subs if d.to_dict().get('status') == 'expired']
+                if expired_subs:
+                    def get_expiry(d):
+                        exp = d.to_dict().get('expires_at')
+                        if not exp: return datetime.min.replace(tzinfo=timezone.utc)
+                        return exp if exp.tzinfo else exp.replace(tzinfo=timezone.utc)
+                    latest_expired = max(expired_subs, key=get_expiry)
+                    new_expiry = datetime.now(timezone.utc) + timedelta(days=7)
+                    db.collection('subscriptions').document(latest_expired.id).update({
+                        'status': 'active',
+                        'expires_at': new_expiry
+                    })
+                    send_telegram_notification(f"🎉 مكافأة إحالة!\nالمستخدم {user_data.get('email')} اشترى باقة عبر رابط {r_user.get('email')}.\nتم تفعيل اشتراكه المنتهي لمدة 7 أيام مجانية.")
         user_doc_ref.update({'referred_by': firestore.DELETE_FIELD})
         
     return True, "Success"
