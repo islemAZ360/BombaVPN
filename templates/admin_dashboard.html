@@ -1,11 +1,15 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="header-actions" style="display: flex; gap: 10px; align-items: center;">
+<div class="header-actions" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
     <h2>{{ _('AdminDashboard') }}</h2>
     <a href="{{ url_for('admin_debts') }}" class="btn btn-hollow-danger btn-small" style="display:flex; align-items:center; gap:6px;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
         {{ _('DebtStats') }}
     </a>
+    <button onclick="setupTelegram()" class="btn btn-primary btn-small" style="background: #0088cc; border:none; display:flex; align-items:center; gap:6px;" title="ربط البوت">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        ربط بوت التلغرام
+    </button>
     <button id="logout-btn" class="btn btn-transparent-danger btn-small">{{ _('Logout') }}</button>
 </div>
 
@@ -13,9 +17,6 @@
 <div class="card" style="margin-bottom: 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <h3 style="margin: 0;">الإحصائيات (Analytics)</h3>
-        <button onclick="setupTelegram()" class="btn btn-primary" style="background: #0088cc; border:none; border-radius: 8px; padding: 8px 16px;">
-            <i class="fab fa-telegram"></i> ربط بوت التلغرام للقبول (Webhook)
-        </button>
     </div>
     <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px;">
         <div style="flex: 1; min-width: 300px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
