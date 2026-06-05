@@ -420,7 +420,7 @@ def pay():
             return redirect(request.url)
             
         if file and allowed_file(file.filename):
-            ext = secure_filename(file.filename).rsplit('.', 1)[1].lower() if '.' in file.filename else 'png'
+            ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'png'
             filename = f"receipt_{user_id}_{uuid.uuid4().hex[:8]}.{ext}"
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             
