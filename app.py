@@ -938,15 +938,25 @@ def import_servers():
     # If the text is a URL, fetch it
     if subscription_text.startswith('http://') or subscription_text.startswith('https://'):
         try:
-            # Save to source_links
-            doc_ref = db.collection('source_links').add({
-                'url': original_url,
-                'total_plan_seconds': total_plan_seconds,
-                'total_real_seconds': total_real_seconds,
-                'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
-            })
-            source_link_id = doc_ref[1].id
-            
+            # Reuse an existing source link with the same URL instead of duplicating it
+            existing_link = None
+            for d in db.collection('source_links').where('url', '==', original_url).limit(1).stream():
+                existing_link = d
+            if existing_link is not None:
+                source_link_id = existing_link.id
+                db.collection('source_links').document(source_link_id).update({
+                    'total_plan_seconds': total_plan_seconds,
+                    'total_real_seconds': total_real_seconds
+                })
+            else:
+                doc_ref = db.collection('source_links').add({
+                    'url': original_url,
+                    'total_plan_seconds': total_plan_seconds,
+                    'total_real_seconds': total_real_seconds,
+                    'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
+                })
+                source_link_id = doc_ref[1].id
+
             resp = requests.get(subscription_text, timeout=10, headers={'User-Agent': 'v2rayNG'})
             if resp.status_code == 200:
                 subscription_text = resp.text
@@ -1438,6 +1448,23 @@ def sync_link(link_id):
     )
 
     return jsonify({'status': 'success', 'found': found, 'added': added})
+
+
+@app.route('/api/admin/delete_source_link/<link_id>', methods=['POST'])
+@login_required
+def delete_source_link(link_id):
+    if not getattr(request, 'is_admin', False):
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+
+    try:
+        # Detach the link from any servers that reference it (keep the servers)
+        for s in db.collection('servers').where('source_link_id', '==', link_id).stream():
+            db.collection('servers').document(s.id).update({'source_link_id': None})
+        db.collection('source_links').document(link_id).delete()
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 400
+
+    return jsonify({'status': 'success'})
 
 
 @app.route('/api/admin/debts_sync')

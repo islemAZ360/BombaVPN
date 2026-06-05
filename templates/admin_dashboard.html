@@ -1926,6 +1926,33 @@
         }
     }
 
+    async function deleteSourceLink(id, btn) {
+        if (!confirm('هل تريد حذف هذا الرابط؟ (لن يتم حذف السيرفرات، فقط سجل الرابط)')) return;
+        const original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '⏳';
+        try {
+            const resp = await fetch('/api/admin/delete_source_link/' + id, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await resp.json();
+            if (resp.ok && data.status === 'success') {
+                expandedLinks.delete(id);
+                showToast('success', 'Delete', 'تم حذف الرابط بنجاح ✅');
+                fetchDashboardSync();
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = original;
+                showToast('error', 'Delete', data.message || 'حدث خطأ أثناء الحذف');
+            }
+        } catch(e) {
+            btn.disabled = false;
+            btn.innerHTML = original;
+            showToast('error', 'Delete', e.message);
+        }
+    }
+
     async function fetchDashboardSync() {
         try {
             const resp = await fetch('/api/admin/dashboard_sync');
@@ -2140,6 +2167,7 @@
                                 <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
                                     <span style="background:rgba(255,255,255,0.08); color:var(--primary); border:1px solid rgba(255,255,255,0.15); padding:3px 10px; border-radius:20px; font-size:0.75rem; white-space:nowrap;">${sl.server_count} سيرفر</span>
                                     <button type="button" onclick="event.stopPropagation(); syncSourceLink('${sl.id}', this)" class="btn btn-primary btn-small" style="padding:5px 12px; font-size:0.8rem; white-space:nowrap;">🔄 Sync</button>
+                                    <button type="button" onclick="event.stopPropagation(); deleteSourceLink('${sl.id}', this)" title="حذف الرابط" style="background:rgba(244,67,54,0.1); border:1px solid rgba(244,67,54,0.3); color:#F44336; cursor:pointer; padding:5px 10px; border-radius:6px; font-size:0.8rem; white-space:nowrap;">🗑</button>
                                 </div>
                             </div>
                             <div id="source-link-servers-${sl.id}" style="display:${isOpen ? 'grid' : 'none'}; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:8px; padding:0 15px 15px 15px;">
