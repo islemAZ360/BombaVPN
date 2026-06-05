@@ -1431,7 +1431,14 @@ def api_pricing_rules():
         
     if request.method == 'POST':
         tags_str = request.form.get('tags', '')
+        duration_months = int(request.form.get('duration_months') or 0)
         duration_days = int(request.form.get('duration_days') or 0)
+        duration_hours = int(request.form.get('duration_hours') or 0)
+        duration_minutes = int(request.form.get('duration_minutes') or 0)
+        duration_seconds = int(request.form.get('duration_seconds') or 0)
+        
+        total_duration_seconds = (duration_months * 30 * 24 * 3600) + (duration_days * 24 * 3600) + (duration_hours * 3600) + (duration_minutes * 60) + duration_seconds
+        
         price = float(request.form.get('price') or 0)
         
         tags_list = [tag.strip().lower() for tag in tags_str.split(',') if tag.strip()]
@@ -1439,6 +1446,7 @@ def api_pricing_rules():
         db.collection('pricing_rules').add({
             'tags': tags_list,
             'duration_days': duration_days,
+            'total_duration_seconds': total_duration_seconds,
             'price': price,
             'created_at': datetime.now(timezone.utc).replace(tzinfo=None)
         })
