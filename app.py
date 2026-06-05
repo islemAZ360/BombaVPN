@@ -1225,17 +1225,92 @@ def manage_user_sub(user_id):
 @app.route('/admin/send_message/<user_id>', methods=['POST'])
 @login_required
 def send_admin_message(user_id):
-    if not request.is_admin: return "Unauthorized", 403
-    message = request.form.get('message')
-    if message:
-        db.collection('admin_messages').add({
-            'user_id': user_id,
-            'message': message,
-            'created_at': datetime.now(timezone.utc).replace(tzinfo=None),
-            'is_read': False
+    if not request.is_admin: return jsonify({"error": "Unauthorized"}), 403
+    
+    # Support both JSON and Form Data
+    message = request.json.get('message') if request.is_json else request.form.get('message')
+    
+    if not message or not message.strip():
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
+            return jsonify({'status': 'error', 'error': 'Message cannot be empty'}), 400
+        flash('Message cannot be empty', 'danger')
+        return redirect(url_for('admin_dashboard'))
+
+    dt_now = datetime.now(timezone.utc).replace(tzinfo=None)
+    db.collection('admin_messages').add({
+        'user_id': user_id,
+        'message': message.strip(),
+        'created_at': dt_now,
+        'is_read': False
+    })
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
+        return jsonify({
+            'status': 'success',
+            'chat_message': {
+                'sender': 'admin',
+                'text': message.strip(),
+                'timestamp': dt_now.strftime('%Y-%m-%d %H:%M')
+            }
         })
-        flash('تم إرسال الرسالة للمستخدم / Message sent', 'success')
+        
+    flash('تم إرسال الرسالة للمستخدم / Message sent', 'success')
     return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/api/chat/<user_id>', methods=['GET'])
+@login_required
+def get_user_chat(user_id):
+    if not request.is_admin: return jsonify({"error": "Unauthorized"}), 403
+    
+    chat = []
+    
+    try:
+        # Get user -> admin messages
+        msgs = db.collection('messages').where('user_id', '==', user_id).stream()
+        for m in msgs:
+            data = m.to_dict()
+            dt = data.get('created_at')
+            if dt:
+                chat.append({
+                    'sender': 'user',
+                    'text': data.get('message', ''),
+                    'timestamp': dt.strftime('%Y-%m-%d %H:%M'),
+                    '_dt': dt
+                })
+            # Also capture old admin replies stored within the same ticket
+            admin_reply = data.get('admin_reply')
+            if admin_reply and dt:
+                chat.append({
+                    'sender': 'admin',
+                    'text': admin_reply,
+                    'timestamp': dt.strftime('%Y-%m-%d %H:%M'),
+                    '_dt': dt + timedelta(seconds=1) # artificially offset slightly
+                })
+                
+        # Get admin -> user messages
+        admin_msgs = db.collection('admin_messages').where('user_id', '==', user_id).stream()
+        for am in admin_msgs:
+            data = am.to_dict()
+            dt = data.get('created_at')
+            if dt:
+                chat.append({
+                    'sender': 'admin',
+                    'text': data.get('message', ''),
+                    'timestamp': dt.strftime('%Y-%m-%d %H:%M'),
+                    '_dt': dt
+                })
+                
+        # Sort by datetime
+        chat.sort(key=lambda x: x['_dt'])
+        
+        # Remove the sort key
+        for c in chat:
+            del c['_dt']
+            
+        return jsonify({'status': 'success', 'chat': chat})
+    except Exception as e:
+        print(f"Error fetching chat for {user_id}: {e}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
 
 @app.route('/read_admin_message/<msg_id>', methods=['POST'])
 @login_required

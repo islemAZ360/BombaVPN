@@ -494,15 +494,25 @@
 
 <!-- Send Message Modal -->
 <div id="message-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:9999; align-items:center; justify-content:center;">
-    <div style="background:var(--card-bg, #1a1a2e); border:1px solid var(--border-color, #333); border-radius:16px; padding:2rem; max-width:400px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.5);">
-        <h3 style="margin-bottom:1rem; color:var(--text-primary, #fff);">Message User: <span id="msg-user-email" style="color:var(--primary); font-size:1rem;"></span></h3>
-        <form id="message-form" method="POST" action="">
-            <div style="margin-bottom: 1rem;">
-                <textarea name="message" class="form-control" rows="4" placeholder="Type your message here..." style="width: 100%;" required></textarea>
-            </div>
-            <div style="display:flex; gap:0.8rem; justify-content:flex-end;">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('message-modal')">Cancel</button>
-                <button type="submit" class="btn btn-primary">Send Message</button>
+    <div style="background:var(--card-bg, #1a1a2e); border:1px solid var(--border-color, #333); border-radius:16px; padding:1.5rem; max-width:500px; width:95%; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,0.5); animation: modalIn 0.25s ease;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; padding-bottom:1rem; border-bottom:1px solid var(--border-color, #333);">
+            <h3 style="margin:0; color:var(--text-primary, #fff); display:flex; align-items:center; gap:10px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                Chat: <span id="msg-user-email" style="color:var(--primary); font-size:1rem; margin-left:5px;"></span>
+            </h3>
+            <button type="button" class="icon-btn" onclick="closeModal('message-modal')" style="background:none; border:none; color:#aaa; cursor:pointer; font-size:1.5rem; padding:0;">&times;</button>
+        </div>
+        
+        <div id="chat-history" style="flex:1; overflow-y:auto; min-height:300px; max-height:400px; background:rgba(0,0,0,0.2); border-radius:8px; padding:1rem; margin-bottom:1rem; display:flex; flex-direction:column; gap:15px;">
+            <div style="text-align:center; color:#888; font-size:0.9rem; margin-top:20px;">Loading chat history...</div>
+        </div>
+
+        <form id="message-form" method="POST" action="" onsubmit="submitChatMessage(event)">
+            <div style="display:flex; gap:0.5rem; align-items:flex-end;">
+                <textarea id="chat-input" name="message" class="form-control" rows="2" placeholder="Type your reply here..." style="flex:1; resize:none; border-radius:8px; padding:10px; background:rgba(255,255,255,0.05); color:#fff; border:1px solid rgba(255,255,255,0.1);" required onkeydown="if(event.keyCode===13 && !event.shiftKey){event.preventDefault();submitChatMessage(event);}"></textarea>
+                <button type="submit" id="chat-submit-btn" class="btn btn-primary" style="padding:0 1.2rem; height:44px; border-radius:8px; display:flex; align-items:center; justify-content:center;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
             </div>
         </form>
     </div>
@@ -594,11 +604,104 @@
         document.getElementById('assign-modal').style.display = 'flex';
     }
 
-    function openMessageModal(userId, email) {
+    async function openMessageModal(userId, email) {
         const form = document.getElementById('message-form');
         form.action = "{{ url_for('send_admin_message', user_id='PLACEHOLDER') }}".replace('PLACEHOLDER', userId);
         document.getElementById('msg-user-email').textContent = email;
         document.getElementById('message-modal').style.display = 'flex';
+        
+        const chatContainer = document.getElementById('chat-history');
+        chatContainer.innerHTML = '<div style="text-align:center; color:#888; font-size:0.9rem; margin-top:20px;">Loading chat history...</div>';
+        
+        try {
+            const resp = await fetch(`/admin/api/chat/${userId}`);
+            const data = await resp.json();
+            
+            chatContainer.innerHTML = '';
+            if (data.chat && data.chat.length > 0) {
+                data.chat.forEach(msg => appendChatBubble(msg));
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            } else {
+                chatContainer.innerHTML = '<div style="text-align:center; color:#888; font-size:0.9rem; margin-top:20px;">No message history yet.</div>';
+            }
+        } catch(e) {
+            chatContainer.innerHTML = '<div style="text-align:center; color:red; font-size:0.9rem; margin-top:20px;">Failed to load chat history.</div>';
+        }
+    }
+    
+    function appendChatBubble(msg) {
+        const chatContainer = document.getElementById('chat-history');
+        const bubble = document.createElement('div');
+        const isAdmin = msg.sender === 'admin';
+        
+        bubble.style.maxWidth = '80%';
+        bubble.style.padding = '10px 14px';
+        bubble.style.borderRadius = '12px';
+        bubble.style.position = 'relative';
+        
+        if (isAdmin) {
+            bubble.style.alignSelf = 'flex-end';
+            bubble.style.background = 'rgba(0, 255, 204, 0.1)';
+            bubble.style.border = '1px solid rgba(0, 255, 204, 0.2)';
+            bubble.style.borderBottomRightRadius = '4px';
+            bubble.style.color = '#fff';
+        } else {
+            bubble.style.alignSelf = 'flex-start';
+            bubble.style.background = 'rgba(255, 255, 255, 0.05)';
+            bubble.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+            bubble.style.borderBottomLeftRadius = '4px';
+            bubble.style.color = '#ccc';
+        }
+        
+        bubble.innerHTML = `
+            <div style="font-size: 0.95rem; margin-bottom: 4px; word-wrap: break-word;">${msg.text.replace(/\n/g, '<br>')}</div>
+            <div style="font-size: 0.7rem; color: ${isAdmin ? 'rgba(0,255,204,0.6)' : 'rgba(255,255,255,0.4)'}; text-align: right;">${msg.timestamp}</div>
+        `;
+        
+        if (chatContainer.querySelector('div[style*="No message history"]')) {
+            chatContainer.innerHTML = '';
+        }
+        chatContainer.appendChild(bubble);
+    }
+    
+    async function submitChatMessage(e) {
+        e.preventDefault();
+        const form = document.getElementById('message-form');
+        const input = document.getElementById('chat-input');
+        const btn = document.getElementById('chat-submit-btn');
+        const text = input.value.trim();
+        
+        if (!text) return;
+        
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        
+        try {
+            const formData = new FormData();
+            formData.append('message', text);
+            
+            const resp = await fetch(form.action, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            });
+            
+            const result = await resp.json();
+            if (resp.ok && result.status === 'success') {
+                input.value = '';
+                appendChatBubble(result.chat_message);
+                const chatContainer = document.getElementById('chat-history');
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            } else {
+                alert(result.error || 'Failed to send message');
+            }
+        } catch(err) {
+            alert('Network error occurred');
+        } finally {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            input.focus();
+        }
     }
 </script>
 
