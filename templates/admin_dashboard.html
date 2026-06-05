@@ -292,12 +292,17 @@
                 <td>
                         <input type="text" name="price" value="{{ s.price }}" class="form-control" style="width: 80px; padding: 0.2rem 0.5rem;">
                 </td>
-                <td>{{ s.ip or s.original_ip }}</td>
-                <td>
-                    <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">{{ s.expires_at.strftime('%Y-%m-%d %H:%M') if s.expires_at else '' }}</div>
-                    {% if s.expires_at %}
-                    <div class="countdown-timer" data-expires="{{ s.expires_at.isoformat() }}" style="font-size: 0.8rem; color: var(--warning); margin-top: 4px; opacity: 0.8;"></div>
-                    {% endif %}
+                <td style="vertical-align: middle;">
+                    <div style="margin-top: 5px; font-size: 0.85rem; color: #aaa;">{{ s.ip or s.original_ip }}</div>
+                </td>
+                <td style="vertical-align: middle;">
+                    <div style="font-size: 0.8rem; color: #ccc;">
+                        <div style="margin-bottom: 2px;">📅 Uploaded: <span style="color: #fff;">{{ s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else 'Unknown' }}</span></div>
+                        <div style="margin-bottom: 2px;">⏳ Plan: <span class="smart-duration" data-seconds="{{ s.total_plan_seconds or (s.plan_days * 24 * 3600 if s.plan_days else 0) }}" style="color: var(--primary); font-weight: bold;"></span></div>
+                        <div>
+                            ⏳ Expires: <span class="live-countdown" data-expires="{{ s.expires_at.isoformat() if s.expires_at else '' }}">Calculating...</span>
+                        </div>
+                    </div>
                 </td>
                 <td style="white-space: nowrap;">
                         <button type="submit" class="action-icon-btn save-btn" title="{{ _('Save') }}">
@@ -655,6 +660,14 @@
         ruleInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.rule-input', 'rule-duration-preview')));
     });
 
+    // Initialize smart duration spans for static HTML
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.smart-duration').forEach(el => {
+            let secs = parseInt(el.getAttribute('data-seconds')) || 0;
+            el.textContent = formatDurationSmart(secs);
+        });
+    });
+    
     // Tag Input Visual System
     document.addEventListener('DOMContentLoaded', () => {
         const visualContainer = document.getElementById('tags-visual-container');
@@ -954,6 +967,14 @@
         ruleInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.rule-input', 'rule-duration-preview')));
     });
 
+    // Initialize smart duration spans for static HTML
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.smart-duration').forEach(el => {
+            let secs = parseInt(el.getAttribute('data-seconds')) || 0;
+            el.textContent = formatDurationSmart(secs);
+        });
+    });
+    
     // Tag Input Visual System
     document.addEventListener('DOMContentLoaded', () => {
         const visualContainer = document.getElementById('tags-visual-container');
@@ -1245,6 +1266,14 @@
         ruleInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.rule-input', 'rule-duration-preview')));
     });
 
+    // Initialize smart duration spans for static HTML
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.smart-duration').forEach(el => {
+            let secs = parseInt(el.getAttribute('data-seconds')) || 0;
+            el.textContent = formatDurationSmart(secs);
+        });
+    });
+    
     // Tag Input Visual System
     document.addEventListener('DOMContentLoaded', () => {
         const visualContainer = document.getElementById('tags-visual-container');
@@ -1461,6 +1490,14 @@
         ruleInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.rule-input', 'rule-duration-preview')));
     });
 
+    // Initialize smart duration spans for static HTML
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.smart-duration').forEach(el => {
+            let secs = parseInt(el.getAttribute('data-seconds')) || 0;
+            el.textContent = formatDurationSmart(secs);
+        });
+    });
+    
     // Tag Input Visual System
     document.addEventListener('DOMContentLoaded', () => {
         const visualContainer = document.getElementById('tags-visual-container');
@@ -1620,6 +1657,14 @@
         ruleInputs.forEach(i => i.addEventListener('input', () => calculatePreview('.rule-input', 'rule-duration-preview')));
     });
 
+    // Initialize smart duration spans for static HTML
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.smart-duration').forEach(el => {
+            let secs = parseInt(el.getAttribute('data-seconds')) || 0;
+            el.textContent = formatDurationSmart(secs);
+        });
+    });
+    
     // Tag Input Visual System
     document.addEventListener('DOMContentLoaded', () => {
         const visualContainer = document.getElementById('tags-visual-container');
