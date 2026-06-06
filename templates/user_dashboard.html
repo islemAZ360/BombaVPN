@@ -178,7 +178,7 @@
         {% endif %}
         
         <!-- Referral Section -->
-        {% if user.get('referral_code') %}
+        {% if user.get('referral_code') and subscriptions %}
         <div style="margin-top: 2rem; background: rgba(0,255,204,0.05); border: 1px solid rgba(0,255,204,0.2); border-radius: 12px; padding: 1.5rem;">
             <h3 style="margin-bottom: 0.5rem; color: #00ffcc; font-size: 1.2rem;">🎁 {{ _('WinFreeDays') }}</h3>
             <p style="color: #aaa; font-size: 0.95rem; margin-bottom: 1rem;">{{ _('ReferralDesc') | safe }}</p>
