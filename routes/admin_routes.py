@@ -384,17 +384,17 @@ def add_servers():
         return "Unauthorized", 403
         
     files = request.files.getlist('json_files')
-    plan_months = int(request.form.get('plan_months') or 0)
-    plan_days = int(request.form.get('plan_days') or 0)
-    plan_hours = int(request.form.get('plan_hours') or 0)
-    plan_minutes = int(request.form.get('plan_minutes') or 0)
-    plan_seconds = int(request.form.get('plan_seconds') or 0)
+    plan_months = int(request.form.get('plan_months') or '0')
+    plan_days = int(request.form.get('plan_days') or '0')
+    plan_hours = int(request.form.get('plan_hours') or '0')
+    plan_minutes = int(request.form.get('plan_minutes') or '0')
+    plan_seconds = int(request.form.get('plan_seconds') or '0')
     
-    real_months = int(request.form.get('real_months') or 0)
-    real_days = int(request.form.get('real_days') or 0)
-    real_hours = int(request.form.get('real_hours') or 0)
-    real_minutes = int(request.form.get('real_minutes') or 0)
-    real_seconds = int(request.form.get('real_seconds') or 0)
+    real_months = int(request.form.get('real_months') or '0')
+    real_days = int(request.form.get('real_days') or '0')
+    real_hours = int(request.form.get('real_hours') or '0')
+    real_minutes = int(request.form.get('real_minutes') or '0')
+    real_seconds = int(request.form.get('real_seconds') or '0')
     
     # Normalize mathematically
     total_plan_seconds = (plan_months * 30 * 24 * 3600) + (plan_days * 24 * 3600) + (plan_hours * 3600) + (plan_minutes * 60) + plan_seconds
@@ -505,17 +505,17 @@ def import_servers():
         return "Unauthorized", 403
         
     subscription_text = request.form.get('subscription_text', '').strip()
-    plan_months = int(request.form.get('plan_months') or 0)
-    plan_days = int(request.form.get('plan_days') or 0)
-    plan_hours = int(request.form.get('plan_hours') or 0)
-    plan_minutes = int(request.form.get('plan_minutes') or 0)
-    plan_seconds = int(request.form.get('plan_seconds') or 0)
+    plan_months = int(request.form.get('plan_months') or '0')
+    plan_days = int(request.form.get('plan_days') or '0')
+    plan_hours = int(request.form.get('plan_hours') or '0')
+    plan_minutes = int(request.form.get('plan_minutes') or '0')
+    plan_seconds = int(request.form.get('plan_seconds') or '0')
     
-    real_months = int(request.form.get('real_months') or 0)
-    real_days = int(request.form.get('real_days') or 0)
-    real_hours = int(request.form.get('real_hours') or 0)
-    real_minutes = int(request.form.get('real_minutes') or 0)
-    real_seconds = int(request.form.get('real_seconds') or 0)
+    real_months = int(request.form.get('real_months') or '0')
+    real_days = int(request.form.get('real_days') or '0')
+    real_hours = int(request.form.get('real_hours') or '0')
+    real_minutes = int(request.form.get('real_minutes') or '0')
+    real_seconds = int(request.form.get('real_seconds') or '0')
     
     # Normalize mathematically
     total_plan_seconds = (plan_months * 30 * 24 * 3600) + (plan_days * 24 * 3600) + (plan_hours * 3600) + (plan_minutes * 60) + plan_seconds
@@ -730,10 +730,10 @@ def manage_subscription(sub_id):
         
     elif action == 'modify':
         modify_type = request.form.get('modify_type', 'add')
-        days = int(request.form.get('days') or 0)
-        hours = int(request.form.get('hours') or 0)
-        minutes = int(request.form.get('minutes') or 0)
-        seconds = int(request.form.get('seconds') or 0)
+        days = int(request.form.get('days') or '0')
+        hours = int(request.form.get('hours') or '0')
+        minutes = int(request.form.get('minutes') or '0')
+        seconds = int(request.form.get('seconds') or '0')
         delta = timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
         
         current_expires = parse_dt(data.get('expires_at'))
@@ -809,9 +809,9 @@ def manage_user_sub(user_id):
                 email_val = user_data.get('email', f'user-{user_id}')
                 
                 
-                plan_days = int(s_data.get('plan_days') or 0)
-                plan_hours = int(s_data.get('plan_hours') or 0)
-                plan_minutes = int(s_data.get('plan_minutes') or 0)
+                plan_days = int(s_data.get('plan_days') or '0')
+                plan_hours = int(s_data.get('plan_hours') or '0')
+                plan_minutes = int(s_data.get('plan_minutes') or '0')
                 if not plan_days and not plan_hours and not plan_minutes:
                     plan_days = 30
                 duration = timedelta(days=plan_days, hours=plan_hours, minutes=plan_minutes)

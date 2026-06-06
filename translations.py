@@ -1,5 +1,5 @@
 TRANSLATIONS = {
-    'en': {
+    'en': {\n        'NoSourceLinks': 'No saved source links yet. Import servers from a link to show here.',
         'Login': 'Login',
         'Register': 'Register',
         'Email': 'Email Address',
@@ -166,11 +166,9 @@ TRANSLATIONS = {
         'TagGemini_Desc': 'Unblocks all restricted sites and apps, AND successfully unblocks Gemini (which is notoriously difficult for most other VPNs).',
         'TagLTE_Desc': 'Unblocks everything (except Gemini). Designed to work reliably even during severe internet disruptions or drone interference (e.g. in Russia). Highly recommended when using a SIM card / mobile data.',
         'TagRU_Desc': 'Specifically optimized to work inside Russia. These are actually external servers, but they are specially designed to bypass the restrictions on foreign sites in Russia, so they work perfectly to unblock "white list" blocks and all restricted sites efficiently.',
-        'TagTorrent_Desc': 'Unblocks everything (except Gemini), and allows high-speed, secure Torrent downloading.',
-        'NoSourceLinksSaved': 'No source links saved yet. Import servers from a link to display it here.',
-        'NoPricingRulesSaved': 'No pricing rules created yet. Add a rule below.'
+        'TagTorrent_Desc': 'Unblocks everything (except Gemini), and allows high-speed, secure Torrent downloading.'
     },
-    'ar': {
+    'ar': {\n        'NoSourceLinks': 'لا توجد روابط مصدر محفوظة بعد. قم باستيراد سيرفرات من رابط ليظهر هنا.',
         'Login': 'تسجيل الدخول',
         'Register': 'إنشاء حساب جديد',
         'Email': 'البريد الإلكتروني',
