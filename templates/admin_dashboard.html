@@ -28,19 +28,19 @@
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
         <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             <div style="font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px;">Total Revenue</div>
-            <div style="font-size: 1.8rem; font-weight: 700; color: #10b981;">{{ financial_stats.total_revenue | round(2) }} ₽</div>
+            <div id="kpi-total-revenue" style="font-size: 1.8rem; font-weight: 700; color: #10b981;">{{ financial_stats.total_revenue | round(2) }} ₽</div>
         </div>
         <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             <div style="font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px;">Monthly Revenue</div>
-            <div style="font-size: 1.8rem; font-weight: 700; color: #3b82f6;">{{ financial_stats.monthly_revenue | round(2) }} ₽</div>
+            <div id="kpi-monthly-revenue" style="font-size: 1.8rem; font-weight: 700; color: #3b82f6;">{{ financial_stats.monthly_revenue | round(2) }} ₽</div>
         </div>
         <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             <div style="font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px;">Pending Revenue</div>
-            <div style="font-size: 1.8rem; font-weight: 700; color: #f59e0b;">{{ financial_stats.pending_revenue | round(2) }} ₽</div>
+            <div id="kpi-pending-revenue" style="font-size: 1.8rem; font-weight: 700; color: #f59e0b;">{{ financial_stats.pending_revenue | round(2) }} ₽</div>
         </div>
         <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             <div style="font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px;">Outstanding Debts</div>
-            <div style="font-size: 1.8rem; font-weight: 700; color: #ef4444;">{{ financial_stats.outstanding_debts | round(2) }} ₽</div>
+            <div id="kpi-outstanding-debts" style="font-size: 1.8rem; font-weight: 700; color: #ef4444;">{{ financial_stats.outstanding_debts | round(2) }} ₽</div>
         </div>
     </div>
 
@@ -66,7 +66,7 @@
                     <th>Status</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="recent-transactions-tbody">
                 {% for txn in financial_stats.transactions %}
                 <tr>
                     <td style="color: #e2e8f0; font-family: monospace;">{{ txn.email }}</td>
@@ -2150,7 +2150,12 @@ function rescanServers() {
             const resp = await fetch('/api/admin/dashboard_sync');
             if (!resp.ok) return;
             const data = await resp.json();
-            
+
+            // 0. Live Analytics card (revenue KPIs, charts, recent transactions)
+            if (typeof updateAnalyticsUI === 'function') {
+                updateAnalyticsUI(data.financial_stats, data.server_stats);
+            }
+
             // 1. Update Server Statistics HUD
             if(data.server_stats) {
                 const hudBoxes = document.querySelectorAll('.hud-stat-box .hud-stat-number');
@@ -2409,6 +2414,10 @@ function rescanServers() {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // Chart instances kept on window so the 5s dashboard sync can update them live
+    window.revenueChartInstance = null;
+    window.serverSalesChartInstance = null;
+
     document.addEventListener('DOMContentLoaded', () => {
         const revData = {{ financial_stats.revenue_over_time | tojson }};
         const labels = Object.keys(revData).sort();
@@ -2420,7 +2429,7 @@ function rescanServers() {
         gradient.addColorStop(0, 'rgba(16, 185, 129, 0.5)');
         gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
 
-        new Chart(revCtx, {
+        window.revenueChartInstance = new Chart(revCtx, {
             type: 'line',
             data: {
                 labels: labels,
@@ -2440,6 +2449,7 @@ function rescanServers() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: false,
                 plugins: {
                     title: { display: true, text: 'Revenue Over Time', color: '#e2e8f0', font: { size: 16 } },
                     legend: { display: false }
@@ -2454,7 +2464,7 @@ function rescanServers() {
         // Donut chart for server stats
         const serverStats = {{ server_stats | tojson }};
         const serverCtx = document.getElementById('serverSalesChart').getContext('2d');
-        new Chart(serverCtx, {
+        window.serverSalesChartInstance = new Chart(serverCtx, {
             type: 'doughnut',
             data: {
                 labels: ['Gemini', 'YT', 'LTE', 'RU', 'Torrent'],
@@ -2468,6 +2478,7 @@ function rescanServers() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: false,
                 cutout: '75%',
                 plugins: {
                     title: { display: true, text: 'Servers by Type', color: '#e2e8f0', font: { size: 16 } },
@@ -2476,6 +2487,60 @@ function rescanServers() {
             }
         });
     });
+
+    // Live-update the Analytics card (KPIs, charts, recent transactions) from a
+    // dashboard_sync payload so it never needs a page reload.
+    function updateAnalyticsUI(financialStats, serverStats) {
+        if (financialStats) {
+            const setKpi = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = `${(Number(val) || 0).toFixed(2)} ₽`;
+            };
+            setKpi('kpi-total-revenue', financialStats.total_revenue);
+            setKpi('kpi-monthly-revenue', financialStats.monthly_revenue);
+            setKpi('kpi-pending-revenue', financialStats.pending_revenue);
+            setKpi('kpi-outstanding-debts', financialStats.outstanding_debts);
+
+            // Revenue-over-time line chart
+            if (window.revenueChartInstance && financialStats.revenue_over_time) {
+                const labels = Object.keys(financialStats.revenue_over_time).sort();
+                window.revenueChartInstance.data.labels = labels;
+                window.revenueChartInstance.data.datasets[0].data = labels.map(l => financialStats.revenue_over_time[l]);
+                window.revenueChartInstance.update();
+            }
+
+            // Recent Transactions table
+            const txBody = document.getElementById('recent-transactions-tbody');
+            if (txBody && Array.isArray(financialStats.transactions)) {
+                if (financialStats.transactions.length === 0) {
+                    txBody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #94a3b8;">No recent transactions.</td></tr>';
+                } else {
+                    txBody.innerHTML = financialStats.transactions.map(txn => {
+                        const statusBadge = txn.status === 'approved'
+                            ? '<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">Approved</span>'
+                            : '<span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">Rejected</span>';
+                        const receiptBtn = (txn.receipt_url && txn.id)
+                            ? `<a href="/admin/receipt/${txn.id}" target="_blank" class="btn btn-primary btn-small" style="padding: 2px 8px; font-size: 0.75rem; background: rgba(59, 130, 246, 0.2); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3);">Receipt</a>`
+                            : '';
+                        return `<tr>
+                            <td style="color: #e2e8f0; font-family: monospace;">${txn.email}</td>
+                            <td style="color: #94a3b8; font-size: 0.9rem;">${txn.date}</td>
+                            <td style="font-weight: bold; color: #10b981;">${txn.price} ₽</td>
+                            <td><div style="display: flex; gap: 10px; align-items: center;">${statusBadge}${receiptBtn}</div></td>
+                        </tr>`;
+                    }).join('');
+                }
+            }
+        }
+
+        // Servers-by-type donut chart
+        if (window.serverSalesChartInstance && serverStats) {
+            window.serverSalesChartInstance.data.datasets[0].data = [
+                serverStats.gemini, serverStats.yt, serverStats.lte, serverStats.ru, serverStats.torrent
+            ];
+            window.serverSalesChartInstance.update();
+        }
+    }
 
     function scrollToServer(serverId) {
         const row = document.getElementById('server-row-' + serverId);

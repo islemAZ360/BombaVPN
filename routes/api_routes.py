@@ -20,7 +20,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from helpers import *
-from helpers import _approve_request_logic, _reject_request_logic, _import_vless_servers
+from helpers import _approve_request_logic, _reject_request_logic, _import_vless_servers, compute_financial_stats
 
 api_bp = Blueprint('api', __name__)
 
@@ -239,16 +239,19 @@ def api_dashboard_sync():
     except Exception as e:
         print(f"Error fetching source_links: {e}")
     
+    financial_stats = compute_financial_stats(users_dict, now)
+
     payload = {
         'server_stats': server_stats,
         'all_users': all_users,
         'active_users': active_users,
         'servers': servers_list,
         'tickets': tickets,
-        'source_links': source_links_list
+        'source_links': source_links_list,
+        'financial_stats': financial_stats
     }
     serialize_dates(payload)
-    
+
     return jsonify(payload)
 
 @api_bp.route('/api/admin/pricing_rules', methods=['GET', 'POST'])

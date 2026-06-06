@@ -10,9 +10,78 @@ from extensions import current_app
 from supabase_client import supabase_admin as db
 from db_helpers import get_all_users, get_all_servers, get_all_messages, get_all_subscriptions, get_all_pricing_rules, get_all_source_links
 from db_helpers import invalidate_servers, invalidate_subscriptions, invalidate_users
-from utils import extract_ip_from_json, extract_name_from_json
+from utils import extract_ip_from_json, extract_name_from_json, parse_dt
 from vless_parser import extract_vless_from_text
 from translations import TRANSLATIONS
+
+def compute_financial_stats(users_dict, now):
+    """Build the Analytics figures (revenue KPIs, revenue-over-time, recent
+    transactions) from the `debts` and `purchase_requests` tables.
+
+    Shared by the full dashboard render and the live dashboard_sync endpoint so
+    the Analytics card and Recent Transactions table update without a reload.
+    `users_dict` maps user_id -> user dict (used to resolve emails); `now` is a
+    datetime used for the current-month revenue bucket.
+    """
+    financial_stats = {
+        'total_revenue': 0,
+        'monthly_revenue': 0,
+        'pending_revenue': 0,
+        'outstanding_debts': 0,
+        'revenue_over_time': {},
+        'transactions': []
+    }
+
+    current_month = now.month
+    current_year = now.year
+
+    try:
+        for doc in (db.table('debts').select('*').execute().data or []):
+            try:
+                financial_stats['outstanding_debts'] += float(doc.get('amount', 0))
+            except Exception:
+                pass
+
+        requests = db.table('purchase_requests').select('*').order('created_at', desc=True).execute().data or []
+        for doc in requests:
+            status = doc.get('status')
+            price_str = doc.get('price', '0')
+            try:
+                price_val = float(''.join(c for c in str(price_str) if c.isdigit() or c == '.'))
+            except Exception:
+                price_val = 0
+
+            created_at = parse_dt(doc.get('created_at'))
+            if created_at and created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+
+            if status == 'pending':
+                financial_stats['pending_revenue'] += price_val
+            elif status == 'approved':
+                financial_stats['total_revenue'] += price_val
+                if created_at and created_at.month == current_month and created_at.year == current_year:
+                    financial_stats['monthly_revenue'] += price_val
+                if created_at:
+                    day_str = created_at.strftime('%Y-%m-%d')
+                    financial_stats['revenue_over_time'][day_str] = financial_stats['revenue_over_time'].get(day_str, 0) + price_val
+
+            if status in ['approved', 'rejected'] and len(financial_stats['transactions']) < 10:
+                user_email = "Unknown"
+                if doc.get('user_id') in users_dict:
+                    user_email = users_dict[doc.get('user_id')].get('email', 'Unknown')
+                financial_stats['transactions'].append({
+                    'id': doc.get('id'),
+                    'email': user_email,
+                    'price': price_val,
+                    'status': status,
+                    'date': created_at.strftime('%Y-%m-%d %H:%M') if created_at else 'Unknown',
+                    'receipt_url': doc.get('receipt_url')
+                })
+    except Exception as e:
+        print("Error fetching financial stats:", e)
+
+    return financial_stats
+
 
 def get_translation(key, *args):
     lang = request.cookies.get('lang')
