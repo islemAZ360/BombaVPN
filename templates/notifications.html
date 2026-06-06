@@ -2,17 +2,17 @@
 {% block content %}
 <div class="header-actions">
     <h2>{{ _('NotificationsTitle') }}</h2>
-    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">{{ _('BackToDashboard') }}</a>
+    <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-secondary">{{ _('BackToDashboard') }}</a>
 </div>
 
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <h3>{{ _('SystemNotifications') }}</h3>
         <div style="display: flex; gap: 10px;">
-            <form action="{{ url_for('mark_all_read') }}" method="POST" class="ajax-form">
+            <form action="{{ url_for('admin.mark_all_read') }}" method="POST" class="ajax-form">
                 <button type="submit" class="btn btn-primary btn-small">{{ _('MarkAllRead') }}</button>
             </form>
-            <form action="{{ url_for('delete_all_notifs') }}" method="POST" class="ajax-form">
+            <form action="{{ url_for('admin.delete_all_notifs') }}" method="POST" class="ajax-form">
                 <button type="submit" class="btn btn-danger btn-small" style="background: rgba(255, 71, 87, 0.2); color: #ff4757; border: 1px solid rgba(255, 71, 87, 0.5);">🗑️ حذف الكل</button>
             </form>
         </div>
@@ -28,11 +28,11 @@
             </div>
             <div style="display: flex; flex-direction: column; gap: 5px; flex-shrink: 0;">
                 {% if not n.is_read %}
-                <form action="{{ url_for('mark_read', notif_id=n.id) }}" method="POST" class="ajax-form">
+                <form action="{{ url_for('admin.mark_read', notif_id=n.id) }}" method="POST" class="ajax-form">
                     <button type="submit" class="btn btn-secondary btn-small" style="font-size: 12px; padding: 5px 10px; width: 100%;">{{ _('Read') }}</button>
                 </form>
                 {% endif %}
-                <form action="{{ url_for('delete_notif', notif_id=n.id) }}" method="POST" class="ajax-form">
+                <form action="{{ url_for('admin.delete_notif', notif_id=n.id) }}" method="POST" class="ajax-form">
                     <button type="submit" class="btn btn-secondary btn-small" style="font-size: 12px; padding: 5px 10px; width: 100%; color: #ff4757;">🗑️ حذف</button>
                 </form>
             </div>

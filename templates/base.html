@@ -57,7 +57,7 @@
         <div class="nav-links" style="display: flex; gap: 10px; align-items: center; margin-right: 15px;">
             {% if request.user %}
                 {% if request.is_admin %}
-                    <a href="{{ url_for('admin_support') }}" class="btn btn-secondary btn-small" style="background: rgba(0, 255, 204, 0.1); color: #00ffcc; border-color: #00ffcc;">💬 Support</a>
+                    <a href="{{ url_for('admin.admin_support') }}" class="btn btn-secondary btn-small" style="background: rgba(0, 255, 204, 0.1); color: #00ffcc; border-color: #00ffcc;">💬 Support</a>
                 {% else %}
                     <button type="button" onclick="openUserChatModal('{{ request.user.uid }}', '{{ request.user.email }}')" class="btn btn-secondary btn-small" style="background: rgba(0, 255, 204, 0.1); color: #00ffcc; border-color: #00ffcc;">💬 Support</button>
                 {% endif %}
@@ -73,9 +73,9 @@
             </a>
             {% endif %}
             <select onchange="window.location.href=this.value" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(0, 255, 204, 0.3); color: white; padding: 6px 12px; border-radius: 8px; outline: none; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-size: 0.9rem; transition: all 0.3s ease;">
-                <option style="background: #0a1428; color: white;" value="{{ url_for('set_language', lang='ar') }}" {% if lang == 'ar' %}selected{% endif %}>العربية</option>
-                <option style="background: #0a1428; color: white;" value="{{ url_for('set_language', lang='en') }}" {% if lang == 'en' %}selected{% endif %}>English</option>
-                <option style="background: #0a1428; color: white;" value="{{ url_for('set_language', lang='ru') }}" {% if lang == 'ru' %}selected{% endif %}>Русский</option>
+                <option style="background: #0a1428; color: white;" value="{{ url_for('main.set_language', lang='ar') }}" {% if lang == 'ar' %}selected{% endif %}>العربية</option>
+                <option style="background: #0a1428; color: white;" value="{{ url_for('main.set_language', lang='en') }}" {% if lang == 'en' %}selected{% endif %}>English</option>
+                <option style="background: #0a1428; color: white;" value="{{ url_for('main.set_language', lang='ru') }}" {% if lang == 'ru' %}selected{% endif %}>Русский</option>
             </select>
         </div>
     </div>
