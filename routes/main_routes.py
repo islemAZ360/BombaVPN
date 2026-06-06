@@ -282,6 +282,11 @@ def send_message():
         }
         
         if image_data:
+            if not image_data.startswith('data:image/'):
+                if is_ajax:
+                    return jsonify({'status': 'error', 'error': 'Invalid image format'}), 400
+                flash('Invalid image format', 'danger')
+                return redirect(url_for('main.user_dashboard'))
             doc_data['image'] = image_data
             
         db.collection('messages').add(doc_data)

@@ -335,6 +335,12 @@
             const file = e.target.files[0];
             if (!file) return;
             
+            if (!file.type.startsWith('image/')) {
+                alert('الرجاء اختيار صورة فقط / Please select an image file only');
+                e.target.value = '';
+                return;
+            }
+            
             const reader = new FileReader();
             reader.onload = function(event) {
                 const img = new Image();

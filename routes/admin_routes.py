@@ -742,6 +742,11 @@ def send_admin_message(user_id):
         'is_read': False
     }
     if image_data:
+        if not image_data.startswith('data:image/'):
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
+                return jsonify({'status': 'error', 'error': 'Invalid image format'}), 400
+            flash('Invalid image format', 'danger')
+            return redirect(url_for('admin.admin_dashboard'))
         doc_data['image'] = image_data
         
     db.collection('admin_messages').add(doc_data)
