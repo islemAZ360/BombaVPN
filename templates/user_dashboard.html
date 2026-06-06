@@ -53,7 +53,7 @@
         </div>
     {% elif user.latest_req and user.latest_req.status == 'rejected' %}
         <div class="alert alert-danger" style="margin-top: 1.5rem; text-align: center; background: rgba(255, 0, 0, 0.1); border: 1px solid rgba(255, 0, 0, 0.3); color: #ff6b6b; padding: 15px; border-radius: 8px;">
-            عذراً، تم رفض طلبك الأخير من قبل الإدارة. يرجى مراجعة وصل الدفع الخاص بك والمحاولة من جديد، أو التواصل مع الدعم الفني.
+            {{ _('RejectedMsg') }}
         </div>
     {% endif %}
 
