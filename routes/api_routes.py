@@ -9,6 +9,7 @@ import requests
 from extensions import limiter, login_required, sub_serializer
 from supabase_client import supabase_admin
 from db_helpers import get_all_users, get_all_servers, get_all_messages, get_all_subscriptions, get_all_pricing_rules, get_all_source_links
+from db_helpers import invalidate_servers, invalidate_pricing_rules, invalidate_source_links
 from utils import extract_ip_from_json, modify_json_address, extract_name_from_json, generate_vless_uri, generate_full_config
 from vless_parser import extract_vless_from_text
 import urllib.parse
@@ -289,7 +290,9 @@ def api_pricing_rules():
             'price': price,
             'created_at': datetime.now(timezone.utc).isoformat()
         }).execute()
-        
+        # Drop the cache so the new rule shows up on the very next fetch
+        invalidate_pricing_rules()
+
         # If AJAX, return json. Otherwise redirect
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'status': 'success'})
@@ -301,6 +304,7 @@ def delete_pricing_rule(rule_id):
     if not getattr(request, 'is_admin', False):
         return jsonify({'error': 'Unauthorized'}), 403
     supabase_admin.table('pricing_rules').delete().eq('id', rule_id).execute()
+    invalidate_pricing_rules()
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'status': 'success'})
     return redirect(url_for('admin.admin_dashboard'))
@@ -376,7 +380,9 @@ def rescan_servers():
             'price': final_price
         }).eq('id', s_id).execute()
         updated_count += 1
-        
+
+    if updated_count:
+        invalidate_servers()
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'status': 'success', 'updated': updated_count})
     flash(f'تم تحديث {updated_count} سيرفرات بنجاح.', 'success')
@@ -455,6 +461,8 @@ def delete_source_link(link_id):
             # Detach the link from any servers that reference it (keep the servers)
             supabase_admin.table('servers').update({'source_link_id': None}).eq('source_link_id', lid).execute()
             supabase_admin.table('source_links').delete().eq('id', lid).execute()
+        invalidate_servers()
+        invalidate_source_links()
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 400
 

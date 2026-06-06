@@ -9,6 +9,7 @@ import requests
 from extensions import limiter, login_required, sub_serializer
 from supabase_client import supabase_admin
 from db_helpers import get_all_users, get_all_servers, get_all_messages, get_all_subscriptions, get_all_pricing_rules, get_all_source_links
+from db_helpers import invalidate_servers, invalidate_source_links
 from utils import extract_ip_from_json, modify_json_address, extract_name_from_json, generate_vless_uri, generate_full_config, parse_dt
 from vless_parser import extract_vless_from_text
 import urllib.parse
@@ -505,7 +506,17 @@ def add_servers():
 def import_servers():
     if not request.is_admin:
         return "Unauthorized", 403
-        
+
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    def _import_result(success, message, **extra):
+        if is_ajax:
+            payload = {'status': 'success' if success else 'error', 'message': message}
+            payload.update(extra)
+            return jsonify(payload), (200 if success else 400)
+        flash(message, 'success' if success else 'error')
+        return redirect(url_for('admin.admin_dashboard'))
+
     subscription_text = request.form.get('subscription_text', '').strip()
     plan_months = int(request.form.get('plan_months') or '0')
     plan_days = int(request.form.get('plan_days') or '0')
@@ -549,7 +560,7 @@ def import_servers():
             for d in (supabase_admin.table('source_links').select('*').eq('url', original_url).limit(1).execute().data or []):
                 existing_link = d
             if existing_link is not None:
-                source_link_id = existing_link.id
+                source_link_id = existing_link['id']
                 supabase_admin.table('source_links').update({
                     'total_plan_seconds': total_plan_seconds,
                     'total_real_seconds': total_real_seconds
@@ -564,22 +575,20 @@ def import_servers():
                     'total_real_seconds': total_real_seconds,
                     'created_at': datetime.now(timezone.utc).isoformat()
                 }).execute()
-                
+                invalidate_source_links()
+
 
             if not is_safe_url(subscription_text):
-                flash('رابط الاستيراد المرفق غير آمن أو يستهدف عناوين محلية محظورة.', 'error')
-                return redirect(url_for('admin.admin_dashboard'))
+                return _import_result(False, 'رابط الاستيراد المرفق غير آمن أو يستهدف عناوين محلية محظورة.')
 
             resp = requests.get(subscription_text, timeout=10, headers={'User-Agent': 'v2rayNG'})
             if resp.status_code == 200:
                 subscription_text = resp.text
             else:
-                flash(f'فشل جلب الرابط، الكود: {resp.status_code}', 'error')
-                return redirect(url_for('admin.admin_dashboard'))
+                return _import_result(False, f'فشل جلب الرابط، الكود: {resp.status_code}')
         except Exception as e:
-            flash(f'حدث خطأ أثناء جلب الرابط: {e}', 'error')
-            return redirect(url_for('admin.admin_dashboard'))
-            
+            return _import_result(False, f'حدث خطأ أثناء جلب الرابط: {e}')
+
     # Parse and add servers (shared with the per-link Sync flow)
     found, added = _import_vless_servers(
         subscription_text, total_plan_seconds, total_real_seconds,
@@ -587,11 +596,9 @@ def import_servers():
     )
 
     if found == 0:
-        flash('لم يتم العثور على سيرفرات VLESS صالحة في الرابط أو النص.', 'error')
-        return redirect(url_for('admin.admin_dashboard'))
+        return _import_result(False, 'لم يتم العثور على سيرفرات VLESS صالحة في الرابط أو النص.')
 
-    flash(f'تمت إضافة {added} سيرفرات VLESS مستوردة بنجاح!', 'success')
-    return redirect(url_for('admin.admin_dashboard'))
+    return _import_result(True, f'تمت إضافة {added} سيرفرات VLESS مستوردة بنجاح!', found=found, added=added)
 
 @admin_bp.route('/admin/edit_server/<server_id>', methods=['POST'])
 @login_required
@@ -621,6 +628,7 @@ def edit_server(server_id):
                     pass
                 
             supabase_admin.table('servers').update(update_data).eq('id', server_id).execute()
+            invalidate_servers()
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({'status': 'success'})
             flash('تم التعديل بنجاح', 'success')
@@ -640,7 +648,8 @@ def delete_server(server_id):
     if not request.is_admin: return "Unauthorized", 403
         
     supabase_admin.table('servers').delete().eq('id', server_id).execute()
-    
+    invalidate_servers()
+
     # If AJAX request, return JSON
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'status': 'success'})

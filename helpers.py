@@ -9,6 +9,7 @@ from flask import request
 from extensions import current_app
 from supabase_client import supabase_admin as db
 from db_helpers import get_all_users, get_all_servers, get_all_messages, get_all_subscriptions, get_all_pricing_rules, get_all_source_links
+from db_helpers import invalidate_servers, invalidate_subscriptions, invalidate_users
 from utils import extract_ip_from_json, extract_name_from_json
 from vless_parser import extract_vless_from_text
 from translations import TRANSLATIONS
@@ -302,6 +303,10 @@ def _import_vless_servers(subscription_text, total_plan_seconds, total_real_seco
             }).execute()
             added += 1
 
+    # New servers were written; drop the cache so the dashboard sees them at once
+    if added:
+        invalidate_servers()
+
     return len(parsed_configs), added
 
 def _approve_request_logic(request_id):
@@ -414,7 +419,10 @@ def _approve_request_logic(request_id):
         
         # Remove referred_by
         db.table('users').update({'referred_by': None}).eq('id', user_id).execute()
-        
+
+    # A subscription was created and user status may have changed; refresh caches
+    invalidate_subscriptions()
+    invalidate_users()
     return True, "Success"
 
 def _reject_request_logic(request_id):

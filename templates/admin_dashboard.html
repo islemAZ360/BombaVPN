@@ -1951,6 +1951,13 @@ function rescanServers() {
                 updateTagsUI();
             }
         });
+
+        // Reset the visual tag chips (used after a pricing rule is added via AJAX)
+        window.clearPricingTags = function() {
+            tagsArray = [];
+            if (visualInput) visualInput.value = '';
+            updateTagsUI();
+        };
     });
 
     // Dynamic Pricing Rules logic
@@ -2537,22 +2544,19 @@ async function submitAjaxForm(event) {
         }
 
         if (isSuccess) {
+            const action = form.action;
+            const isPricingRule = action.includes('api/admin/pricing_rules');
+            const isRowAction = action.includes('/delete') || action.includes('delete_') || action.includes('manage_user_sub') || action.includes('approve_') || action.includes('reject_');
+
             // clear inputs for add forms
-            if (form.action.includes('add_') || form.action.includes('import_') || form.action.includes('api/admin/pricing_rules') || form.action.includes('api/admin/source_links')) {
+            if (action.includes('add_') || action.includes('import_') || isPricingRule || action.includes('api/admin/source_links')) {
                 form.reset();
-                if (form.id === 'add-pricing-rule-form') { // clear custom tags
-                    window.currentTags = [];
-                    const tagsList = document.getElementById('tags-list');
-                    if(tagsList) tagsList.innerHTML = '';
-                    const hiddenInput = document.getElementById('hidden-tags-input');
-                    if(hiddenInput) hiddenInput.value = '';
+                // Pricing-rule add form: also reset the visual tag chips
+                if (isPricingRule && !isRowAction && typeof window.clearPricingTags === 'function') {
+                    window.clearPricingTags();
                 }
             }
 
-            // Determine if it's a row deletion/action
-            const isRowAction = form.action.includes('/delete') || form.action.includes('delete_') || form.action.includes('manage_user_sub') || form.action.includes('approve_') || form.action.includes('reject_');
-            const isPricingRuleAdd = form.action.includes('api/admin/pricing_rules') && !isRowAction;
-            
             if (isRowAction) {
                 // Remove the row smoothly. Handle tr, request-card, li, or just the parent div for pricing rules
                 const row = form.closest('tr') || form.closest('.request-card') || form.closest('li');
@@ -2566,11 +2570,16 @@ async function submitAjaxForm(event) {
                     setTimeout(() => form.parentElement.remove(), 300);
                 }
             }
-            
-            // Always trigger localized syncs to ensure UI reflects the new state instantly without ANY DOM replacement
-            if (typeof fetchDashboardSync === 'function') fetchDashboardSync();
-            if (typeof fetchPendingRequests === 'function') fetchPendingRequests();
-            if (typeof fetchPricingRules === 'function') fetchPricingRules();
+
+            // Trigger ONLY the localized sync that this action affects, so the rest of the
+            // page is never re-rendered (no full-table flash that looks like a reload).
+            if (isPricingRule) {
+                // Pricing rules add/delete only touch the rules list.
+                if (typeof fetchPricingRules === 'function') fetchPricingRules();
+            } else {
+                if (typeof fetchDashboardSync === 'function') fetchDashboardSync();
+                if (typeof fetchPendingRequests === 'function') fetchPendingRequests();
+            }
         }
     } catch(err) {
         console.error(err);
@@ -2612,7 +2621,6 @@ async function softReloadDashboard() {
     } catch(err) {
         console.error('Soft reload failed:', err);
     }
-}
 }
 
 </script>
