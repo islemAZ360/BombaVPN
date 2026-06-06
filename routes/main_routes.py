@@ -417,6 +417,14 @@ def get_subscription(token):
                 
                 vless_uri = None
                 server_name = server.get('name', 'BombaVPN Server')
+                
+                # Prepend country flag emoji if available
+                country_code = server.get('country_code', '').upper()
+                if country_code and len(country_code) == 2:
+                    flag_emoji = chr(ord(country_code[0]) + 127397) + chr(ord(country_code[1]) + 127397)
+                    if flag_emoji not in server_name:
+                        server_name = f"{flag_emoji} {server_name}"
+                        
                 import urllib.parse
                 safe_name = urllib.parse.quote(server_name)
                 
