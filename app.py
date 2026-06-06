@@ -113,7 +113,7 @@ def before_request_handler():
     except:
         pass
         
-    if request.method == 'POST' and request.endpoint not in ['api_bp.ping', 'api_bp.debug_check', 'auth_bp.session_login', 'api_bp.telegram_webhook']:
+    if request.method == 'POST' and request.endpoint not in ['api.ping', 'api.debug_check', 'auth.session_login', 'api.telegram_webhook', 'api.setup_telegram_webhook']:
         origin = request.headers.get('Origin')
         referer = request.headers.get('Referer')
         host_url = request.host_url.rstrip('/')
