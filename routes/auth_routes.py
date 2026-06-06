@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, current_app
 from datetime import datetime, timedelta, timezone
 import os
-from extensions import db, limiter, login_required
+from extensions import limiter, login_required
 from supabase_client import supabase, supabase_admin
 
 auth_bp = Blueprint('auth', __name__)

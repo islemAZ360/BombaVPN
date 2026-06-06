@@ -6,7 +6,7 @@ import os
 import json
 import uuid
 import requests
-from extensions import db, limiter, login_required, sub_serializer
+from extensions import limiter, login_required, sub_serializer
 from supabase_client import supabase_admin
 from db_helpers import get_all_users, get_all_servers, get_all_messages, get_all_subscriptions, get_all_pricing_rules, get_all_source_links
 from utils import extract_ip_from_json, modify_json_address, extract_name_from_json, generate_vless_uri, generate_full_config

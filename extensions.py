@@ -14,7 +14,6 @@ limiter = Limiter(
 )
 
 # Dummy references to prevent import errors in scripts
-db = None
 
 # Serializer for secure tokens
 sub_serializer = URLSafeSerializer(os.environ.get('SECRET_KEY', 'bomba_vpn_fallback_secret_key_12345'))

@@ -4,7 +4,7 @@ import time
 from datetime import datetime, timezone
 from flask import Flask, render_template, request, redirect, url_for
 
-from extensions import limiter, db
+from extensions import limiter
 from db_helpers import get_all_users, get_all_servers, get_all_messages, get_all_subscriptions, get_all_pricing_rules, get_all_source_links
 
 # Import the Blueprints
