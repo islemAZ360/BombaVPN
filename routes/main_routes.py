@@ -8,7 +8,7 @@ import requests
 from extensions import limiter, login_required, sub_serializer
 from supabase_client import supabase_admin
 from db_helpers import get_all_users, get_all_servers, get_all_messages, get_all_subscriptions, get_all_pricing_rules, get_all_source_links
-from utils import extract_ip_from_json, modify_json_address, extract_name_from_json, generate_vless_uri, generate_full_config
+from utils import extract_ip_from_json, modify_json_address, extract_name_from_json, generate_vless_uri, generate_full_config, parse_dt
 from vless_parser import extract_vless_from_text
 import urllib.parse
 import socket
@@ -76,14 +76,10 @@ def pay():
     for s in (supabase_admin.table('servers').select('*').execute().data or []):
         s_exp = s.get('expires_at')
         if s_exp:
-            if None is None:
-                s_exp = datetime.fromisoformat(s_exp.replace('Z', '+00:00'))
-            
-            if s_exp > now:
-                
+            s_exp = parse_dt(s_exp)
+            if s_exp and s_exp > now:
                 servers.append(s)
         else:
-            
             servers.append(s)
         
     if request.method == 'POST':
@@ -202,8 +198,7 @@ def user_dashboard():
                 
         for sub in (supabase_admin.table('subscriptions').select('*').eq('user_id', user_id).execute().data or []):
             if 'expires_at' in sub and sub['expires_at']:
-                if isinstance(sub['expires_at'], datetime):
-                    sub['expires_at'] = sub['expires_at']
+                sub['expires_at'] = parse_dt(sub['expires_at'])
             
             if sub.get('server_id'):
                 if sub['server_id'] in server_map:
@@ -346,7 +341,7 @@ def api_user_status():
     reqs = supabase_admin.table('purchase_requests').select('*').eq('user_id', user_id).execute().data or []
     latest_req_status = ""
     if reqs:
-        reqs.sort(key=lambda x: datetime.fromisoformat(x.get('created_at').replace('Z', '+00:00')).timestamp() if x.get('created_at') else 0, reverse=True)
+        reqs.sort(key=lambda x: parse_dt(x.get('created_at')).timestamp() if x.get('created_at') else 0, reverse=True)
         latest_req_status = reqs[0].get('status', '')
 
     return jsonify({
@@ -402,9 +397,8 @@ def get_subscription(token):
         if status == 'expired':
             is_expired = True
         elif expires_at:
-            if isinstance(expires_at, str):
-                expires_at = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
-            if expires_at < now:
+            expires_at = parse_dt(expires_at)
+            if expires_at and expires_at < now:
                 is_expired = True
                 if status != 'expired':
                     supabase_admin.table('subscriptions').update({'status': 'expired'}).eq('id', sub_doc.get('id')).execute()

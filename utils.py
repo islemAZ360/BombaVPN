@@ -320,3 +320,10 @@ def generate_full_config(json_str, active_address=None):
     except Exception as e:
         print(f"Error generating full config: {e}")
         return None
+
+from datetime import datetime
+def parse_dt(dt_val):
+    if not dt_val: return None
+    if isinstance(dt_val, str):
+        return datetime.fromisoformat(dt_val.replace('Z', '+00:00'))
+    return dt_val

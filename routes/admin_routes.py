@@ -9,7 +9,7 @@ import requests
 from extensions import limiter, login_required, sub_serializer
 from supabase_client import supabase_admin
 from db_helpers import get_all_users, get_all_servers, get_all_messages, get_all_subscriptions, get_all_pricing_rules, get_all_source_links
-from utils import extract_ip_from_json, modify_json_address, extract_name_from_json, generate_vless_uri, generate_full_config
+from utils import extract_ip_from_json, modify_json_address, extract_name_from_json, generate_vless_uri, generate_full_config, parse_dt
 from vless_parser import extract_vless_from_text
 import urllib.parse
 import socket
@@ -31,7 +31,7 @@ def admin_dashboard():
     for doc in (supabase_admin.table('servers').select('*').execute().data or []):
         data = doc
         if 'expires_at' in data and data['expires_at']:
-            data['expires_at'] = data['expires_at'].replace(tzinfo=None)
+            data['expires_at'] = parse_dt(data['expires_at']).replace(tzinfo=None)
             if data['expires_at'] <= now:
                 continue # Skip expired servers
         servers.append(data)
@@ -229,7 +229,7 @@ def admin_debts():
             sub_id = doc.get('id')
             user_id = sub.get('user_id')
             server_id = sub.get('server_id')
-            sub_exp = sub.get('expires_at')
+            sub_exp = parse_dt(sub.get('expires_at'))
             
             if not server_id or not sub_exp:
                 continue
@@ -248,7 +248,7 @@ def admin_debts():
                 else:
                     continue
                     
-            s_exp = s_data.get('expires_at')
+            s_exp = parse_dt(s_data.get('expires_at'))
             if not s_exp:
                 continue
                 
@@ -294,7 +294,7 @@ def expired_servers_dashboard():
     for doc in (supabase_admin.table('servers').select('*').execute().data or []):
         data = doc
         if 'expires_at' in data and data['expires_at']:
-            data['expires_at'] = data['expires_at'].replace(tzinfo=None)
+            data['expires_at'] = parse_dt(data['expires_at']).replace(tzinfo=None)
             if data['expires_at'] <= now:
                 servers.append(data)
                 
@@ -673,7 +673,7 @@ def manage_subscription(sub_id):
         seconds = int(request.form.get('seconds') or 0)
         delta = timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
         
-        current_expires = data.get('expires_at')
+        current_expires = parse_dt(data.get('expires_at'))
         if current_expires:
             if current_expires.tzinfo is None:
                 current_expires = current_expires.replace(tzinfo=timezone.utc)
