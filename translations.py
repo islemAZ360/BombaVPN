@@ -1,5 +1,6 @@
 TRANSLATIONS = {
-    'en': {\n        'NoSourceLinks': 'No saved source links yet. Import servers from a link to show here.',
+    'en': {
+        'NoSourceLinks': 'No saved source links yet. Import servers from a link to show here.',
         'Login': 'Login',
         'Register': 'Register',
         'Email': 'Email Address',
@@ -168,7 +169,8 @@ TRANSLATIONS = {
         'TagRU_Desc': 'Specifically optimized to work inside Russia. These are actually external servers, but they are specially designed to bypass the restrictions on foreign sites in Russia, so they work perfectly to unblock "white list" blocks and all restricted sites efficiently.',
         'TagTorrent_Desc': 'Unblocks everything (except Gemini), and allows high-speed, secure Torrent downloading.'
     },
-    'ar': {\n        'NoSourceLinks': 'لا توجد روابط مصدر محفوظة بعد. قم باستيراد سيرفرات من رابط ليظهر هنا.',
+    'ar': {
+        'NoSourceLinks': 'لا توجد روابط مصدر محفوظة بعد. قم باستيراد سيرفرات من رابط ليظهر هنا.',
         'Login': 'تسجيل الدخول',
         'Register': 'إنشاء حساب جديد',
         'Email': 'البريد الإلكتروني',
