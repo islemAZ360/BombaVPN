@@ -642,6 +642,8 @@ def manage_subscription(sub_id):
             current_expires = datetime.now(timezone.utc)
             
         if modify_type == 'add':
+            if current_expires < datetime.now(timezone.utc):
+                current_expires = datetime.now(timezone.utc)
             new_expires = current_expires + delta
         elif modify_type == 'subtract':
             new_expires = current_expires - delta
@@ -702,9 +704,11 @@ def manage_user_sub(user_id):
                 email_val = user_data.get('email', f'user-{user_id}')
                 
                 
-                plan_days = int(s_data.get('plan_days', 0))
-                plan_hours = int(s_data.get('plan_hours', 0))
-                plan_minutes = int(s_data.get('plan_minutes', 0))
+                plan_days = int(s_data.get('plan_days') or 0)
+                plan_hours = int(s_data.get('plan_hours') or 0)
+                plan_minutes = int(s_data.get('plan_minutes') or 0)
+                if not plan_days and not plan_hours and not plan_minutes:
+                    plan_days = 30
                 duration = timedelta(days=plan_days, hours=plan_hours, minutes=plan_minutes)
                 
                 new_sub_ref.set({
