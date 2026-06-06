@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
+<div id="dashboard-main-content">
 <div class="header-actions" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
     <h2>{{ _('AdminDashboard') }}</h2>
     <a href="{{ url_for('admin.admin_debts') }}" class="btn btn-hollow-danger btn-small" style="display:flex; align-items:center; gap:6px;">
@@ -2484,5 +2485,116 @@ function rescanServers() {
             }, 2000);
         }
     }
+
+// --- Universal AJAX Form Handler (Soft Reload) ---
+document.addEventListener('DOMContentLoaded', () => {
+    // Attach to all POST forms dynamically
+    document.addEventListener('submit', function(e) {
+        const form = e.target;
+        if (form.tagName === 'FORM' && form.method && form.method.toUpperCase() === 'POST' && !form.hasAttribute('data-no-ajax')) {
+            submitAjaxForm(e);
+        }
+    });
+});
+
+async function submitAjaxForm(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    const submitBtns = form.querySelectorAll('button[type="submit"]');
+    const originalTexts = [];
+    submitBtns.forEach((btn, idx) => {
+        originalTexts[idx] = btn.innerHTML;
+        btn.disabled = true;
+        if(btn.classList.contains('action-icon-btn')) {
+            btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spinning-loader"><circle cx="12" cy="12" r="10"></circle><path d="M12 2v4"></path></svg>';
+        } else {
+            btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spinning-loader" style="vertical-align: middle; margin-right: 5px;"><circle cx="12" cy="12" r="10"></circle><path d="M12 2v4"></path></svg> Processing...';
+        }
+    });
+
+    try {
+        const response = await fetch(form.action, {
+            method: form.method || 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        
+        const resultText = await response.text();
+        let isSuccess = true;
+        try {
+            const data = JSON.parse(resultText);
+            if (data.status === 'success') {
+                if (typeof showToast !== 'undefined') showToast(data.message || 'Action completed successfully', 'success');
+            } else {
+                isSuccess = false;
+                if (typeof showToast !== 'undefined') showToast(data.message || 'Error occurred', 'error');
+            }
+        } catch(e) {
+            // Not JSON -> Dashboard redirect (success by default)
+            if (typeof showToast !== 'undefined') showToast('Action completed successfully!', 'success');
+        }
+
+        if (isSuccess) {
+            // We soft reload the entire dashboard main content wrapper
+            await softReloadDashboard();
+            
+            // clear inputs for add forms
+            if (form.action.includes('add_') || form.action.includes('import_') || form.action.includes('api/admin/pricing_rules') || form.action.includes('api/admin/source_links')) {
+                form.reset();
+                if (form.id === 'add-pricing-rule-form') { // clear custom tags
+                    window.currentTags = [];
+                    const tagsList = document.getElementById('tags-list');
+                    if(tagsList) tagsList.innerHTML = '';
+                    const hiddenInput = document.getElementById('hidden-tags-input');
+                    if(hiddenInput) hiddenInput.value = '';
+                }
+            }
+        }
+    } catch(err) {
+        console.error(err);
+        if (typeof showToast !== 'undefined') showToast('Network error occurred.', 'error');
+    } finally {
+        submitBtns.forEach((btn, idx) => {
+            btn.disabled = false;
+            btn.innerHTML = originalTexts[idx];
+        });
+    }
+}
+
+async function softReloadDashboard() {
+    try {
+        const response = await fetch(window.location.href);
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        const newEl = doc.getElementById('dashboard-main-content');
+        const oldEl = document.getElementById('dashboard-main-content');
+        
+        if (newEl && oldEl) {
+            oldEl.innerHTML = newEl.innerHTML;
+            
+            // Execute scripts inside the new content to re-initialize charts and listeners
+            const scripts = oldEl.querySelectorAll('script');
+            scripts.forEach(script => {
+                const newScript = document.createElement('script');
+                Array.from(script.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                newScript.appendChild(document.createTextNode(script.innerHTML));
+                script.parentNode.replaceChild(newScript, script);
+            });
+            
+            // re-trigger dynamic scripts that are outside main content if any
+            if (typeof fetchPricingRules !== 'undefined') fetchPricingRules();
+            if (typeof fetchSourceLinks !== 'undefined') fetchSourceLinks();
+        }
+    } catch(err) {
+        console.error('Soft reload failed:', err);
+    }
+}
+}
+
 </script>
+</div>
 {% endblock %}
