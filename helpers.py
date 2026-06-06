@@ -349,6 +349,13 @@ def _import_vless_servers(subscription_text, total_plan_seconds, total_real_seco
                 best_rule = max(matched_rules, key=lambda r: len(r['tags']))
                 final_price = best_rule['price']
 
+            # Safe price: Auto Import / Sync have no price field, so final_price may
+            # be an empty string. float('') would raise and abort the whole import.
+            try:
+                final_price = float(final_price)
+            except (TypeError, ValueError):
+                final_price = 0.0
+
             existing_servers.append(final_name)
             if original_link:
                 existing_links.add(original_link)
@@ -363,7 +370,7 @@ def _import_vless_servers(subscription_text, total_plan_seconds, total_real_seco
                 'country_code': cc.lower() if cc else None,
                 'json_config': content,
                 'vless_link': original_link,
-                'price': float(final_price),
+                'price': final_price,
                 'total_plan_seconds': total_plan_seconds,
                 'plan_minutes': plan_minutes,
                 'tags': keywords,

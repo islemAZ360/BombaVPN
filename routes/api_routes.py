@@ -435,10 +435,14 @@ def sync_link(link_id):
 
     plan_days = total_plan_seconds // (24 * 3600)
 
-    found, added = _import_vless_servers(
-        resp.text, total_plan_seconds, total_real_seconds,
-        plan_days, 0, '', pricing_rules, link_id, dedup=True
-    )
+    try:
+        found, added = _import_vless_servers(
+            resp.text, total_plan_seconds, total_real_seconds,
+            plan_days, 0, '', pricing_rules, link_id, dedup=True
+        )
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({'status': 'error', 'message': f'فشل تحليل/إضافة السيرفرات: {e}'}), 400
 
     return jsonify({'status': 'success', 'found': found, 'added': added})
 

@@ -2597,15 +2597,16 @@ async function submitAjaxForm(event) {
         let isSuccess = true;
         try {
             const data = JSON.parse(resultText);
+            // showToast signature is (type, title, message)
             if (data.status === 'success') {
-                if (typeof showToast !== 'undefined') showToast(data.message || 'Action completed successfully', 'success');
+                if (typeof showToast !== 'undefined') showToast('success', 'تم', data.message || 'Action completed successfully');
             } else {
                 isSuccess = false;
-                if (typeof showToast !== 'undefined') showToast(data.message || 'Error occurred', 'error');
+                if (typeof showToast !== 'undefined') showToast('error', 'خطأ', data.message || 'Error occurred');
             }
         } catch(e) {
             // Not JSON -> Dashboard redirect (success by default)
-            if (typeof showToast !== 'undefined') showToast('Action completed successfully!', 'success');
+            if (typeof showToast !== 'undefined') showToast('success', 'تم', 'Action completed successfully!');
         }
 
         if (isSuccess) {
@@ -2648,7 +2649,7 @@ async function submitAjaxForm(event) {
         }
     } catch(err) {
         console.error(err);
-        if (typeof showToast !== 'undefined') showToast('Network error occurred.', 'error');
+        if (typeof showToast !== 'undefined') showToast('error', 'خطأ', 'Network error occurred.');
     } finally {
         submitBtns.forEach((btn, idx) => {
             btn.disabled = false;

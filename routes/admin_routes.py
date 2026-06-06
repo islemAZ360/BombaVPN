@@ -533,10 +533,14 @@ def import_servers():
             return _import_result(False, f'حدث خطأ أثناء جلب الرابط: {e}')
 
     # Parse and add servers (shared with the per-link Sync flow)
-    found, added = _import_vless_servers(
-        subscription_text, total_plan_seconds, total_real_seconds,
-        plan_days, plan_minutes, price_base, pricing_rules, source_link_id
-    )
+    try:
+        found, added = _import_vless_servers(
+            subscription_text, total_plan_seconds, total_real_seconds,
+            plan_days, plan_minutes, price_base, pricing_rules, source_link_id
+        )
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return _import_result(False, f'فشل تحليل/إضافة السيرفرات: {e}')
 
     if found == 0:
         return _import_result(False, 'لم يتم العثور على سيرفرات VLESS صالحة في الرابط أو النص.')
