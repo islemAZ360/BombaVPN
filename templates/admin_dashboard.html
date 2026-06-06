@@ -2537,9 +2537,6 @@ async function submitAjaxForm(event) {
         }
 
         if (isSuccess) {
-            // We soft reload the entire dashboard main content wrapper
-            await softReloadDashboard();
-            
             // clear inputs for add forms
             if (form.action.includes('add_') || form.action.includes('import_') || form.action.includes('api/admin/pricing_rules') || form.action.includes('api/admin/source_links')) {
                 form.reset();
@@ -2550,6 +2547,32 @@ async function submitAjaxForm(event) {
                     const hiddenInput = document.getElementById('hidden-tags-input');
                     if(hiddenInput) hiddenInput.value = '';
                 }
+            }
+
+            // Determine if it's a row deletion/action
+            const isRowAction = form.action.includes('/delete') || form.action.includes('delete_') || form.action.includes('manage_user_sub') || form.action.includes('approve_') || form.action.includes('reject_');
+            
+            if (isRowAction) {
+                // Remove the row smoothly
+                const row = form.closest('tr');
+                if (row) {
+                    row.style.transition = 'all 0.3s ease';
+                    row.style.opacity = '0';
+                    setTimeout(() => row.remove(), 300);
+                } else if (form.closest('.request-card') || form.closest('li')) {
+                    const card = form.closest('.request-card') || form.closest('li');
+                    card.style.transition = 'all 0.3s ease';
+                    card.style.opacity = '0';
+                    setTimeout(() => card.remove(), 300);
+                }
+                
+                // Trigger localized syncs instead of full DOM replacement
+                if (typeof fetchDashboardSync === 'function') fetchDashboardSync();
+                if (typeof loadPendingRequests === 'function') loadPendingRequests();
+                if (typeof loadPricingRules === 'function' && form.action.includes('pricing_rules')) loadPricingRules();
+            } else {
+                // For Add/Import operations, we soft reload to ensure new data appears
+                await softReloadDashboard();
             }
         }
     } catch(err) {
