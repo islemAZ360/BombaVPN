@@ -208,14 +208,11 @@
         });
     </script>
 
-    <!-- Firebase Auth -->
-    <script type="module">
-        import { auth, signOut } from "{{ url_for('static', filename='firebase_config.js') }}";
+    <script>
         const logoutBtn = document.getElementById('logout-btn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
-                await signOut(auth);
                 await fetch('/api/sessionLogout', { method: 'POST' });
                 window.location.href = '/login';
             });

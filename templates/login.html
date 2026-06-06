@@ -35,7 +35,7 @@
 <script>
     const supabaseUrl = '{{ supabase_url }}';
     const supabaseKey = '{{ supabase_anon_key }}';
-    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
     
     const btn = document.getElementById('google-btn');
     const originalBtnContent = btn.innerHTML;
@@ -53,7 +53,7 @@
     }
 
     // Listen for auth state changes (e.g. returning from Google OAuth)
-    supabase.auth.onAuthStateChange((event, session) => {
+    supabaseClient.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_IN' && session) {
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner"></span>';
@@ -75,7 +75,7 @@
                     const data = await response.json().catch(() => ({}));
                     showToast('error', '{{ _("Error") }}', data.error || 'Login Error');
                     // If backend rejects, sign out from frontend too
-                    await supabase.auth.signOut();
+                    await supabaseClient.auth.signOut();
                 }
             }).catch(err => {
                 resetBtn();
@@ -89,7 +89,7 @@
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner"></span>';
         
-        const { data, error } = await supabase.auth.signInWithOAuth({
+        const { data, error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
             options: {
                 redirectTo: window.location.origin + '/login'
