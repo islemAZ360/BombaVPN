@@ -6,8 +6,8 @@ import os
 import json
 import uuid
 import requests
-from firebase_admin import firestore
-from extensions import db, limiter, login_required, FIREBASE_READY, sub_serializer
+from extensions import limiter, login_required, sub_serializer
+from supabase_client import supabase_admin
 from db_helpers import get_all_users, get_all_servers, get_all_messages, get_all_subscriptions, get_all_pricing_rules, get_all_source_links
 from utils import extract_ip_from_json, modify_json_address, extract_name_from_json, generate_vless_uri, generate_full_config
 from vless_parser import extract_vless_from_text
@@ -27,9 +27,8 @@ api_bp = Blueprint('api', __name__)
 @login_required
 def api_available_servers():
     servers = []
-    for doc in db.collection('servers').stream():
-        s = doc.to_dict()
-        s['id'] = doc.id
+    servers_resp = supabase_admin.table('servers').select('*').execute()
+    for s in (servers_resp.data or []):
         # Clean non-serializable fields
         if 'expires_at' in s and s['expires_at']:
             s['expires_at'] = s['expires_at'].isoformat() + 'Z'
@@ -218,9 +217,8 @@ def api_dashboard_sync():
     source_links_list = []
     try:
         docs_by_url = {}
-        for doc in db.collection('source_links').stream():
-            d = doc.to_dict()
-            d['id'] = doc.id
+        resp = supabase_admin.table('source_links').select('*').execute()
+        for d in (resp.data or []):
             if d.get('created_at') and isinstance(d['created_at'], datetime):
                 d['created_at'] = d['created_at']
             docs_by_url.setdefault(d.get('url', ''), []).append(d)
@@ -284,13 +282,13 @@ def api_pricing_rules():
         
         tags_list = [tag.strip().lower() for tag in tags_str.split(',') if tag.strip()]
         
-        db.collection('pricing_rules').add({
+        supabase_admin.table('pricing_rules').insert({
             'tags': tags_list,
             'duration_days': duration_days,
             'total_duration_seconds': total_duration_seconds,
             'price': price,
-            'created_at': datetime.now(timezone.utc)
-        })
+            'created_at': datetime.now(timezone.utc).isoformat()
+        }).execute()
         
         # If AJAX, return json. Otherwise redirect
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -302,7 +300,7 @@ def api_pricing_rules():
 def delete_pricing_rule(rule_id):
     if not getattr(request, 'is_admin', False):
         return jsonify({'error': 'Unauthorized'}), 403
-    db.collection('pricing_rules').document(rule_id).delete()
+    supabase_admin.table('pricing_rules').delete().eq('id', rule_id).execute()
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'status': 'success'})
     return redirect(url_for('admin.admin_dashboard'))
@@ -373,10 +371,10 @@ def rescan_servers():
             final_price = best_rule['price']
             
         # Update server in DB
-        db.collection('servers').document(s_id).update({
+        supabase_admin.table('servers').update({
             'tags': new_tags,
             'price': final_price
-        })
+        }).eq('id', s_id).execute()
         updated_count += 1
         
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -392,14 +390,14 @@ def sync_link(link_id):
 
     # Load the saved source link
     try:
-        doc = db.collection('source_links').document(link_id).get()
+        resp = supabase_admin.table('source_links').select('*').eq('id', link_id).execute()
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 400
 
-    if not doc.exists:
+    if not resp.data:
         return jsonify({'status': 'error', 'message': 'الرابط غير موجود'}), 404
 
-    link = doc.to_dict()
+    link = resp.data[0]
     url = link.get('url')
     if not url:
         return jsonify({'status': 'error', 'message': 'لا يوجد رابط محفوظ'}), 400
@@ -444,19 +442,19 @@ def delete_source_link(link_id):
     try:
         # Resolve every source_links doc sharing this link's URL (covers old duplicates)
         target_ids = [link_id]
-        doc = db.collection('source_links').document(link_id).get()
-        if doc.exists:
-            url = doc.to_dict().get('url')
+        resp = supabase_admin.table('source_links').select('*').eq('id', link_id).execute()
+        if resp.data:
+            url = resp.data[0].get('url')
             if url:
-                target_ids = [d.id for d in db.collection('source_links').where('url', '==', url).stream()]
+                url_resp = supabase_admin.table('source_links').select('id').eq('url', url).execute()
+                target_ids = [d['id'] for d in url_resp.data]
                 if link_id not in target_ids:
                     target_ids.append(link_id)
 
         for lid in target_ids:
             # Detach the link from any servers that reference it (keep the servers)
-            for s in db.collection('servers').where('source_link_id', '==', lid).stream():
-                db.collection('servers').document(s.id).update({'source_link_id': None})
-            db.collection('source_links').document(lid).delete()
+            supabase_admin.table('servers').update({'source_link_id': None}).eq('source_link_id', lid).execute()
+            supabase_admin.table('source_links').delete().eq('id', lid).execute()
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 400
 
@@ -519,12 +517,10 @@ def api_pending_requests():
     if not getattr(request, 'is_admin', False):
         return "Unauthorized", 403
         
-    requests_ref = db.collection('purchase_requests').where('status', '==', 'pending').stream()
+    resp = supabase_admin.table('purchase_requests').select('*').eq('status', 'pending').execute()
     
     pending_list = []
-    for doc in requests_ref:
-        req = doc.to_dict()
-        req['id'] = doc.id
+    for req in (resp.data or []):
         
         # Convert datetime objects to string
         for k, v in req.items():
@@ -533,16 +529,15 @@ def api_pending_requests():
         
         # Get server details
         if req.get('server_id'):
-            s_doc = db.collection('servers').document(req['server_id']).get()
-            if s_doc.exists:
-                req['server'] = s_doc.to_dict()
-                req['server']['id'] = s_doc.id
+            s_resp = supabase_admin.table('servers').select('*').eq('id', req['server_id']).execute()
+            if s_resp.data:
+                req['server'] = s_resp.data[0]
                 
         # Get user details for the UI (like email, old stats)
-        user_doc = db.collection('users').document(req['user_id']).get()
-        if user_doc.exists:
+        user_resp = supabase_admin.table('users').select('*').eq('id', req['user_id']).execute()
+        if user_resp.data:
             # We nest it inside 'user' to maintain compatibility if the UI expects flat or nested fields
-            req['user'] = user_doc.to_dict()
+            req['user'] = user_resp.data[0]
             # Flatten email for easier access
             if 'email' not in req:
                 req['email'] = req['user'].get('email')
@@ -561,13 +556,15 @@ def admin_stats():
         return jsonify({'error': 'Unauthorized'}), 403
         
     try:
-        users = list(db.collection('users').stream())
-        servers = list(db.collection('servers').stream())
+        u_resp = supabase_admin.table('users').select('*').execute()
+        users = u_resp.data or []
+        s_resp = supabase_admin.table('servers').select('*').execute()
+        servers = s_resp.data or []
         
-        active_users = sum(1 for u in users if u.to_dict().get('status') == 'active')
+        active_users = sum(1 for u in users if u.get('status') == 'active')
         expired_users = len(users) - active_users
         
-        total_debt = sum(float(u.to_dict().get('debt', 0)) for u in users)
+        total_debt = sum(float(u.get('debt', 0)) for u in users)
         
         return jsonify({
             'users_active': active_users,
@@ -591,7 +588,8 @@ def cron_daily():
     reminder_threshold = now + timedelta(days=2) # 48 hours from now
     
     # Get all active subscriptions
-    active_subs = db.collection('subscriptions').where('status', '==', 'active').stream()
+    subs_resp = supabase_admin.table('subscriptions').select('*').eq('status', 'active').execute()
+    active_subs = subs_resp.data or []
     
     emails_sent = 0
     
@@ -600,8 +598,7 @@ def cron_daily():
         server.starttls()
         server.login(smtp_email, smtp_password)
         
-        for sub_doc in active_subs:
-            sub = sub_doc.to_dict()
+        for sub in active_subs:
             expires_at = sub.get('expires_at')
             if not expires_at:
                 continue
@@ -622,9 +619,9 @@ def cron_daily():
                 
                 # Fetch user email
                 user_id = sub.get('user_id')
-                user_doc = db.collection('users').document(user_id).get()
-                if user_doc.exists:
-                    user_email = user_doc.to_dict().get('email')
+                user_resp = supabase_admin.table('users').select('email').eq('id', user_id).execute()
+                if user_resp.data:
+                    user_email = user_resp.data[0].get('email')
                     if user_email:
                         # Construct email
                         msg = MIMEMultipart()
@@ -646,9 +643,9 @@ def cron_daily():
                         
                         try:
                             server.send_message(msg)
-                            db.collection('subscriptions').document(sub_doc.id).update({
-                                'reminder_sent_at': now
-                            })
+                            supabase_admin.table('subscriptions').update({
+                                'reminder_sent_at': now.isoformat()
+                            }).eq('id', sub['id']).execute()
                             emails_sent += 1
                         except Exception as e:
                             print(f"Failed to send email to {user_email}: {e}")

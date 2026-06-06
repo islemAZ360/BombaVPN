@@ -59,7 +59,9 @@ def inject_notifications():
     count = 0
     if getattr(request, 'is_admin', False):
         try:
-            count = len(list(db.collection('notifications').where('is_read', '==', False).stream()))
+            from supabase_client import supabase_admin
+            resp = supabase_admin.table('notifications').select('*', count='exact').eq('is_read', False).execute()
+            count = resp.count if resp.count else 0
         except:
             pass
     return dict(unread_notifications_count=count)
@@ -96,16 +98,8 @@ def internal_server_error(e):
 
 
 # ---------------------------------------------------------
-# BACKGROUND THREAD & FIREBASE SNAPSHOTS (Kept here as requested)
+# BACKGROUND THREAD
 # ---------------------------------------------------------
-
-def on_subscriptions_snapshot(col_snapshot, changes, read_time):
-    if True:
-        for change in changes:
-            if change.type.name == 'ADDED' or change.type.name == 'MODIFIED':
-                get_all_subscriptions()[change.document.id] = change.document.to_dict()
-            elif change.type.name == 'REMOVED':
-                get_all_subscriptions().pop(change.document.id, None)
 
 
 @app.before_request
