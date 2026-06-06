@@ -52,9 +52,12 @@
         localStorage.setItem('ref_code', refParam);
     }
 
+    let isLoggingIn = false;
     // Listen for auth state changes (e.g. returning from Google OAuth)
     supabaseClient.auth.onAuthStateChange((event, session) => {
         if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+            if (isLoggingIn) return;
+            isLoggingIn = true;
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner"></span>';
             
@@ -66,18 +69,24 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ access_token: accessToken, ref_code: savedRef })
             }).then(async (response) => {
+                const data = await response.json().catch(() => ({}));
                 if (response.ok) {
                     localStorage.removeItem('ref_code'); // clean up
-                    showToast('success', '{{ _("LoginSuccessTitle") }}', '{{ _("LoginSuccessMsg") }}');
+                    if (data.is_new_user) {
+                        showToast('success', '{{ _("Welcome!") }}', '{{ _("Account created successfully. Logging you in...") }}');
+                    } else {
+                        showToast('success', '{{ _("LoginSuccessTitle") }}', '{{ _("LoginSuccessMsg") }}');
+                    }
                     setTimeout(() => { window.location.href = '/'; }, 1000);
                 } else {
+                    isLoggingIn = false;
                     resetBtn();
-                    const data = await response.json().catch(() => ({}));
                     showToast('error', '{{ _("Error") }}', data.error || 'Login Error');
                     // If backend rejects, sign out from frontend too
                     await supabaseClient.auth.signOut();
                 }
             }).catch(err => {
+                isLoggingIn = false;
                 resetBtn();
                 showToast('error', '{{ _("Error") }}', err.message);
             });

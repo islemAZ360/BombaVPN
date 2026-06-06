@@ -38,6 +38,7 @@ def session_login():
         user_data_resp = supabase_admin.table('users').select('*').eq('id', uid).execute()
         
         if not user_data_resp.data:
+            is_new_user = True
             # Create new user in public.users
             new_user_data = {
                 'id': uid,
@@ -49,11 +50,13 @@ def session_login():
             if ref_code and ref_code != uid[:8]:
                 new_user_data['referred_by'] = ref_code
             supabase_admin.table('users').insert(new_user_data).execute()
+        else:
+            is_new_user = False
         
         # In Supabase, the client manages the session token (access_token/refresh_token)
         # But we still want a server-side cookie for Flask routes (@login_required)
         # We will store the access_token in the cookie
-        response = jsonify({'status': 'success'})
+        response = jsonify({'status': 'success', 'is_new_user': is_new_user})
         expires = datetime.now() + expires_in
         response.set_cookie('session', access_token, expires=expires, httponly=True, secure=is_production, samesite='Lax')
         return response
