@@ -89,3 +89,48 @@ ALTER TABLE public.debts ENABLE ROW LEVEL SECURITY;
 -- Since the Python backend uses the Service Role key, it bypasses RLS automatically.
 -- We will allow public read access for servers so the frontend can display them.
 CREATE POLICY "Allow public read access for servers" ON public.servers FOR SELECT USING (true);
+
+-- Create messages table
+CREATE TABLE IF NOT EXISTS messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    message TEXT,
+    image TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    is_read BOOLEAN DEFAULT FALSE,
+    reply_to UUID,
+    is_admin_reply BOOLEAN DEFAULT FALSE
+);
+
+-- Create purchase_requests table
+CREATE TABLE IF NOT EXISTS purchase_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    server_id UUID REFERENCES servers(id) ON DELETE SET NULL,
+    status TEXT DEFAULT 'pending',
+    receipt_url TEXT,
+    price TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Note: admin_messages was originally a subcollection in Firestore. In SQL, we can just use the messages table with is_admin_reply=true.
+
+-- Create admin_messages table
+CREATE TABLE IF NOT EXISTS admin_messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    message TEXT,
+    image TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    is_read BOOLEAN DEFAULT FALSE
+);
+
+-- Create notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title TEXT,
+    message TEXT,
+    type TEXT,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);

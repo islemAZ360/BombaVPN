@@ -1,6 +1,6 @@
 import os
 import functools
-from flask import request, redirect, url_for, current_app
+from flask import request, redirect, url_for, current_app, make_response
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from itsdangerous import URLSafeSerializer
@@ -41,7 +41,9 @@ def login_required(f):
                 raise Exception("Invalid Supabase session")
         except Exception as e:
             print(f"Session verification failed: {e}")
-            return redirect(url_for('auth.login'))
+            resp = make_response(redirect(url_for('auth.login')))
+            resp.set_cookie('session', '', expires=0, path='/')
+            return resp
 
         return f(*args, **kwargs)
     return decorated_function
