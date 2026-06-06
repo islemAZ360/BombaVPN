@@ -1,7 +1,7 @@
 -- SQL Schema for GalaxyVPN Migration
 
 -- 1. Users Table
-CREATE TABLE public.users (
+CREATE TABLE IF NOT EXISTS public.users (
     id TEXT PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
     referral_code TEXT UNIQUE,
@@ -16,7 +16,7 @@ CREATE TABLE public.users (
 );
 
 -- 2. Servers Table
-CREATE TABLE public.servers (
+CREATE TABLE IF NOT EXISTS public.servers (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     group_name TEXT,
@@ -30,11 +30,31 @@ CREATE TABLE public.servers (
     plan_days INTEGER DEFAULT 0,
     plan_hours INTEGER DEFAULT 0,
     plan_minutes INTEGER DEFAULT 0,
+    -- Columns used by the VLESS import / sync flow
+    source_link_id TEXT,
+    original_ip TEXT,
+    country_code TEXT,
+    json_config TEXT,
+    vless_link TEXT,
+    price NUMERIC DEFAULT 0,
+    total_plan_seconds BIGINT DEFAULT 0,
+    expires_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- For existing databases created before the import columns were added,
+-- bring the table up to date (safe to re-run):
+ALTER TABLE public.servers ADD COLUMN IF NOT EXISTS source_link_id     TEXT;
+ALTER TABLE public.servers ADD COLUMN IF NOT EXISTS original_ip        TEXT;
+ALTER TABLE public.servers ADD COLUMN IF NOT EXISTS country_code       TEXT;
+ALTER TABLE public.servers ADD COLUMN IF NOT EXISTS json_config        TEXT;
+ALTER TABLE public.servers ADD COLUMN IF NOT EXISTS vless_link         TEXT;
+ALTER TABLE public.servers ADD COLUMN IF NOT EXISTS price              NUMERIC DEFAULT 0;
+ALTER TABLE public.servers ADD COLUMN IF NOT EXISTS total_plan_seconds BIGINT  DEFAULT 0;
+ALTER TABLE public.servers ADD COLUMN IF NOT EXISTS expires_at         TIMESTAMP WITH TIME ZONE;
+
 -- 3. Subscriptions Table
-CREATE TABLE public.subscriptions (
+CREATE TABLE IF NOT EXISTS public.subscriptions (
     id TEXT PRIMARY KEY,
     user_id TEXT REFERENCES public.users(id) ON DELETE CASCADE,
     server_id TEXT REFERENCES public.servers(id) ON DELETE SET NULL,
@@ -48,7 +68,7 @@ CREATE TABLE public.subscriptions (
 );
 
 -- 4. Payments Table
-CREATE TABLE public.payments (
+CREATE TABLE IF NOT EXISTS public.payments (
     id TEXT PRIMARY KEY,
     user_id TEXT REFERENCES public.users(id) ON DELETE CASCADE,
     server_id TEXT REFERENCES public.servers(id) ON DELETE SET NULL,
@@ -60,7 +80,7 @@ CREATE TABLE public.payments (
 );
 
 -- 5. Notifications Table
-CREATE TABLE public.notifications (
+CREATE TABLE IF NOT EXISTS public.notifications (
     id TEXT PRIMARY KEY,
     user_id TEXT REFERENCES public.users(id) ON DELETE CASCADE,
     message TEXT NOT NULL,
@@ -70,7 +90,7 @@ CREATE TABLE public.notifications (
 );
 
 -- 6. Debts Table
-CREATE TABLE public.debts (
+CREATE TABLE IF NOT EXISTS public.debts (
     id TEXT PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
     amount NUMERIC DEFAULT 0,
@@ -88,7 +108,15 @@ ALTER TABLE public.debts ENABLE ROW LEVEL SECURITY;
 -- Create Policies to allow Anon read/write (temporarily or handled by Python Backend)
 -- Since the Python backend uses the Service Role key, it bypasses RLS automatically.
 -- We will allow public read access for servers so the frontend can display them.
-CREATE POLICY "Allow public read access for servers" ON public.servers FOR SELECT USING (true);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE tablename = 'servers' AND policyname = 'Allow public read access for servers'
+    ) THEN
+        CREATE POLICY "Allow public read access for servers" ON public.servers FOR SELECT USING (true);
+    END IF;
+END
+$$;
 
 -- Create messages table
 CREATE TABLE IF NOT EXISTS messages (
