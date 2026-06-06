@@ -2049,12 +2049,25 @@ function rescanServers() {
                 } else {
                     tagsHtml = `<span style="color: #aaa; font-style: italic;">No Tags</span>`;
                 }
-                
+
+                // Show the real duration. duration_days only holds the raw "days"
+                // field, so a rule entered as "1 Month" would wrongly show 0 days.
+                // Use total_duration_seconds (the true stored value) instead.
+                let ruleSecs = (r.total_duration_seconds != null && r.total_duration_seconds > 0)
+                    ? r.total_duration_seconds
+                    : (r.duration_days || 0) * 86400;
+                let durLabel;
+                if (ruleSecs > 0) {
+                    durLabel = formatDurationSmart(ruleSecs).split(', ').filter(p => !p.startsWith('0 ')).join(', ') || '0 Days';
+                } else {
+                    durLabel = 'Any duration';
+                }
+
                 html += `
                 <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 10px 15px; border-radius: 8px; border-left: 3px solid var(--primary);">
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <div style="display: flex; gap: 5px;">${tagsHtml}</div>
-                        <div style="color: #aaa; font-size: 0.85rem;">⏳ ${r.duration_days} Days</div>
+                        <div style="color: #aaa; font-size: 0.85rem;">⏳ ${durLabel}</div>
                         <div style="font-weight: bold; color: #4CAF50;">💰 ${r.price} DZD</div>
                     </div>
                     <form method="POST" action="/api/admin/pricing_rules/${r.id}/delete" onsubmit="return confirm('Delete this rule?');" style="margin:0;">
