@@ -54,7 +54,7 @@
 
     // Listen for auth state changes (e.g. returning from Google OAuth)
     supabaseClient.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session) {
+        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner"></span>';
             

@@ -76,14 +76,13 @@ def send_telegram_receipt_review(req_id, user_email, server_name, receipt_filena
         error_msg = str(e)
         print(f"Telegram receipt review failed: {error_msg}")
         try:
-            from extensions import db
-            db.collection('notifications').add({
+            from supabase_client import supabase_admin
+            supabase_admin.table('notifications').insert({
                 'title': 'Telegram API Error',
                 'body': f'Failed to send receipt photo for request {req_id}. Error: {error_msg}',
                 'type': 'danger',
-                'created_at': datetime.now(timezone.utc).isoformat(),
                 'is_read': False
-            })
+            }).execute()
         except Exception as db_e:
             print(f"Failed to save error notification: {db_e}")
 
