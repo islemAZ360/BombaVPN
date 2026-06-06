@@ -28,7 +28,7 @@ def send_telegram_notification(message):
     chat_id = os.environ.get('TELEGRAM_CHAT_ID')
     if bot_token and chat_id:
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-        payload = {'chat_id': chat_id, 'text': message, 'parse_mode': 'Markdown'}
+        payload = {'chat_id': chat_id, 'text': message, 'parse_mode': 'HTML'}
         try:
             requests.post(url, json=payload, timeout=5)
         except Exception as e:
@@ -42,10 +42,10 @@ def send_telegram_receipt_review(req_id, user_email, server_name, receipt_filena
             url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
             file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], receipt_filename)
             
-            caption = f"💳 *New Payment Receipt!*\n\n" \
-                      f"👤 *User:* `{user_email}`\n" \
-                      f"💻 *Server:* {server_name}\n" \
-                      f"💰 *Price:* {price} ₽\n\n" \
+            caption = f"💳 <b>New Payment Receipt!</b>\n\n" \
+                      f"👤 <b>User:</b> <code>{user_email}</code>\n" \
+                      f"💻 <b>Server:</b> {server_name}\n" \
+                      f"💰 <b>Price:</b> {price} ₽\n\n" \
                       f"Please review the receipt image and approve or reject."
                       
             reply_markup = {
@@ -63,7 +63,7 @@ def send_telegram_receipt_review(req_id, user_email, server_name, receipt_filena
                     data = {
                         'chat_id': chat_id, 
                         'caption': caption, 
-                        'parse_mode': 'Markdown',
+                        'parse_mode': 'HTML',
                         'reply_markup': json.dumps(reply_markup)
                     }
                     requests.post(url, files=files, data=data, timeout=15)
