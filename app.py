@@ -14,8 +14,12 @@ from routes.api_routes import api_bp
 from routes.main_routes import main_bp
 
 from translations import TRANSLATIONS
+from worker import background_expiry_checker
 
 app = Flask(__name__)
+
+thread_started = False
+thread_lock = threading.Lock()
 
 # Security config
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'bomba_vpn_fallback_secret_key_12345')
@@ -126,6 +130,17 @@ def before_request_handler():
             
         if not valid:
             return "CSRF Token Validation Failed", 403
+            
+    global thread_started
+    if not thread_started:
+        with thread_lock:
+            if not thread_started:
+                try:
+                    checker_thread = threading.Thread(target=background_expiry_checker, daemon=True)
+                    checker_thread.start()
+                    thread_started = True
+                except Exception as e:
+                    print("Could not start background thread:", e)
 
 
 @app.after_request
