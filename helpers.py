@@ -69,6 +69,25 @@ def send_telegram_receipt_review(req_id, user_email, server_name, receipt_filena
                     }
                     response = requests.post(url, files=files, data=data, timeout=15)
                     response.raise_for_status()
+                    
+                    try:
+                        resp_json = response.json()
+                        if resp_json.get('ok') and 'photo' in resp_json.get('result', {}):
+                            photos = resp_json['result']['photo']
+                            # Get the largest photo
+                            largest_photo = max(photos, key=lambda p: p.get('file_size', 0))
+                            tg_file_id = largest_photo.get('file_id')
+                            if tg_file_id:
+                                from supabase_client import supabase_admin
+                                supabase_admin.table('purchase_requests').update({'receipt_url': f'tg:{tg_file_id}'}).eq('id', req_id).execute()
+                                
+                                # Clean up local file to save space immediately
+                                try:
+                                    os.remove(file_path)
+                                except OSError:
+                                    pass
+                    except Exception as parse_e:
+                        print("Failed to save telegram file id:", parse_e)
             else:
                 # Fallback to text if file missing
                 send_telegram_notification(caption)
