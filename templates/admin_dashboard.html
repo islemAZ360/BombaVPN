@@ -563,7 +563,12 @@
                 <select name="server_id" class="form-control" required style="width: 100%; padding: 0.5rem; border-radius: var(--radius); background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border-color);">
                     <option value="" style="background: #1a1a2e; color: #fff;">-- Select Server --</option>
                     {% for s in servers %}
-                    <option value="{{ s.id }}" style="background: #1a1a2e; color: #fff;">{{ s.name }} ({{ s.price }})</option>
+                    {% set duration = [] %}
+                    {% if s.plan_days %}{% set _ = duration.append(s.plan_days ~ ' Days') %}{% endif %}
+                    {% if s.plan_hours %}{% set _ = duration.append(s.plan_hours ~ ' Hours') %}{% endif %}
+                    {% if s.plan_minutes %}{% set _ = duration.append(s.plan_minutes ~ ' Mins') %}{% endif %}
+                    {% set duration_str = duration | join(', ') if duration else '30 Days' %}
+                    <option value="{{ s.id }}" style="background: #1a1a2e; color: #fff;">{{ s.name }} ({{ s.price }}) - {{ duration_str }}</option>
                     {% endfor %}
                 </select>
             </div>
