@@ -3,7 +3,18 @@ import json
 import os
 from datetime import datetime, timezone, timedelta
 from supabase_client import supabase_admin
+import requests
 
+def send_telegram_notification(message):
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+    if bot_token and chat_id:
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        payload = {'chat_id': chat_id, 'text': message, 'parse_mode': 'HTML'}
+        try:
+            requests.post(url, json=payload, timeout=5)
+        except Exception as e:
+            print(f"Telegram notification failed in worker: {e}")
 def background_expiry_checker():
     print("Starting Standalone Auto-Migration background worker...")
     print("This worker checks for expired subscriptions and migrates them if needed.")
@@ -99,13 +110,15 @@ def background_expiry_checker():
                                     'allocated_subdomain': None
                                 }).eq('id', sub_id).execute()
                                 
+                                msg_text = f'انتهى السيرفر الخاص بالمشترك / Server ended for user {user_email} ولا توجد سيرفرات نشطة بديلة! / and no active servers available! تم فصل السيرفر عنه مؤقتاً لحين إضافة أو تجديد سيرفر. / Server temporarily disconnected.'
                                 supabase_admin.table('notifications').insert({
                                     'title': 'اشتراك بدون سيرفر / Sub without server',
-                                    'message': f'انتهى السيرفر الخاص بالمشترك / Server ended for user {user_email} ولا توجد سيرفرات نشطة بديلة! / and no active servers available! تم فصل السيرفر عنه مؤقتاً لحين إضافة أو تجديد سيرفر. / Server temporarily disconnected.',
+                                    'message': msg_text,
                                     'created_at': datetime.now(timezone.utc).isoformat(),
                                     'is_read': False,
                                     'type': 'system'
                                 }).execute()
+                                send_telegram_notification(f"⚠️ <b>اشتراك بدون سيرفر</b>\n{msg_text}")
                                 continue
                             best_server = max(all_active_servers, key=lambda s: s['expires_at_dt'])
                             new_temp = True
@@ -127,21 +140,25 @@ def background_expiry_checker():
                                 exp_at_naive = expires_at if expires_at else now
                                 if best_exp < exp_at_naive:
                                     debt_delta = exp_at_naive - best_exp
+                                    msg_text = f'تم نقل الاشتراك / Sub {sub_id} migrated للمستخدم / for user {user_data.get("email")} إلى سيرفر جديد سينتهي قبل اشتراكه! / to a new server ending before their sub! هناك دين بقيمة / Debt is {debt_delta.days} يوم / days.'
                                     supabase_admin.table('notifications').insert({
                                         'title': 'نقل تلقائي مع دين / Auto-migration with debt',
-                                        'message': f'تم نقل الاشتراك / Sub {sub_id} migrated للمستخدم / for user {user_data.get("email")} إلى سيرفر جديد سينتهي قبل اشتراكه! / to a new server ending before their sub! هناك دين بقيمة / Debt is {debt_delta.days} يوم / days.',
+                                        'message': msg_text,
                                         'created_at': datetime.now(timezone.utc).isoformat(),
                                         'is_read': False,
                                         'type': 'debt'
                                     }).execute()
+                                    send_telegram_notification(f"🔄 <b>نقل تلقائي مع دين</b>\n{msg_text}")
                                 elif original_server_active:
+                                    msg_text = f'تم إرجاع المشترك / User {user_data.get("email")} إلى سيرفره الأصلي / returned to original server {best_server.get("name")} بعد أن عاد للعمل. / after it became active again.'
                                     supabase_admin.table('notifications').insert({
                                         'title': 'العودة للسيرفر الأصلي / Returned to original server',
-                                        'message': f'تم إرجاع المشترك / User {user_data.get("email")} إلى سيرفره الأصلي / returned to original server {best_server.get("name")} بعد أن عاد للعمل. / after it became active again.',
+                                        'message': msg_text,
                                         'created_at': datetime.now(timezone.utc).isoformat(),
                                         'is_read': False,
                                         'type': 'system'
                                     }).execute()
+                                    send_telegram_notification(f"🔙 <b>العودة للسيرفر الأصلي</b>\n{msg_text}")
                 except Exception as e:
                     print(f"Error processing sub {sub_id} in background task: {e}")
                     continue
