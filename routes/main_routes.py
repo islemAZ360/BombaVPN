@@ -5,8 +5,8 @@ import os
 import json
 import uuid
 import requests
-from firebase_admin import firestore
-from extensions import db, limiter, login_required, FIREBASE_READY, sub_serializer, firebase_auth
+from extensions import db, limiter, login_required, sub_serializer
+from supabase_client import supabase_admin
 from db_helpers import get_all_users, get_all_servers, get_all_messages, get_all_subscriptions, get_all_pricing_rules, get_all_source_links
 from utils import extract_ip_from_json, modify_json_address, extract_name_from_json, generate_vless_uri, generate_full_config
 from vless_parser import extract_vless_from_text
@@ -48,7 +48,8 @@ def index():
     session_cookie = request.cookies.get('session')
     if session_cookie:
         try:
-            decoded = firebase_auth.verify_session_cookie(session_cookie)
+            user_resp = supabase_admin.auth.get_user(session_cookie)
+            decoded = {'email': user_resp.user.email} if user_resp and user_resp.user else {}
             if decoded.get('email') == 'islamazaizia360@gmail.com':
                 return redirect(url_for('admin.admin_dashboard'))
             return redirect(url_for('main.user_dashboard'))
@@ -65,24 +66,24 @@ def debug_check():
 @limiter.limit("10 per minute")
 def pay():
     user_id = request.user['uid']
-    user_doc = db.collection('users').document(user_id).get()
+    user_resp = supabase_admin.table('users').select('*').eq('id', user_id).execute()
+    user_doc = user_resp.data[0] if user_resp.data else None
     data = {}
-    if user_doc.exists:
-        data = user_doc.to_dict()
+    if user_doc:
+        data = user_doc
     servers = []
     now = datetime.now(timezone.utc)
-    for doc in db.collection('servers').stream():
-        s = doc.to_dict()
+    for s in (supabase_admin.table('servers').select('*').execute().data or []):
         s_exp = s.get('expires_at')
         if s_exp:
-            if s_exp.tzinfo is None:
-                s_exp = s_exp.replace(tzinfo=timezone.utc)
-            s_exp = s_exp
+            if None is None:
+                s_exp = datetime.fromisoformat(s_exp.replace('Z', '+00:00'))
+            
             if s_exp > now:
-                s['id'] = doc.id
+                
                 servers.append(s)
         else:
-            s['id'] = doc.id
+            
             servers.append(s)
         
     if request.method == 'POST':
@@ -106,27 +107,29 @@ def pay():
             
             # Save the new purchase request in the dedicated collection
             renew_sub_id = request.form.get('renew_sub_id')
-            doc_ref = db.collection('purchase_requests').document()
-            doc_ref.set({
+            req_id = str(uuid.uuid4())
+            supabase_admin.table('purchase_requests').insert({
                 'user_id': user_id,
                 'email': request.user.get('email', data.get('email', 'Unknown')),
                 'server_id': server_id,
                 'renew_sub_id': renew_sub_id,
                 'receipt_url': filename,
                 'status': 'pending',
-                'created_at': datetime.now(timezone.utc)
-            })
+                'id': req_id,
+                'created_at': datetime.now(timezone.utc).isoformat()
+            }).execute()
             
             # Fetch server name and price for telegram
             server_name = 'Unknown'
             price = 0
-            s_doc = db.collection('servers').document(server_id).get()
-            if s_doc.exists:
-                server_name = s_doc.to_dict().get('name', 'Unknown')
-                price = s_doc.to_dict().get('price', 0)
+            s_resp = supabase_admin.table('servers').select('*').eq('id', server_id).execute()
+            s_doc = s_resp.data[0] if s_resp.data else None
+            if s_doc:
+                server_name = s_doc.get('name', 'Unknown')
+                price = s_doc.get('price', 0)
             
             # إرسال صورة الوصل لتيليجرام مع أزرار القبول والرفض
-            req_id = doc_ref.id
+            
             user_email_str = request.user.get('email', data.get('email', 'Unknown'))
             app = current_app._get_current_object()
             try:
@@ -162,16 +165,18 @@ def user_dashboard():
 
     if not user_data:
         try:
-            user_doc = db.collection('users').document(user_id).get()
-            if not user_doc.exists:
+            user_resp = supabase_admin.table('users').select('*').eq('id', user_id).execute()
+            user_doc = user_resp.data[0] if user_resp.data else None
+            if not user_doc:
                 try:
-                    firebase_auth.get_user(user_id)
-                    db.collection('users').document(user_id).set({
+                    user_auth_resp = supabase_admin.auth.admin.get_user_by_id(user_id)
+                    supabase_admin.table('users').insert({
                         'email': request.user['email'],
                         'status': 'pending',
                         'created_at': datetime.now(timezone.utc),
+                        'id': user_id,
                         'referral_code': user_id[:8]
-                    })
+                    }).execute()
                     user_data = {'status': 'pending', 'referral_code': user_id[:8]}
                 except Exception as e:
                     # User was deleted from Firebase Auth (e.g. by admin)
@@ -179,10 +184,10 @@ def user_dashboard():
                     response.delete_cookie('session')
                     return response
             else:
-                user_data = user_doc.to_dict()
+                user_data = user_doc
                 if 'referral_code' not in user_data:
                     user_data['referral_code'] = user_id[:8]
-                    db.collection('users').document(user_id).update({'referral_code': user_id[:8]})
+                    supabase_admin.table('users').update({'referral_code': user_id[:8]}).eq('id', user_id).execute()
         except Exception as e:
             print(f"Error fetching user doc in dashboard: {e}")
             user_data = {'status': 'pending', 'error': 'db_quota', 'referral_code': user_id[:8]}
@@ -195,9 +200,7 @@ def user_dashboard():
             for s_id, s_dict in get_all_servers().items():
                 server_map[s_id] = s_dict.get('name', 'Unknown')
                 
-        for doc in db.collection('subscriptions').where('user_id', '==', user_id).stream():
-            sub = doc.to_dict()
-            sub['id'] = doc.id
+        for sub in (supabase_admin.table('subscriptions').select('*').eq('user_id', user_id).execute().data or []):
             if 'expires_at' in sub and sub['expires_at']:
                 if isinstance(sub['expires_at'], datetime):
                     sub['expires_at'] = sub['expires_at']
@@ -206,9 +209,10 @@ def user_dashboard():
                 if sub['server_id'] in server_map:
                     sub['allocated_server_name'] = server_map[sub['server_id']]
                 else:
-                    s_doc = db.collection('servers').document(sub['server_id']).get()
-                    if s_doc.exists:
-                        s_data = s_doc.to_dict()
+                    s_resp = supabase_admin.table('servers').select('*').eq('id', sub['server_id']).execute()
+                    s_doc = s_resp.data[0] if s_resp.data else None
+                    if s_doc:
+                        s_data = s_doc
                         sub['allocated_server_name'] = s_data.get('name', 'Unknown')
                         server_map[sub['server_id']] = sub['allocated_server_name']
                     else:
@@ -227,8 +231,7 @@ def user_dashboard():
         
     try:
         reqs = []
-        for doc in db.collection('purchase_requests').where('user_id', '==', user_id).stream():
-            reqs.append(doc.to_dict())
+        reqs = supabase_admin.table('purchase_requests').select('*').eq('user_id', user_id).execute().data or []
         if reqs:
             reqs.sort(key=lambda x: x.get('created_at', datetime.min).timestamp() if isinstance(x.get('created_at'), datetime) else 0, reverse=True)
             user_data['latest_req'] = reqs[0]
@@ -244,9 +247,7 @@ def user_dashboard():
     
     messages = []
     try:
-        for doc in db.collection('messages').where('user_id', '==', user_id).stream():
-            msg = doc.to_dict()
-            msg['id'] = doc.id
+        for msg in (supabase_admin.table('messages').select('*').eq('user_id', user_id).execute().data or []):
             if 'created_at' in msg and msg['created_at']:
                 msg['created_at'] = msg['created_at']
             else:
@@ -258,9 +259,7 @@ def user_dashboard():
         
     admin_msgs = []
     try:
-        for doc in db.collection('admin_messages').where('user_id', '==', user_id).stream():
-            msg = doc.to_dict()
-            msg['id'] = doc.id
+        for msg in (supabase_admin.table('admin_messages').select('*').eq('user_id', user_id).execute().data or []):
             if 'created_at' in msg and msg['created_at']:
                 msg['created_at'] = msg['created_at']
             else:
@@ -298,7 +297,9 @@ def send_message():
                 return redirect(url_for('main.user_dashboard'))
             doc_data['image'] = image_data
             
-        db.collection('messages').add(doc_data)
+        doc_data['id'] = str(uuid.uuid4())
+        doc_data['created_at'] = doc_data['created_at'].isoformat()
+        supabase_admin.table('messages').insert(doc_data).execute()
         
         # إرسال إشعار تيليجرام
         msg_text = text if text else "[صورة مرفقة]"
@@ -323,29 +324,30 @@ def send_message():
 def api_user_status():
     user_id = request.user['uid']
     user_data = {}
-    doc = db.collection('users').document(user_id).get()
-    if doc.exists:
-        user_data = doc.to_dict()
+    user_resp = supabase_admin.table('users').select('*').eq('id', user_id).execute()
+    doc = user_resp.data[0] if user_resp.data else None
+    if doc:
+        user_data = doc
         
-    subs = list(db.collection('subscriptions').where('user_id', '==', user_id).stream())
-    has_active = any(sub.to_dict().get('status') == 'active' for sub in subs)
+    subs = supabase_admin.table('subscriptions').select('*').eq('user_id', user_id).execute().data or []
+    has_active = any(sub.get('status') == 'active' for sub in subs)
     
     computed_status = 'active' if has_active else ('expired' if subs else user_data.get('status', 'pending'))
     
     # Get latest active expiry if any
     expires_at = None
     if subs:
-        active_subs = [s.to_dict() for s in subs if s.to_dict().get('status') == 'active']
+        active_subs = [s for s in subs if s.get('status') == 'active']
         if active_subs:
             latest = max(active_subs, key=lambda x: x.get('expires_at', datetime.min).timestamp() if isinstance(x.get('expires_at'), datetime) else 0)
             if 'expires_at' in latest and isinstance(latest['expires_at'], datetime):
                 expires_at = latest['expires_at'].isoformat()
 
-    reqs = list(db.collection('purchase_requests').where('user_id', '==', user_id).stream())
+    reqs = supabase_admin.table('purchase_requests').select('*').eq('user_id', user_id).execute().data or []
     latest_req_status = ""
     if reqs:
-        reqs.sort(key=lambda x: x.to_dict().get('created_at', datetime.min).timestamp() if isinstance(x.to_dict().get('created_at'), datetime) else 0, reverse=True)
-        latest_req_status = reqs[0].to_dict().get('status', '')
+        reqs.sort(key=lambda x: datetime.fromisoformat(x.get('created_at').replace('Z', '+00:00')).timestamp() if x.get('created_at') else 0, reverse=True)
+        latest_req_status = reqs[0].get('status', '')
 
     return jsonify({
         'status': computed_status,
@@ -365,15 +367,19 @@ def get_subscription(token):
     user_agent = request.headers.get('User-Agent', '')
     
     try:
-        db.collection('users').document(user_id).update({
-            'accessed_ips': firestore.ArrayUnion([client_ip]),
-            'accessed_devices': firestore.ArrayUnion([user_agent])
-        })
+        user_doc = supabase_admin.table('users').select('*').eq('id', user_id).execute().data[0]
+        ips = user_doc.get('accessed_ips') or []
+        devices = user_doc.get('accessed_devices') or []
+        if client_ip not in ips: ips.append(client_ip)
+        if user_agent not in devices: devices.append(user_agent)
+        supabase_admin.table('users').update({
+            'accessed_ips': ips,
+            'accessed_devices': devices
+        }).eq('id', user_id).execute()
     except Exception as e:
         print(f"Error tracking link access for {user_id}: {e}")
         
-    subs_ref = db.collection('subscriptions').where('user_id', '==', user_id).stream()
-    subs = list(subs_ref)
+    subs = supabase_admin.table('subscriptions').select('*').eq('user_id', user_id).execute().data or []
     
     combined_links = []
     has_active = False
@@ -386,7 +392,7 @@ def get_subscription(token):
     now = datetime.now(timezone.utc)
     
     for sub_doc in subs:
-        sub_data = sub_doc.to_dict()
+        sub_data = sub_doc
         server_id = sub_data.get('server_id')
         subdomain = None
         status = sub_data.get('status')
@@ -396,17 +402,18 @@ def get_subscription(token):
         if status == 'expired':
             is_expired = True
         elif expires_at:
-            if expires_at.tzinfo is None:
-                expires_at = expires_at.replace(tzinfo=timezone.utc)
+            if isinstance(expires_at, str):
+                expires_at = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
             if expires_at < now:
                 is_expired = True
                 if status != 'expired':
-                    db.collection('subscriptions').document(sub_doc.id).update({'status': 'expired'})
+                    supabase_admin.table('subscriptions').update({'status': 'expired'}).eq('id', sub_doc.get('id')).execute()
                 
         if server_id:
-            server_doc = db.collection('servers').document(server_id).get()
-            if server_doc.exists:
-                server = server_doc.to_dict()
+            s_resp = supabase_admin.table('servers').select('*').eq('id', server_id).execute()
+            server_doc = s_resp.data[0] if s_resp.data else None
+            if server_doc:
+                server = server_doc
                 
                 # Reverting back to original_ip because Dynv6 is blocked by ISPs
                 if is_expired:

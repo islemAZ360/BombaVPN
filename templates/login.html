@@ -31,36 +31,14 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script type="module">
-    import { auth, signInWithPopup, googleProvider, onAuthStateChanged } from "{{ url_for('static', filename='firebase_config.js') }}";
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    const supabaseUrl = '{{ supabase_url }}';
+    const supabaseKey = '{{ supabase_anon_key }}';
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
     
     const btn = document.getElementById('google-btn');
     const originalBtnContent = btn.innerHTML;
-
-    async function handleSessionLogin(user) {
-        try {
-            const idToken = await user.getIdToken(true);
-            const response = await fetch('/api/sessionLogin', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ idToken: idToken })
-            });
-            if (response.ok) {
-                showToast('success', '{{ _("LoginSuccessTitle") }}', '{{ _("LoginSuccessMsg") }}');
-                setTimeout(() => { window.location.href = '/'; }, 1000);
-            } else {
-                resetBtn();
-                const data = await response.json().catch(() => ({}));
-                const errorMsg = data.error || '{{ _("LoginError") }}';
-                console.error('Session login failed:', errorMsg);
-                showToast('error', '{{ _("Error") }}', errorMsg);
-            }
-        } catch (error) {
-            resetBtn();
-            console.error('Session login exception:', error);
-            showToast('error', '{{ _("Error") }}', error.message);
-        }
-    }
 
     function resetBtn() {
         btn.disabled = false;
@@ -74,43 +52,55 @@
         localStorage.setItem('ref_code', refParam);
     }
 
+    // Listen for auth state changes (e.g. returning from Google OAuth)
+    supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>';
+            
+            const savedRef = localStorage.getItem('ref_code');
+            const accessToken = session.access_token;
+            
+            fetch('/api/sessionLogin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ access_token: accessToken, ref_code: savedRef })
+            }).then(async (response) => {
+                if (response.ok) {
+                    localStorage.removeItem('ref_code'); // clean up
+                    showToast('success', '{{ _("LoginSuccessTitle") }}', '{{ _("LoginSuccessMsg") }}');
+                    setTimeout(() => { window.location.href = '/'; }, 1000);
+                } else {
+                    resetBtn();
+                    const data = await response.json().catch(() => ({}));
+                    showToast('error', '{{ _("Error") }}', data.error || 'Login Error');
+                    // If backend rejects, sign out from frontend too
+                    await supabase.auth.signOut();
+                }
+            }).catch(err => {
+                resetBtn();
+                showToast('error', '{{ _("Error") }}', err.message);
+            });
+        }
+    });
+
     // Google Sign-In button click
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner"></span>';
         
-        signInWithPopup(auth, googleProvider).then((result) => {
-            if (result && result.user) {
-                // Get ref_code from storage
-                const savedRef = localStorage.getItem('ref_code');
-                
-                result.user.getIdToken(true).then(idToken => {
-                    fetch('/api/sessionLogin', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ idToken: idToken, ref_code: savedRef })
-                    }).then(async (response) => {
-                        if (response.ok) {
-                            localStorage.removeItem('ref_code'); // clean up
-                            showToast('success', '{{ _("LoginSuccessTitle") }}', '{{ _("LoginSuccessMsg") }}');
-                            setTimeout(() => { window.location.href = '/'; }, 1000);
-                        } else {
-                            resetBtn();
-                            const data = await response.json().catch(() => ({}));
-                            showToast('error', '{{ _("Error") }}', data.error || 'Login Error');
-                        }
-                    }).catch(err => {
-                        resetBtn();
-                        showToast('error', '{{ _("Error") }}', err.message);
-                    });
-                });
-            }
-        }).catch((error) => {
-            resetBtn();
-            if (error.code && error.code !== 'auth/popup-closed-by-user') {
-                showToast('error', '{{ _("Error") }}', error.message);
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.origin + '/login'
             }
         });
+        
+        if (error) {
+            resetBtn();
+            showToast('error', '{{ _("Error") }}', error.message);
+        }
+        // If successful, it redirects to Google, so we don't need to resetBtn here unless there's an error.
     });
 
 </script>

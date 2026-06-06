@@ -6,8 +6,8 @@ import os
 import json
 import uuid
 import requests
-from firebase_admin import firestore
-from extensions import db, limiter, login_required, FIREBASE_READY, sub_serializer, firebase_auth
+from extensions import db, limiter, login_required, sub_serializer
+from supabase_client import supabase_admin
 from db_helpers import get_all_users, get_all_servers, get_all_messages, get_all_subscriptions, get_all_pricing_rules, get_all_source_links
 from utils import extract_ip_from_json, modify_json_address, extract_name_from_json, generate_vless_uri, generate_full_config
 from vless_parser import extract_vless_from_text
@@ -28,9 +28,8 @@ def admin_dashboard():
         
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     servers = []
-    for doc in db.collection('servers').stream():
-        data = doc.to_dict()
-        data['id'] = doc.id
+    for doc in (supabase_admin.table('servers').select('*').execute().data or []):
+        data = doc
         if 'expires_at' in data and data['expires_at']:
             data['expires_at'] = data['expires_at'].replace(tzinfo=None)
             if data['expires_at'] <= now:
@@ -58,9 +57,8 @@ def admin_dashboard():
     all_users = []
     users_dict = {}
     
-    for doc in db.collection('users').stream():
-        data = doc.to_dict()
-        data['id'] = doc.id
+    for doc in (supabase_admin.table('users').select('*').execute().data or []):
+        data = doc
         if 'created_at' in data and data['created_at']:
             data['created_at'] = data['created_at']
             
@@ -71,9 +69,8 @@ def admin_dashboard():
     server_map = {s['id']: s.get('name') for s in servers}
     
     # Fetch all subscriptions
-    for doc in db.collection('subscriptions').stream():
-        sub = doc.to_dict()
-        sub['id'] = doc.id
+    for doc in (supabase_admin.table('subscriptions').select('*').execute().data or []):
+        sub = doc
         if 'expires_at' in sub and sub['expires_at']:
             sub['expires_at'] = sub['expires_at']
             
@@ -97,14 +94,14 @@ def admin_dashboard():
             u['status'] = 'no_sub'
             
     # Fetch pending purchase requests
-    for doc in db.collection('purchase_requests').where('status', '==', 'pending').stream():
-        req = doc.to_dict()
-        req['id'] = doc.id
+    for doc in (supabase_admin.table('purchase_requests').select('*').eq('status', 'pending').execute().data or []):
+        req = doc
         
         # Attach user data
-        user_doc = db.collection('users').document(req['user_id']).get()
-        if user_doc.exists:
-            req['user'] = user_doc.to_dict()
+        user_resp = supabase_admin.table('users').select('*').eq('id', req['user_id']).execute()
+        user_doc = user_resp.data[0] if user_resp.data else None
+        if user_doc:
+            req['user'] = user_doc
             if 'email' not in req:
                 req['email'] = req['user'].get('email')
         
@@ -117,18 +114,18 @@ def admin_dashboard():
     for u in pending_users:
         s_id = u.get('requested_server_id')
         if s_id:
-            s_doc = db.collection('servers').document(s_id).get()
-            if s_doc.exists:
-                u['server'] = s_doc.to_dict()
+            s_resp = supabase_admin.table('servers').select('*').eq('id', s_id).execute()
+            s_doc = s_resp.data[0] if s_resp.data else None
+            if s_doc:
+                u['server'] = s_doc
             
     now = datetime.now(timezone.utc)
     
     # Fetch support tickets
     tickets = []
     try:
-        for doc in db.collection('messages').order_by('created_at', direction=firestore.Query.DESCENDING).stream():
-            msg = doc.to_dict()
-            msg['id'] = doc.id
+        for doc in (supabase_admin.table('messages').select('*').order('created_at', desc=True).execute().data or []):
+            msg = doc
             if 'created_at' in msg and msg['created_at']:
                 msg['created_at'] = msg['created_at']
             tickets.append(msg)
@@ -154,9 +151,8 @@ def admin_notifications():
         
     notifications = []
     try:
-        for doc in db.collection('notifications').order_by('created_at', direction=firestore.Query.DESCENDING).limit(50).stream():
-            n = doc.to_dict()
-            n['id'] = doc.id
+        for doc in (supabase_admin.table('notifications').select('*').order('created_at', desc=True).limit(50).execute().data or []):
+            n = doc
             if 'created_at' in n and n['created_at']:
                 n['created_at'] = n['created_at']
             notifications.append(n)
@@ -170,7 +166,7 @@ def admin_notifications():
 def mark_read(notif_id):
     if not request.is_admin:
         return "Unauthorized", 403
-    db.collection('notifications').document(notif_id).update({'is_read': True})
+    supabase_admin.table('notifications').update({'is_read': True}).eq('id', notif_id).execute()
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'status': 'success', 'action': 'remove_parent'}), 200
@@ -181,8 +177,8 @@ def mark_read(notif_id):
 def mark_all_read():
     if not request.is_admin:
         return "Unauthorized", 403
-    for doc in db.collection('notifications').where('is_read', '==', False).stream():
-        db.collection('notifications').document(doc.id).update({'is_read': True})
+    for doc in (supabase_admin.table('notifications').select('*').eq('is_read', False).execute().data or []):
+        supabase_admin.table('notifications').update({'is_read': True}).eq('id', doc.get('id')).execute()
         
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'status': 'success', 'action': 'remove_all_notifications', 'message': 'All notifications marked as read'}), 200
@@ -193,7 +189,7 @@ def mark_all_read():
 def delete_notif(notif_id):
     if not request.is_admin:
         return "Unauthorized", 403
-    db.collection('notifications').document(notif_id).delete()
+    supabase_admin.table('notifications').delete().eq('id', notif_id).execute()
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'status': 'success', 'action': 'remove_parent'}), 200
@@ -204,8 +200,8 @@ def delete_notif(notif_id):
 def delete_all_notifs():
     if not request.is_admin:
         return "Unauthorized", 403
-    for doc in db.collection('notifications').stream():
-        db.collection('notifications').document(doc.id).delete()
+    for doc in (supabase_admin.table('notifications').select('*').execute().data or []):
+        supabase_admin.table('notifications').delete().eq('id', doc.get('id')).execute()
         
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'status': 'success', 'action': 'remove_all_notifications', 'message': 'All notifications deleted'}), 200
@@ -228,9 +224,9 @@ def admin_debts():
                 servers_map[s_id] = s_dict.copy()
                 
         # Iterate over all active subscriptions to find debts
-        for doc in db.collection('subscriptions').where('status', '==', 'active').stream():
-            sub = doc.to_dict()
-            sub_id = doc.id
+        for doc in (supabase_admin.table('subscriptions').select('*').eq('status', 'active').execute().data or []):
+            sub = doc
+            sub_id = doc.get('id')
             user_id = sub.get('user_id')
             server_id = sub.get('server_id')
             sub_exp = sub.get('expires_at')
@@ -244,9 +240,10 @@ def admin_debts():
             
             s_data = servers_map.get(server_id)
             if not s_data:
-                s_doc = db.collection('servers').document(server_id).get()
-                if s_doc.exists:
-                    s_data = s_doc.to_dict()
+                s_resp = supabase_admin.table('servers').select('*').eq('id', server_id).execute()
+                s_doc = s_resp.data[0] if s_resp.data else None
+                if s_doc:
+                    s_data = s_doc
                     servers_map[server_id] = s_data
                 else:
                     continue
@@ -267,9 +264,10 @@ def admin_debts():
                     if user_id in get_all_users():
                         u_email = get_all_users()[user_id].get('email', 'Unknown')
                 if u_email == "Unknown":
-                    u_doc = db.collection('users').document(user_id).get()
-                    if u_doc.exists:
-                        u_email = u_doc.to_dict().get('email', 'Unknown')
+                    u_resp = supabase_admin.table('users').select('*').eq('id', user_id).execute()
+                    u_doc = u_resp.data[0] if u_resp.data else None
+                    if u_doc:
+                        u_email = u_doc.get('email', 'Unknown')
                         
                 in_debt_users.append({
                     'id': sub_id,
@@ -293,9 +291,8 @@ def expired_servers_dashboard():
         
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     servers = []
-    for doc in db.collection('servers').stream():
-        data = doc.to_dict()
-        data['id'] = doc.id
+    for doc in (supabase_admin.table('servers').select('*').execute().data or []):
+        data = doc
         if 'expires_at' in data and data['expires_at']:
             data['expires_at'] = data['expires_at'].replace(tzinfo=None)
             if data['expires_at'] <= now:
@@ -348,7 +345,7 @@ def add_servers():
         expires_at = datetime.now(timezone.utc) + timedelta(seconds=total_real_seconds)
     
     added = 0
-    existing_servers = [s.to_dict().get('name', '') for s in db.collection('servers').stream()]
+    existing_servers = [s.get('name', '') for s in (supabase_admin.table('servers').select('*').execute().data or [])]
     
     # Pre-parse files
     file_data_list = []
@@ -418,7 +415,9 @@ def add_servers():
                     
                 existing_servers.append(final_name) # update for the next file in the loop
 
-                db.collection('servers').add({
+                server_id = str(uuid.uuid4())
+                supabase_admin.table('servers').insert({
+                    'id': server_id,
                     'name': final_name,
                     'original_ip': ip,
                     'country_code': cc.lower() if cc else None,
@@ -428,9 +427,9 @@ def add_servers():
                     'plan_hours': plan_hours,
                     'plan_minutes': plan_minutes,
                     'tags': keywords,
-                    'created_at': datetime.now(timezone.utc),
-                    'expires_at': expires_at
-                })
+                    'created_at': datetime.now(timezone.utc).isoformat(),
+                    'expires_at': expires_at.isoformat() if expires_at else None
+                }).execute()
                 added += 1
                 
     flash(f'تمت إضافة {added} سيرفرات بنجاح!', 'success')
@@ -482,22 +481,25 @@ def import_servers():
         try:
             # Reuse an existing source link with the same URL instead of duplicating it
             existing_link = None
-            for d in db.collection('source_links').where('url', '==', original_url).limit(1).stream():
+            for d in (supabase_admin.table('source_links').select('*').eq('url', original_url).limit(1).execute().data or []):
                 existing_link = d
             if existing_link is not None:
                 source_link_id = existing_link.id
-                db.collection('source_links').document(source_link_id).update({
+                supabase_admin.table('source_links').update({
                     'total_plan_seconds': total_plan_seconds,
                     'total_real_seconds': total_real_seconds
-                })
+                }).eq('id', source_link_id).execute()
+
             else:
-                doc_ref = db.collection('source_links').add({
+                source_link_id = str(uuid.uuid4())
+                supabase_admin.table('source_links').insert({
+                    'id': source_link_id,
                     'url': original_url,
                     'total_plan_seconds': total_plan_seconds,
                     'total_real_seconds': total_real_seconds,
-                    'created_at': datetime.now(timezone.utc)
-                })
-                source_link_id = doc_ref[1].id
+                    'created_at': datetime.now(timezone.utc).isoformat()
+                }).execute()
+                
 
             if not is_safe_url(subscription_text):
                 flash('رابط الاستيراد المرفق غير آمن أو يستهدف عناوين محلية محظورة.', 'error')
@@ -553,7 +555,7 @@ def edit_server(server_id):
                 except ValueError:
                     pass
                 
-            db.collection('servers').document(server_id).update(update_data)
+            supabase_admin.table('servers').update(update_data).eq('id', server_id).execute()
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({'status': 'success'})
             flash('تم التعديل بنجاح', 'success')
@@ -572,7 +574,7 @@ def edit_server(server_id):
 def delete_server(server_id):
     if not request.is_admin: return "Unauthorized", 403
         
-    db.collection('servers').document(server_id).delete()
+    supabase_admin.table('servers').delete().eq('id', server_id).execute()
     
     # If AJAX request, return JSON
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -607,22 +609,22 @@ def delete_user(user_id):
     if not request.is_admin: return "Unauthorized", 403
     
     # 1. Delete all subscriptions and their DNS records
-    subs = db.collection('subscriptions').where('user_id', '==', user_id).stream()
+    subs = (supabase_admin.table('subscriptions').select('*').eq('user_id', user_id).execute().data or [])
     for sub_doc in subs:
-        db.collection('subscriptions').document(sub_doc.id).delete()
+        supabase_admin.table('subscriptions').delete().eq('id', sub_doc.get('id')).execute()
         
     # 2. Delete all purchase requests
-    reqs = db.collection('purchase_requests').where('user_id', '==', user_id).stream()
+    reqs = (supabase_admin.table('purchase_requests').select('*').eq('user_id', user_id).execute().data or [])
     for req_doc in reqs:
-        db.collection('purchase_requests').document(req_doc.id).delete()
+        supabase_admin.table('purchase_requests').delete().eq('id', req_doc.get('id')).execute()
         
     # 3. Delete all messages
-    msgs = db.collection('messages').where('user_id', '==', user_id).stream()
+    msgs = (supabase_admin.table('messages').select('*').eq('user_id', user_id).execute().data or [])
     for msg_doc in msgs:
-        db.collection('messages').document(msg_doc.id).delete()
+        supabase_admin.table('messages').delete().eq('id', msg_doc.get('id')).execute()
 
     # 4. Delete the user document
-    db.collection('users').document(user_id).delete()
+    supabase_admin.table('users').delete().eq('id', user_id).execute()
     
     # 5. Delete from Firebase Auth
     try:
@@ -642,23 +644,25 @@ def manage_subscription(sub_id):
     if not request.is_admin: return "Unauthorized", 403
     action = request.form.get('action')
     
-    sub_doc = db.collection('subscriptions').document(sub_id).get()
+    sub_resp = supabase_admin.table('subscriptions').select('*').eq('id', sub_id).execute()
+    sub_doc = sub_resp.data[0] if sub_resp.data else None
     if not sub_doc.exists: return redirect(url_for('admin.admin_dashboard'))
-    data = sub_doc.to_dict()
+    data = sub_doc
     user_id = data.get('user_id')
-    user_doc = db.collection('users').document(user_id).get()
-    user_data = user_doc.to_dict() if user_doc.exists else {}
+    user_resp = supabase_admin.table('users').select('*').eq('id', user_id).execute()
+    user_doc = user_resp.data[0] if user_resp.data else None
+    user_data = user_doc if user_doc.exists else {}
     
     if action == 'cancel':
         update_data = {'status': 'expired'}
         if data.get('allocated_subdomain'):
             update_data['allocated_subdomain'] = None
             update_data['server_id'] = None
-        db.collection('subscriptions').document(sub_id).update(update_data)
+        supabase_admin.table('subscriptions').update(update_data).eq('id', sub_id).execute()
         flash('تم إلغاء الاشتراك بنجاح / Subscription cancelled', 'success')
         
     elif action == 'delete':
-        db.collection('subscriptions').document(sub_id).delete()
+        supabase_admin.table('subscriptions').delete().eq('id', sub_id).execute()
         flash('تم حذف الاشتراك نهائياً / Subscription deleted permanently', 'success')
         
     elif action == 'modify':
@@ -689,27 +693,28 @@ def manage_subscription(sub_id):
         if new_expires.tzinfo is None:
             new_expires = new_expires.replace(tzinfo=timezone.utc)
             
-        db.collection('subscriptions').document(sub_id).update({
-            'expires_at': new_expires,
+        supabase_admin.table('subscriptions').update({
+            'expires_at': new_expires.isoformat() if hasattr(new_expires, 'isoformat') else new_expires,
             'status': 'active' if new_expires > datetime.now(timezone.utc) else 'expired'
-        })
+        }).eq('id', sub_id).execute()
         flash('تم تعديل مدة الاشتراك بنجاح / Subscription duration modified', 'success')
         
     elif action == 'assign':
         server_id = request.form.get('server_id')
         if server_id:
-            s_doc = db.collection('servers').document(server_id).get()
-            if s_doc.exists:
-                s_data = s_doc.to_dict()
+            s_resp = supabase_admin.table('servers').select('*').eq('id', server_id).execute()
+            s_doc = s_resp.data[0] if s_resp.data else None
+            if s_doc:
+                s_data = s_doc
                 email_val = user_data.get('email', f'user-{user_id}')
                 
                 old_subdomain = data.get('allocated_subdomain')
                 if data.get('server_id') != server_id:
-                    db.collection('subscriptions').document(sub_id).update({
+                    supabase_admin.table('subscriptions').update({
                     'server_id': server_id,
                     'allocated_subdomain': None,
                     'status': 'active'
-                })
+                }).eq('id', sub_id).execute()
                 flash('تم تعيين السيرفر للاشتراك بنجاح / Server assigned to subscription', 'success')
                 
     return redirect(url_for('admin.admin_dashboard'))
@@ -727,15 +732,17 @@ def manage_user_sub(user_id):
     if action == 'assign':
         server_id = request.form.get('server_id')
         if server_id:
-            s_doc = db.collection('servers').document(server_id).get()
-            if s_doc.exists:
-                user_doc = db.collection('users').document(user_id).get()
-                user_data = user_doc.to_dict() if user_doc.exists else {}
+            s_resp = supabase_admin.table('servers').select('*').eq('id', server_id).execute()
+            s_doc = s_resp.data[0] if s_resp.data else None
+            if s_doc:
+                user_resp = supabase_admin.table('users').select('*').eq('id', user_id).execute()
+                user_doc = user_resp.data[0] if user_resp.data else None
+                user_data = user_doc if user_doc.exists else {}
                 
-                new_sub_ref = db.collection('subscriptions').document()
-                sub_id_new = new_sub_ref.id
+                sub_id_new = str(uuid.uuid4())
                 
-                s_data = s_doc.to_dict()
+                
+                s_data = s_doc
                 email_val = user_data.get('email', f'user-{user_id}')
                 
                 
@@ -746,14 +753,15 @@ def manage_user_sub(user_id):
                     plan_days = 30
                 duration = timedelta(days=plan_days, hours=plan_hours, minutes=plan_minutes)
                 
-                new_sub_ref.set({
+                supabase_admin.table('subscriptions').insert({
+                    'id': sub_id_new,
                     'user_id': user_id,
                     'server_id': server_id,
                     'allocated_subdomain': None,
                     'status': 'active',
                     'created_at': datetime.now(timezone.utc),
-                    'expires_at': datetime.now(timezone.utc) + duration
-                })
+                    'expires_at': (datetime.now(timezone.utc) + duration).isoformat()
+                }).execute()
                 flash('تم تعيين السيرفر كمشترك جديد بنجاح / New subscription assigned', 'success')
                 
     return redirect(url_for('admin.admin_dashboard'))
@@ -788,7 +796,9 @@ def send_admin_message(user_id):
             return redirect(url_for('admin.admin_dashboard'))
         doc_data['image'] = image_data
         
-    db.collection('admin_messages').add(doc_data)
+    doc_data['id'] = str(uuid.uuid4())
+    doc_data['created_at'] = doc_data['created_at'].isoformat()
+    supabase_admin.table('admin_messages').insert(doc_data).execute()
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
         return jsonify({
@@ -814,9 +824,9 @@ def get_user_chat(user_id):
     
     try:
         # Get user -> admin messages
-        msgs = db.collection('messages').where('user_id', '==', user_id).stream()
+        msgs = (supabase_admin.table('messages').select('*').eq('user_id', user_id).execute().data or [])
         for m in msgs:
-            data = m.to_dict()
+            data = m
             dt = data.get('created_at')
             if dt:
                 chat.append({
@@ -837,9 +847,9 @@ def get_user_chat(user_id):
                 })
                 
         # Get admin -> user messages
-        admin_msgs = db.collection('admin_messages').where('user_id', '==', user_id).stream()
+        admin_msgs = (supabase_admin.table('admin_messages').select('*').eq('user_id', user_id).execute().data or [])
         for am in admin_msgs:
-            data = am.to_dict()
+            data = am
             dt = data.get('created_at')
             if dt:
                 chat.append({
@@ -866,9 +876,10 @@ def get_user_chat(user_id):
 @login_required
 def read_admin_message(msg_id):
     user_id = request.user['uid']
-    doc = db.collection('admin_messages').document(msg_id).get()
-    if doc.exists and doc.to_dict().get('user_id') == user_id:
-        db.collection('admin_messages').document(msg_id).update({'is_read': True})
+    msg_resp = supabase_admin.table('admin_messages').select('*').eq('id', msg_id).execute()
+    doc = msg_resp.data[0] if msg_resp.data else None
+    if doc.exists and doc.get('user_id') == user_id:
+        supabase_admin.table('admin_messages').update({'is_read': True}).eq('id', msg_id).execute()
     return jsonify({'success': True})
 
 @admin_bp.route('/admin/api/delete_chat/<user_id>', methods=['POST'])
@@ -877,14 +888,14 @@ def delete_chat(user_id):
     if not getattr(request, 'is_admin', False): return jsonify({"error": "Unauthorized"}), 403
     try:
         # Delete user -> admin messages
-        msgs = db.collection('messages').where('user_id', '==', user_id).stream()
+        msgs = (supabase_admin.table('messages').select('*').eq('user_id', user_id).execute().data or [])
         for msg in msgs:
-            db.collection('messages').document(msg.id).delete()
+            supabase_admin.table('messages').delete().eq('id', msg.id).execute()
             
         # Delete admin -> user messages
-        admin_msgs = db.collection('admin_messages').where('user_id', '==', user_id).stream()
+        admin_msgs = (supabase_admin.table('admin_messages').select('*').eq('user_id', user_id).execute().data or [])
         for am in admin_msgs:
-            db.collection('admin_messages').document(am.id).delete()
+            supabase_admin.table('admin_messages').delete().eq('id', am.id).execute()
             
         return jsonify({'status': 'success'}), 200
     except Exception as e:
@@ -899,9 +910,9 @@ def admin_support():
     conversations = {}
     
     try:
-        msgs = db.collection('messages').stream()
+        msgs = (supabase_admin.table('messages').select('*').execute().data or [])
         for m in msgs:
-            d = m.to_dict()
+            d = m
             uid = d.get('user_id')
             if uid:
                 if uid not in conversations:
@@ -909,16 +920,17 @@ def admin_support():
                 elif d.get('created_at') and d['created_at'] > conversations[uid]['last_msg']:
                     conversations[uid]['last_msg'] = d['created_at']
                     
-        admin_msgs = db.collection('admin_messages').stream()
+        admin_msgs = (supabase_admin.table('admin_messages').select('*').execute().data or [])
         for am in admin_msgs:
-            d = am.to_dict()
+            d = am
             uid = d.get('user_id')
             if uid:
                 if uid not in conversations:
                     # Fetch email from users collection
                     try:
-                        u_doc = db.collection('users').document(uid).get()
-                        email = u_doc.to_dict().get('email', 'Unknown') if u_doc.exists else 'Unknown'
+                        u_resp = supabase_admin.table('users').select('*').eq('id', uid).execute()
+                        u_doc = u_resp.data[0] if u_resp.data else None
+                        email = u_doc.get('email', 'Unknown') if u_doc.exists else 'Unknown'
                     except:
                         email = 'Unknown'
                     conversations[uid] = {'email': email, 'last_msg': d.get('created_at', datetime.min), 'user_id': uid}
@@ -936,7 +948,7 @@ def admin_support():
 def delete_message(message_id):
     if not request.is_admin:
         return "Unauthorized", 403
-    db.collection('messages').document(message_id).delete()
+    supabase_admin.table('messages').delete().eq('id', message_id).execute()
     flash('تم حذف الرسالة بنجاح / Message deleted', 'success')
     return redirect(url_for('admin.admin_dashboard'))
 
@@ -948,7 +960,7 @@ def reply_message(message_id):
         
     reply_text = request.form.get('reply')
     if reply_text:
-        db.collection('messages').document(message_id).update({
+        supabase_admin.table('messages').update({
             'admin_reply': reply_text,
             'reply_at': datetime.now(timezone.utc)
         })
@@ -957,18 +969,18 @@ def reply_message(message_id):
 
 @admin_bp.route('/migrate-db-once')
 def migrate_db_once():
-    users_ref = db.collection('users')
+    
     users = users_ref.stream()
     subs_count = 0
     reqs_count = 0
     
     for user_doc in users:
-        data = user_doc.to_dict()
-        user_id = user_doc.id
+        data = user_doc
+        user_id = user_doc.get('id')
         
         # If user has a server allocated, migrate it to subscriptions
         if data.get('allocated_server_id'):
-            existing_subs = db.collection('subscriptions').where('user_id', '==', user_id).where('server_id', '==', data.get('allocated_server_id')).stream()
+            existing_subs = (supabase_admin.table('subscriptions').select('*').eq('user_id', user_id).eq('server_id', data.get('allocated_server_id')).execute().data or [])
             has_existing = any(True for _ in existing_subs)
             
             if not has_existing:
@@ -981,12 +993,13 @@ def migrate_db_once():
                     'created_at': datetime.now(timezone.utc)
                 }
                 
-                db.collection('subscriptions').add(sub_data)
+                sub_data['id'] = str(uuid.uuid4())
+                supabase_admin.table('subscriptions').insert(sub_data).execute()
                 subs_count += 1
                 
         # If user has a pending request, migrate it to purchase_requests
         if data.get('status') in ['pending', 'review'] and data.get('requested_server_id'):
-            existing_reqs = db.collection('purchase_requests').where('user_id', '==', user_id).where('server_id', '==', data.get('requested_server_id')).stream()
+            existing_reqs = (supabase_admin.table('purchase_requests').select('*').eq('user_id', user_id).eq('server_id', data.get('requested_server_id')).execute().data or [])
             if not any(True for _ in existing_reqs):
                 req_data = {
                     'user_id': user_id,
@@ -995,7 +1008,8 @@ def migrate_db_once():
                     'status': data.get('status'),
                     'created_at': datetime.now(timezone.utc)
                 }
-                db.collection('purchase_requests').add(req_data)
+                req_data['id'] = str(uuid.uuid4())
+                supabase_admin.table('purchase_requests').insert(req_data).execute()
                 reqs_count += 1
                 
     return f"Migrated {subs_count} active subscriptions and {reqs_count} pending requests."

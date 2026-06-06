@@ -6,11 +6,11 @@ import ipaddress
 import json
 from datetime import datetime, timedelta, timezone
 from flask import request
-from extensions import db, current_app
+from extensions import current_app
+from supabase_client import supabase_admin as db
 from db_helpers import get_all_users, get_all_servers, get_all_messages, get_all_subscriptions, get_all_pricing_rules, get_all_source_links
 from utils import extract_ip_from_json, extract_name_from_json
 from vless_parser import extract_vless_from_text
-from firebase_admin import firestore
 from translations import TRANSLATIONS
 
 def get_translation(key, *args):
@@ -173,7 +173,8 @@ def _import_vless_servers(subscription_text, total_plan_seconds, total_real_seco
     else:
         expires_at = datetime.now(timezone.utc) + timedelta(seconds=total_real_seconds)
 
-    existing_docs = [s.to_dict() for s in db.collection('servers').stream()]
+    resp = db.table('servers').select('*').execute()
+    existing_docs = resp.data if resp.data else []
     existing_servers = [d.get('name', '') for d in existing_docs]
     existing_links = set(d.get('vless_link') for d in existing_docs if d.get('vless_link'))
 
@@ -264,48 +265,49 @@ def _import_vless_servers(subscription_text, total_plan_seconds, total_real_seco
             if original_link:
                 existing_links.add(original_link)
 
-            db.collection('servers').add({
+            # Generate ID manually or let DB handle it? Assuming Supabase will generate if omitted, wait, schema says 'id TEXT PRIMARY KEY', so we might need uuid.
+            import uuid
+            db.table('servers').insert({
+                'id': str(uuid.uuid4()),
                 'name': final_name,
                 'source_link_id': source_link_id,
                 'original_ip': ip,
                 'country_code': cc.lower() if cc else None,
                 'json_config': content,
                 'vless_link': original_link,
-                'price': final_price,
+                'price': float(final_price),
                 'total_plan_seconds': total_plan_seconds,
                 'plan_minutes': plan_minutes,
                 'tags': keywords,
-                'created_at': datetime.now(timezone.utc),
-                'expires_at': expires_at
-            })
+                'created_at': datetime.now(timezone.utc).isoformat(),
+                'expires_at': expires_at.isoformat() if expires_at else None
+            }).execute()
             added += 1
 
     return len(parsed_configs), added
 
 def _approve_request_logic(request_id):
-    req_doc_ref = db.collection('purchase_requests').document(request_id)
-    req_doc = req_doc_ref.get()
-    if not req_doc.exists or req_doc.to_dict().get('status') != 'pending':
+    req_resp = db.table('purchase_requests').select('*').eq('id', request_id).execute()
+    if not req_resp.data or req_resp.data[0].get('status') != 'pending':
         return False, "Request not found or not pending"
         
-    req_data = req_doc.to_dict()
+    req_data = req_resp.data[0]
     user_id = req_data['user_id']
     server_id = req_data['server_id']
     
-    user_doc_ref = db.collection('users').document(user_id)
-    user_doc = user_doc_ref.get()
-    if not user_doc.exists:
+    user_resp = db.table('users').select('*').eq('id', user_id).execute()
+    if not user_resp.data:
         return False, "User not found"
-    user_data = user_doc.to_dict()
+    user_data = user_resp.data[0]
         
-    days = 30 # default
+    days = 30
     hours = 0
     minutes = 0
     s_data = None
         
-    server_doc = db.collection('servers').document(server_id).get()
-    if server_doc.exists:
-        s_data = server_doc.to_dict()
+    server_resp = db.table('servers').select('*').eq('id', server_id).execute()
+    if server_resp.data:
+        s_data = server_resp.data[0]
         days = int(s_data.get('plan_days') or 0)
         hours = int(s_data.get('plan_hours') or 0)
         minutes = int(s_data.get('plan_minutes') or 0)
@@ -316,23 +318,26 @@ def _approve_request_logic(request_id):
     duration_delta = timedelta(days=days, hours=hours, minutes=minutes)
     expires_at = datetime.now(timezone.utc) + duration_delta
     
-    # Check if server expires before the subscription
     if s_data:
-        s_expires = s_data.get('expires_at')
-        if s_expires:
-            s_expires = s_expires
+        s_expires_str = s_data.get('expires_at')
+        if s_expires_str:
+            s_expires = datetime.fromisoformat(s_expires_str.replace('Z', '+00:00'))
             if s_expires < expires_at:
                 debt_delta = expires_at - s_expires
-                db.collection('notifications').add({
+                import uuid
+                db.table('notifications').insert({
+                    'id': str(uuid.uuid4()),
                     'title': 'تنبيه ديون / Debt Alert',
-                    'message': f'المستخدم / User {user_data.get("email")} لديه اشتراك يتجاوز عمر السيرفر المختار / has a subscription exceeding the server life. نظام النقل التلقائي سيتدخل لاحقاً / Auto-migration will move them later ليكمل الـ {debt_delta.days} يوم المتبقية / to complete the remaining {debt_delta.days} days.',
-                    'created_at': datetime.now(timezone.utc),
+                    'message': f'المستخدم / User {user_data.get("email")} لديه اشتراك يتجاوز عمر السيرفر المختار. نظام النقل التلقائي سيتدخل لاحقاً ليكمل الـ {debt_delta.days} يوم المتبقية.',
+                    'created_at': datetime.now(timezone.utc).isoformat(),
                     'is_read': False,
                     'type': 'debt'
-                })
+                }).execute()
     
-    # Save to the subscriptions collection
-    _, new_sub_ref = db.collection('subscriptions').add({
+    import uuid
+    sub_id = str(uuid.uuid4())
+    db.table('subscriptions').insert({
+        'id': sub_id,
         'user_id': user_id,
         'server_id': server_id,
         'original_server_id': server_id,
@@ -340,72 +345,65 @@ def _approve_request_logic(request_id):
         'status': 'active',
         'required_tags': s_data.get('tags', []) if s_data else [],
         'is_temporary': False,
-        'created_at': datetime.now(timezone.utc),
-        'expires_at': expires_at
-    })
+        'created_at': datetime.now(timezone.utc).isoformat(),
+        'expires_at': expires_at.isoformat()
+    }).execute()
     
-    # Delete receipt image
     receipt_image = req_data.get('receipt_url')
     if receipt_image:
         try: os.remove(os.path.join(current_app.config['UPLOAD_FOLDER'], receipt_image))
         except OSError: pass
         
-    # Mark request as approved
-    req_doc_ref.update({'status': 'approved'})
+    db.table('purchase_requests').update({'status': 'approved'}).eq('id', request_id).execute()
     
-    # Update user status if they were new
     if user_data.get('status') != 'active':
-        user_doc_ref.update({'status': 'active'})
+        db.table('users').update({'status': 'active'}).eq('id', user_id).execute()
         
-    # Process Referral Reward
     if user_data.get('referred_by'):
         referrer_code = user_data['referred_by']
-        referrer_docs = list(db.collection('users').where('referral_code', '==', referrer_code).limit(1).stream())
-        if referrer_docs:
-            r_doc = referrer_docs[0]
-            r_user = r_doc.to_dict()
-            all_r_subs = list(db.collection('subscriptions').where('user_id', '==', r_doc.id).stream())
+        referrer_resp = db.table('users').select('*').eq('referral_code', referrer_code).limit(1).execute()
+        if referrer_resp.data:
+            r_user = referrer_resp.data[0]
+            r_user_id = r_user['id']
+            all_r_subs_resp = db.table('subscriptions').select('*').eq('user_id', r_user_id).execute()
+            all_r_subs = all_r_subs_resp.data if all_r_subs_resp.data else []
             
-            # Grant 7 free days to the NEW USER as well!
             new_sub_expiry = expires_at + timedelta(days=7)
-            new_sub_ref.update({'expires_at': new_sub_expiry})
+            db.table('subscriptions').update({'expires_at': new_sub_expiry.isoformat()}).eq('id', sub_id).execute()
             
             if not all_r_subs:
-                send_telegram_notification(f"⚠️ إحالة بدون مكافأة! / Referral Without Reward!\nالمستخدم / User {user_data.get('email')} اشترى باقة عبر رابط / bought a plan via the link of {r_user.get('email')}، لكن صاحب الرابط لا يملك أي اشتراك سابق لنضيف له الأيام. / but the referrer has no previous subscription to add days to. (المستخدم الجديد حصل على 7 أيام / The new user got 7 days).")
+                send_telegram_notification(f"⚠️ إحالة بدون مكافأة!\nالمستخدم {user_data.get('email')} اشترى عبر الرابط.")
             else:
-                def get_expiry(d):
-                    exp = d.to_dict().get('expires_at')
-                    if not exp: return datetime.min.replace(tzinfo=timezone.utc)
-                    return exp if exp.tzinfo else exp.replace(tzinfo=timezone.utc)
-                    
-                active_subs = [d for d in all_r_subs if d.to_dict().get('status') == 'active']
+                active_subs = [d for d in all_r_subs if d.get('status') == 'active']
                 if active_subs:
-                    latest_active = max(active_subs, key=get_expiry)
-                    r_sub = latest_active.to_dict()
-                    if 'expires_at' in r_sub and r_sub['expires_at']:
-                        new_expiry = r_sub['expires_at'].replace(tzinfo=timezone.utc) + timedelta(days=7)
-                        db.collection('subscriptions').document(latest_active.id).update({'expires_at': new_expiry})
-                    send_telegram_notification(f"🎉 مكافأة إحالة! / Referral Reward!\nالمستخدم / User {user_data.get('email')} اشترى باقة عبر رابط / bought a plan via the link of {r_user.get('email')}.\nتمت إضافة 7 أيام لآخر اشتراك نشط له. / 7 days added to their latest active subscription.")
+                    latest_active = max(active_subs, key=lambda d: datetime.fromisoformat(d['expires_at'].replace('Z', '+00:00')) if d.get('expires_at') else datetime.min.replace(tzinfo=timezone.utc))
+                    r_sub = latest_active
+                    if r_sub.get('expires_at'):
+                        exp_dt = datetime.fromisoformat(r_sub['expires_at'].replace('Z', '+00:00'))
+                        new_expiry = exp_dt + timedelta(days=7)
+                        db.table('subscriptions').update({'expires_at': new_expiry.isoformat()}).eq('id', latest_active['id']).execute()
+                    send_telegram_notification(f"🎉 مكافأة إحالة!\nالمستخدم {user_data.get('email')} اشترى باقة.")
                 else:
-                    expired_subs = [d for d in all_r_subs if d.to_dict().get('status') == 'expired']
+                    expired_subs = [d for d in all_r_subs if d.get('status') == 'expired']
                     if expired_subs:
-                        latest_expired = max(expired_subs, key=get_expiry)
+                        latest_expired = max(expired_subs, key=lambda d: datetime.fromisoformat(d['expires_at'].replace('Z', '+00:00')) if d.get('expires_at') else datetime.min.replace(tzinfo=timezone.utc))
                         new_expiry = datetime.now(timezone.utc) + timedelta(days=7)
-                        db.collection('subscriptions').document(latest_expired.id).update({
+                        db.table('subscriptions').update({
                             'status': 'active',
-                            'expires_at': new_expiry
-                        })
-                        send_telegram_notification(f"🎉 مكافأة إحالة! / Referral Reward!\nالمستخدم / User {user_data.get('email')} اشترى باقة عبر رابط / bought a plan via the link of {r_user.get('email')}.\nتم تفعيل آخر اشتراك منتهي لمدة 7 أيام مجانية. / Latest expired subscription activated for 7 free days.")
-        user_doc_ref.update({'referred_by': firestore.DELETE_FIELD})
+                            'expires_at': new_expiry.isoformat()
+                        }).eq('id', latest_expired['id']).execute()
+                        send_telegram_notification(f"🎉 مكافأة إحالة!\nتفعيل اشتراك منتهي.")
+        
+        # Remove referred_by
+        db.table('users').update({'referred_by': None}).eq('id', user_id).execute()
         
     return True, "Success"
 
 def _reject_request_logic(request_id):
-    req_doc_ref = db.collection('purchase_requests').document(request_id)
-    req_doc = req_doc_ref.get()
+    req_resp = db.table('purchase_requests').select('*').eq('id', request_id).execute()
     
-    if req_doc.exists:
-        req_data = req_doc.to_dict()
+    if req_resp.data:
+        req_data = req_resp.data[0]
         if req_data.get('status') != 'pending':
             return False, "Not pending"
             
@@ -414,6 +412,6 @@ def _reject_request_logic(request_id):
             try: os.remove(os.path.join(current_app.config['UPLOAD_FOLDER'], receipt_image))
             except OSError: pass
             
-        req_doc_ref.update({'status': 'rejected'})
+        db.table('purchase_requests').update({'status': 'rejected'}).eq('id', request_id).execute()
         return True, "Success"
     return False, "Not found"
