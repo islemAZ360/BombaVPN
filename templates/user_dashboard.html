@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
+<div id="dashboard-main-content">
 <div class="header-actions">
     <h2>{{ _('Welcome', user.email) }}</h2>
     <button id="logout-btn" class="btn btn-transparent-danger btn-small">{{ _('Logout') }}</button>
@@ -292,13 +293,41 @@
 
                 // If server updated the status, request state, or time, reload page to re-render
                 if (data.status !== currentStatus || (data.latest_req_status && data.latest_req_status !== currentReqStatus) || timeChanged) {
-                    window.location.reload();
+                    softReload();
                 }
             }
         } catch (err) {
             console.error("Error polling user status:", err);
         }
     }, 5000);
+
+    
+    async function softReload() {
+        try {
+            const response = await fetch(window.location.href);
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            const newEl = doc.getElementById('dashboard-main-content');
+            const oldEl = document.getElementById('dashboard-main-content');
+            
+            if (newEl && oldEl) {
+                oldEl.innerHTML = newEl.innerHTML;
+                
+                const scripts = oldEl.querySelectorAll('script');
+                scripts.forEach(script => {
+                    if (script.innerHTML.includes('setInterval')) return; // Avoid duplicating intervals
+                    const newScript = document.createElement('script');
+                    Array.from(script.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                    newScript.appendChild(document.createTextNode(script.innerHTML));
+                    script.parentNode.replaceChild(newScript, script);
+                });
+            }
+        } catch(err) {
+            console.error('Soft reload failed:', err);
+        }
+    }
 
     function copyVlessLink() {
         const text = document.getElementById("vless-link-text").innerText.trim();
@@ -326,4 +355,5 @@
         }
     }
 </script>
+</div>
 {% endblock %}
