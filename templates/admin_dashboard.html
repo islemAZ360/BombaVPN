@@ -2565,18 +2565,12 @@ async function submitAjaxForm(event) {
                     form.parentElement.style.opacity = '0';
                     setTimeout(() => form.parentElement.remove(), 300);
                 }
-                
-                // Trigger localized syncs instead of full DOM replacement
-                if (typeof fetchDashboardSync === 'function') fetchDashboardSync();
-                if (typeof fetchPendingRequests === 'function') fetchPendingRequests();
-                if (typeof fetchPricingRules === 'function') fetchPricingRules();
-            } else if (isPricingRuleAdd) {
-                // For adding pricing rules, just re-fetch the pricing rules list!
-                if (typeof fetchPricingRules === 'function') fetchPricingRules();
-            } else {
-                // For other Add/Import operations, we soft reload to ensure new data appears
-                await softReloadDashboard();
             }
+            
+            // Always trigger localized syncs to ensure UI reflects the new state instantly without ANY DOM replacement
+            if (typeof fetchDashboardSync === 'function') fetchDashboardSync();
+            if (typeof fetchPendingRequests === 'function') fetchPendingRequests();
+            if (typeof fetchPricingRules === 'function') fetchPricingRules();
         }
     } catch(err) {
         console.error(err);
