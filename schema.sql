@@ -138,3 +138,22 @@ CREATE TABLE IF NOT EXISTS notifications (
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Pricing Rules Table
+CREATE TABLE IF NOT EXISTS public.pricing_rules (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tags JSONB DEFAULT '[]'::jsonb,
+    duration_days INTEGER DEFAULT 0,
+    total_duration_seconds INTEGER DEFAULT 0,
+    price NUMERIC DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Source Links Table
+CREATE TABLE IF NOT EXISTS public.source_links (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    url TEXT,
+    total_plan_seconds INTEGER DEFAULT 0,
+    total_real_seconds INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);

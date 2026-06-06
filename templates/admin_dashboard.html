@@ -2315,7 +2315,7 @@ function rescanServers() {
             const sourceLinksContainer = document.getElementById('saved-source-links');
             if (sourceLinksContainer && data.source_links) {
                 if (data.source_links.length === 0) {
-                    sourceLinksContainer.innerHTML = '<p style="color:#aaa; font-style:italic; text-align:center; padding:15px;">لا توجد روابط مصدر محفوظة بعد. قم باستيراد سيرفرات من رابط ليظهر هنا.</p>';
+                    sourceLinksContainer.innerHTML = '<p style="color:#aaa; font-style:italic; text-align:center; padding:15px;">{{ _(\'NoSourceLinksSaved\') }}</p>';
                 } else {
                     let slHtml = '';
                     data.source_links.forEach(sl => {
