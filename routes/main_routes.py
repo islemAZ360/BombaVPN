@@ -231,7 +231,7 @@ def user_dashboard():
     email = request.user['email']
     # Security fix: Sign the user_id so it cannot be tampered with or guessed
     secure_token = sub_serializer.dumps(user_id)
-    sub_link = url_for('get_subscription', token=secure_token, _external=True)
+    sub_link = url_for('main.get_subscription', token=secure_token, _external=True)
     
     messages = []
     try:

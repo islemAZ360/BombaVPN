@@ -113,7 +113,7 @@ def setup_telegram_webhook():
     if not bot_token:
         return jsonify({'status': 'error', 'error': 'Bot token not set'}), 400
         
-    webhook_url = request.url_root.rstrip('/') + url_for('telegram_webhook')
+    webhook_url = request.url_root.rstrip('/') + url_for('api.telegram_webhook')
     url = f"https://api.telegram.org/bot{bot_token}/setWebhook"
     
     try:
