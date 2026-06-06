@@ -1,4 +1,3 @@
-
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, make_response, current_app
 from datetime import datetime, timedelta, timezone
 from werkzeug.utils import secure_filename
@@ -128,10 +127,17 @@ def pay():
             
             # إرسال صورة الوصل لتيليجرام مع أزرار القبول والرفض
             req_id = doc_ref.id
+            user_email_str = request.user.get('email', data.get('email', 'Unknown'))
             try:
-                send_telegram_receipt_review(req_id, request.user.get('email', data.get('email', 'Unknown')), server_name, filename, price)
+                def send_receipt():
+                    try:
+                        send_telegram_receipt_review(req_id, user_email_str, server_name, filename, price)
+                    except Exception as inner_e:
+                        print(f"Inner thread error sending telegram receipt: {inner_e}")
+                
+                threading.Thread(target=send_receipt, daemon=True).start()
             except Exception as e:
-                print(f"Error calling send_telegram_receipt_review: {e}")
+                print(f"Error starting thread for telegram receipt: {e}")
             
             flash('تم إرسال الطلب بنجاح. جاري مراجعته من قبل الإدارة. / Request submitted successfully. Under review.', 'success')
             return redirect(url_for('main.user_dashboard'))

@@ -5,11 +5,22 @@ import socket
 import ipaddress
 import json
 from datetime import datetime, timedelta, timezone
+from flask import request
 from extensions import db, current_app
 from db_helpers import get_all_users, get_all_servers, get_all_messages, get_all_subscriptions, get_all_pricing_rules, get_all_source_links
 from utils import extract_ip_from_json, extract_name_from_json
 from vless_parser import extract_vless_from_text
 from firebase_admin import firestore
+from translations import TRANSLATIONS
+
+def get_translation(key, *args):
+    lang = request.cookies.get('lang')
+    if not lang or lang not in TRANSLATIONS:
+        lang = request.accept_languages.best_match(TRANSLATIONS.keys()) or 'ar'
+    text = TRANSLATIONS[lang].get(key, key)
+    if args:
+        text = text.format(*args)
+    return text
 
 
 def send_telegram_notification(message):
