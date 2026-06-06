@@ -20,6 +20,7 @@ from helpers import *
 
 main_bp = Blueprint('main', __name__)
 
+@main_bp.route('/set_language/<lang>')
 def set_language(lang):
     if lang in TRANSLATIONS:
         resp = redirect(request.referrer or '/')
@@ -27,10 +28,12 @@ def set_language(lang):
         return resp
     return redirect('/')
 
+@main_bp.route('/robots.txt')
 def robots():
     content = f"User-agent: *\nDisallow: /admin/\nDisallow: /api/\nDisallow: /sub/\nSitemap: {request.url_root}sitemap.xml\n"
     return content, 200, {'Content-Type': 'text/plain'}
 
+@main_bp.route('/sitemap.xml')
 def sitemap():
     pages = ['/', '/login', '/register']
     base_url = request.url_root.rstrip('/')
@@ -41,6 +44,7 @@ def sitemap():
     xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{urls}</urlset>'
     return xml, 200, {'Content-Type': 'application/xml'}
 
+@main_bp.route('/')
 def index():
     session_cookie = request.cookies.get('session')
     if session_cookie:
@@ -53,9 +57,13 @@ def index():
             pass
     return render_template('index.html')
 
+@main_bp.route('/debug-check')
 def debug_check():
     return f"Server code v2 running OK at {datetime.now()}", 200
 
+@main_bp.route('/pay', methods=['GET', 'POST'])
+@login_required
+@limiter.limit("10 per minute")
 def pay():
     user_id = request.user['uid']
     user_doc = db.collection('users').document(user_id).get()
@@ -130,6 +138,8 @@ def pay():
             
     return render_template('payment.html', servers=servers, user=request.user)
 
+@main_bp.route('/dashboard')
+@login_required
 def user_dashboard():
     if request.is_admin:
         return redirect(url_for('admin.admin_dashboard'))
@@ -253,6 +263,8 @@ def user_dashboard():
         
     return render_template('user_dashboard.html', user_email=email, user=user_data, sub_link=sub_link, messages=messages, admin_msgs=admin_msgs, subscriptions=subscriptions, now=datetime.now(timezone.utc))
 
+@main_bp.route('/api/message', methods=['POST'])
+@login_required
 def send_message():
     text = request.json.get('message') if request.is_json else request.form.get('message')
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json
@@ -283,6 +295,8 @@ def send_message():
         flash('تم إرسال رسالتك بنجاح', 'success')
     return redirect(url_for('main.user_dashboard'))
 
+@main_bp.route('/api/user_status')
+@login_required
 def api_user_status():
     user_id = request.user['uid']
     user_data = {}
@@ -316,6 +330,7 @@ def api_user_status():
         'expires_at': expires_at or ""
     })
 
+@main_bp.route('/sub/<token>')
 def get_subscription(token):
     # Security fix: Verify the signed token
     try:
@@ -416,9 +431,11 @@ def get_subscription(token):
         'profile-web-page-url': 'https://bombavpn.onrender.com'
     }
 
+@main_bp.route('/ping')
 def ping():
     return "OK", 200
 
+@main_bp.route('/bomba_logs_secret_1234')
 def view_bomba_logs():
     try:
         with open(os.path.join(current_app.root_path, 'bomba_error.log'), 'r') as f:

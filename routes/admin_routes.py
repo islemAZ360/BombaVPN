@@ -20,6 +20,8 @@ from helpers import _import_vless_servers, _approve_request_logic, _reject_reque
 
 admin_bp = Blueprint('admin', __name__)
 
+@admin_bp.route('/admin')
+@login_required
 def admin_dashboard():
     if not request.is_admin:
         return "Unauthorized", 403
@@ -141,6 +143,8 @@ def admin_dashboard():
     
     return render_template('admin_dashboard.html', servers=servers, pending_users=pending_users, active_users=active_users, all_users=all_users, tickets=tickets, now=now, server_stats=server_stats)
 
+@admin_bp.route('/admin/notifications')
+@login_required
 def admin_notifications():
     if not request.is_admin:
         return "Unauthorized", 403
@@ -158,6 +162,8 @@ def admin_notifications():
         
     return render_template('notifications.html', notifications=notifications)
 
+@admin_bp.route('/admin/notifications/read/<notif_id>', methods=['POST'])
+@login_required
 def mark_read(notif_id):
     if not request.is_admin:
         return "Unauthorized", 403
@@ -167,6 +173,8 @@ def mark_read(notif_id):
         return jsonify({'status': 'success', 'action': 'remove_parent'}), 200
     return redirect(url_for('admin.admin_notifications'))
 
+@admin_bp.route('/admin/notifications/read_all', methods=['POST'])
+@login_required
 def mark_all_read():
     if not request.is_admin:
         return "Unauthorized", 403
@@ -177,6 +185,8 @@ def mark_all_read():
         return jsonify({'status': 'success', 'action': 'remove_all_notifications', 'message': 'All notifications marked as read'}), 200
     return redirect(url_for('admin.admin_notifications'))
 
+@admin_bp.route('/admin/notifications/delete/<notif_id>', methods=['POST'])
+@login_required
 def delete_notif(notif_id):
     if not request.is_admin:
         return "Unauthorized", 403
@@ -186,6 +196,8 @@ def delete_notif(notif_id):
         return jsonify({'status': 'success', 'action': 'remove_parent'}), 200
     return redirect(url_for('admin.admin_notifications'))
 
+@admin_bp.route('/admin/notifications/delete_all', methods=['POST'])
+@login_required
 def delete_all_notifs():
     if not request.is_admin:
         return "Unauthorized", 403
@@ -196,6 +208,8 @@ def delete_all_notifs():
         return jsonify({'status': 'success', 'action': 'remove_all_notifications', 'message': 'All notifications deleted'}), 200
     return redirect(url_for('admin.admin_notifications'))
 
+@admin_bp.route('/admin/debts')
+@login_required
 def admin_debts():
     if not request.is_admin:
         return "Unauthorized", 403
@@ -268,6 +282,8 @@ def admin_debts():
         
     return render_template('debts.html', users=in_debt_users, now=datetime.now(timezone.utc))
 
+@admin_bp.route('/admin/add_servers', methods=['POST'])
+@login_required
 def add_servers():
     if not request.is_admin:
         return "Unauthorized", 403
@@ -385,6 +401,8 @@ def add_servers():
     flash(f'تمت إضافة {added} سيرفرات بنجاح!', 'success')
     return redirect(url_for('admin.admin_dashboard'))
 
+@admin_bp.route('/admin/import_servers', methods=['POST'])
+@login_required
 def import_servers():
     if not request.is_admin:
         return "Unauthorized", 403
@@ -473,6 +491,8 @@ def import_servers():
     flash(f'تمت إضافة {added} سيرفرات VLESS مستوردة بنجاح!', 'success')
     return redirect(url_for('admin.admin_dashboard'))
 
+@admin_bp.route('/admin/edit_server/<server_id>', methods=['POST'])
+@login_required
 def edit_server(server_id):
     if not request.is_admin: return "Unauthorized", 403
     new_name = request.form.get('name')
@@ -512,6 +532,8 @@ def edit_server(server_id):
 
     return redirect(url_for('admin.admin_dashboard'))
 
+@admin_bp.route('/admin/delete_server/<server_id>', methods=['POST'])
+@login_required
 def delete_server(server_id):
     if not request.is_admin: return "Unauthorized", 403
         
@@ -524,6 +546,8 @@ def delete_server(server_id):
     flash('تم حذف السيرفر وجدولة نقل مستخدميه تلقائياً', 'success')
     return redirect(url_for('admin.admin_dashboard'))
 
+@admin_bp.route('/admin/approve_request/<request_id>', methods=['POST'])
+@login_required
 def approve_request(request_id):
     if not request.is_admin: return "Unauthorized", 403
     
@@ -532,6 +556,8 @@ def approve_request(request_id):
         flash('تم الموافقة على الطلب وإنشاء الاشتراك بنجاح / Request approved successfully', 'success')
     return redirect(url_for('admin.admin_dashboard'))
 
+@admin_bp.route('/admin/reject_request/<request_id>', methods=['POST'])
+@login_required
 def reject_request(request_id):
     if not request.is_admin: return "Unauthorized", 403
     
@@ -540,6 +566,8 @@ def reject_request(request_id):
         flash('تم رفض الطلب بنجاح / Request rejected successfully', 'success')
     return redirect(url_for('admin.admin_dashboard'))
 
+@admin_bp.route('/admin/delete_user/<user_id>', methods=['POST'])
+@login_required
 def delete_user(user_id):
     if not request.is_admin: return "Unauthorized", 403
     
@@ -573,6 +601,8 @@ def delete_user(user_id):
     flash('تم حذف المستخدم وجميع بياناته نهائياً / User and all data deleted completely', 'success')
     return redirect(url_for('admin.admin_dashboard'))
 
+@admin_bp.route('/admin/manage_subscription/<sub_id>', methods=['POST'])
+@login_required
 def manage_subscription(sub_id):
     if not request.is_admin: return "Unauthorized", 403
     action = request.form.get('action')
@@ -647,6 +677,8 @@ def manage_subscription(sub_id):
                 
     return redirect(url_for('admin.admin_dashboard'))
 
+@admin_bp.route('/admin/manage_user_sub/<user_id>', methods=['POST'])
+@login_required
 def manage_user_sub(user_id):
     if not request.is_admin: return "Unauthorized", 403
     action = request.form.get('action')
@@ -687,6 +719,8 @@ def manage_user_sub(user_id):
                 
     return redirect(url_for('admin.admin_dashboard'))
 
+@admin_bp.route('/admin/send_message/<user_id>', methods=['POST'])
+@login_required
 def send_admin_message(user_id):
     if not request.is_admin: return jsonify({"error": "Unauthorized"}), 403
     
@@ -720,6 +754,8 @@ def send_admin_message(user_id):
     flash('تم إرسال الرسالة للمستخدم / Message sent', 'success')
     return redirect(url_for('admin.admin_dashboard'))
 
+@admin_bp.route('/admin/api/chat/<user_id>', methods=['GET'])
+@login_required
 def get_user_chat(user_id):
     if not getattr(request, 'is_admin', False) and request.user.get('uid') != user_id:
         return jsonify({"error": "Unauthorized"}), 403
@@ -774,6 +810,8 @@ def get_user_chat(user_id):
         print(f"Error fetching chat for {user_id}: {e}")
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
+@admin_bp.route('/read_admin_message/<msg_id>', methods=['POST'])
+@login_required
 def read_admin_message(msg_id):
     user_id = request.user['uid']
     doc = db.collection('admin_messages').document(msg_id).get()
@@ -781,6 +819,8 @@ def read_admin_message(msg_id):
         db.collection('admin_messages').document(msg_id).update({'is_read': True})
     return jsonify({'success': True})
 
+@admin_bp.route('/admin/api/delete_chat/<user_id>', methods=['POST'])
+@login_required
 def delete_chat(user_id):
     if not getattr(request, 'is_admin', False): return jsonify({"error": "Unauthorized"}), 403
     try:
@@ -798,6 +838,8 @@ def delete_chat(user_id):
     except Exception as e:
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
+@admin_bp.route('/admin/support', methods=['GET'])
+@login_required
 def admin_support():
     if not getattr(request, 'is_admin', False): return "Unauthorized", 403
     
@@ -837,6 +879,8 @@ def admin_support():
     sorted_convs = sorted(list(conversations.values()), key=lambda x: x['last_msg'], reverse=True)
     return render_template('admin_support.html', conversations=sorted_convs, now=datetime.now(timezone.utc))
 
+@admin_bp.route('/admin/delete_message/<message_id>', methods=['POST'])
+@login_required
 def delete_message(message_id):
     if not request.is_admin:
         return "Unauthorized", 403
@@ -844,6 +888,8 @@ def delete_message(message_id):
     flash('تم حذف الرسالة بنجاح / Message deleted', 'success')
     return redirect(url_for('admin.admin_dashboard'))
 
+@admin_bp.route('/reply_message/<message_id>', methods=['POST'])
+@login_required
 def reply_message(message_id):
     if not request.is_admin:
         return "Unauthorized", 403
@@ -857,6 +903,7 @@ def reply_message(message_id):
         flash('تم إرسال الرد بنجاح', 'success')
     return redirect(url_for('admin.admin_dashboard'))
 
+@admin_bp.route('/migrate-db-once')
 def migrate_db_once():
     users_ref = db.collection('users')
     users = users_ref.stream()

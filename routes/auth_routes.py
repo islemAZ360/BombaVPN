@@ -19,12 +19,16 @@ from helpers import *
 
 auth_bp = Blueprint('auth', __name__)
 
+@auth_bp.route('/login')
 def login():
     return render_template('login.html')
 
+@auth_bp.route('/register')
 def register():
     return redirect(url_for('auth.login'))
 
+@auth_bp.route('/api/sessionLogin', methods=['POST'])
+@limiter.limit("5 per minute")
 def session_login():
     id_token = request.json.get('idToken')
     ref_code = request.json.get('ref_code')
@@ -84,6 +88,7 @@ def session_login():
         
         return jsonify({'error': str(e)}), 401
 
+@auth_bp.route('/api/sessionLogout', methods=['POST'])
 def session_logout():
     response = jsonify({'status': 'success'})
     response.set_cookie('session', '', expires=0)

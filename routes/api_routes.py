@@ -23,6 +23,8 @@ from helpers import _approve_request_logic, _reject_request_logic, _import_vless
 
 api_bp = Blueprint('api', __name__)
 
+@api_bp.route('/api/available_servers')
+@login_required
 def api_available_servers():
     servers = []
     for doc in db.collection('servers').stream():
@@ -36,6 +38,7 @@ def api_available_servers():
         servers.append(s)
     return jsonify(servers)
 
+@api_bp.route('/api/telegram/webhook', methods=['POST'])
 def telegram_webhook():
     update = request.get_json()
     if not update:
@@ -101,6 +104,8 @@ def telegram_webhook():
                 
     return "OK", 200
 
+@api_bp.route('/api/admin/setup_telegram', methods=['POST'])
+@login_required
 def setup_telegram_webhook():
     if not request.is_admin: return "Unauthorized", 403
     
@@ -121,6 +126,8 @@ def setup_telegram_webhook():
     except Exception as e:
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
+@api_bp.route('/api/admin/dashboard_sync')
+@login_required
 def api_dashboard_sync():
     if not getattr(request, 'is_admin', False):
         return jsonify({'error': 'Unauthorized'}), 403
@@ -245,6 +252,8 @@ def api_dashboard_sync():
     
     return jsonify(payload)
 
+@api_bp.route('/api/admin/pricing_rules', methods=['GET', 'POST'])
+@login_required
 def api_pricing_rules():
     if not getattr(request, 'is_admin', False):
         return jsonify({'error': 'Unauthorized'}), 403
@@ -288,6 +297,8 @@ def api_pricing_rules():
             return jsonify({'status': 'success'})
         return redirect(url_for('admin.admin_dashboard'))
 
+@api_bp.route('/api/admin/pricing_rules/<rule_id>/delete', methods=['POST'])
+@login_required
 def delete_pricing_rule(rule_id):
     if not getattr(request, 'is_admin', False):
         return jsonify({'error': 'Unauthorized'}), 403
@@ -296,6 +307,8 @@ def delete_pricing_rule(rule_id):
         return jsonify({'status': 'success'})
     return redirect(url_for('admin.admin_dashboard'))
 
+@api_bp.route('/api/admin/rescan_servers', methods=['POST'])
+@login_required
 def rescan_servers():
     if not getattr(request, 'is_admin', False):
         return jsonify({'error': 'Unauthorized'}), 403
@@ -371,6 +384,8 @@ def rescan_servers():
     flash(f'تم تحديث {updated_count} سيرفرات بنجاح.', 'success')
     return redirect(url_for('admin.admin_dashboard'))
 
+@api_bp.route('/api/admin/sync_link/<link_id>', methods=['POST'])
+@login_required
 def sync_link(link_id):
     if not getattr(request, 'is_admin', False):
         return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
@@ -420,6 +435,8 @@ def sync_link(link_id):
 
     return jsonify({'status': 'success', 'found': found, 'added': added})
 
+@api_bp.route('/api/admin/delete_source_link/<link_id>', methods=['POST'])
+@login_required
 def delete_source_link(link_id):
     if not getattr(request, 'is_admin', False):
         return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
@@ -445,6 +462,8 @@ def delete_source_link(link_id):
 
     return jsonify({'status': 'success'})
 
+@api_bp.route('/api/admin/debts_sync')
+@login_required
 def api_debts_sync():
     if not getattr(request, 'is_admin', False):
         return jsonify({'error': 'Unauthorized'}), 403
@@ -494,6 +513,8 @@ def api_debts_sync():
                     
     return jsonify({'debts': in_debt_users})
 
+@api_bp.route('/api/admin/pending_requests')
+@login_required
 def api_pending_requests():
     if not getattr(request, 'is_admin', False):
         return "Unauthorized", 403
@@ -533,6 +554,8 @@ def api_pending_requests():
         
     return jsonify(pending_list)
 
+@api_bp.route('/api/admin/stats')
+@login_required
 def admin_stats():
     if not request.is_admin:
         return jsonify({'error': 'Unauthorized'}), 403
@@ -555,6 +578,7 @@ def admin_stats():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@api_bp.route('/api/cron/daily', methods=['GET', 'POST'])
 def cron_daily():
     # This endpoint should be triggered by cron-job.org once a day
     smtp_email = os.environ.get('SMTP_EMAIL')
