@@ -77,8 +77,8 @@ def background_expiry_checker():
                                     'allocated_subdomain': None
                                 })
                                 db.collection('notifications').add({
-                                    'title': 'اشتراك بدون سيرفر',
-                                    'message': f'انتهى السيرفر الخاص بالمشترك {user_email} ولا توجد سيرفرات نشطة بديلة! تم فصل السيرفر عنه مؤقتاً لحين إضافة أو تجديد سيرفر.',
+                                    'title': 'اشتراك بدون سيرفر / Sub without server',
+                                    'message': f'انتهى السيرفر الخاص بالمشترك / Server ended for user {user_email} ولا توجد سيرفرات نشطة بديلة! / and no active servers available! تم فصل السيرفر عنه مؤقتاً لحين إضافة أو تجديد سيرفر. / Server temporarily disconnected.',
                                     'created_at': datetime.now(timezone.utc),
                                     'is_read': False,
                                     'type': 'system'
@@ -105,8 +105,8 @@ def background_expiry_checker():
                                 if best_exp < exp_at_naive:
                                     debt_delta = exp_at_naive - best_exp
                                     db.collection('notifications').add({
-                                        'title': 'نقل تلقائي مع دين',
-                                        'message': f'تم نقل الاشتراك {sub_id} للمستخدم {user_data.get("email")} إلى سيرفر جديد سينتهي قبل اشتراكه! هناك دين بقيمة {debt_delta.days} يوم.',
+                                        'title': 'نقل تلقائي مع دين / Auto-migration with debt',
+                                        'message': f'تم نقل الاشتراك / Sub {sub_id} migrated للمستخدم / for user {user_data.get("email")} إلى سيرفر جديد سينتهي قبل اشتراكه! / to a new server ending before their sub! هناك دين بقيمة / Debt is {debt_delta.days} يوم / days.',
                                         'created_at': datetime.now(timezone.utc),
                                         'is_read': False,
                                         'type': 'debt'

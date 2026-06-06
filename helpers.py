@@ -324,8 +324,8 @@ def _approve_request_logic(request_id):
             if s_expires < expires_at:
                 debt_delta = expires_at - s_expires
                 db.collection('notifications').add({
-                    'title': 'تنبيه ديون (السيرفر سينتهي قريباً)',
-                    'message': f'المستخدم {user_data.get("email")} لديه اشتراك يتجاوز عمر السيرفر المختار. نظام النقل التلقائي سيتدخل لاحقاً لنقله لسيرفر جديد ليكمل الـ {debt_delta.days} يوم المتبقية.',
+                    'title': 'تنبيه ديون / Debt Alert',
+                    'message': f'المستخدم / User {user_data.get("email")} لديه اشتراك يتجاوز عمر السيرفر المختار / has a subscription exceeding the server life. نظام النقل التلقائي سيتدخل لاحقاً / Auto-migration will move them later ليكمل الـ {debt_delta.days} يوم المتبقية / to complete the remaining {debt_delta.days} days.',
                     'created_at': datetime.now(timezone.utc),
                     'is_read': False,
                     'type': 'debt'
@@ -365,7 +365,7 @@ def _approve_request_logic(request_id):
             all_r_subs = list(db.collection('subscriptions').where('user_id', '==', r_doc.id).stream())
             
             if not all_r_subs:
-                send_telegram_notification(f"⚠️ إحالة بدون مكافأة!\nالمستخدم {user_data.get('email')} اشترى باقة عبر رابط {r_user.get('email')}، لكن صاحب الرابط لا يملك أي اشتراك سابق لنضيف له الأيام.")
+                send_telegram_notification(f"⚠️ إحالة بدون مكافأة! / Referral Without Reward!\nالمستخدم / User {user_data.get('email')} اشترى باقة عبر رابط / bought a plan via the link of {r_user.get('email')}، لكن صاحب الرابط لا يملك أي اشتراك سابق لنضيف له الأيام. / but the referrer has no previous subscription to add days to.")
                 continue
 
             active_subs = [d for d in all_r_subs if d.to_dict().get('status') == 'active']
@@ -375,7 +375,7 @@ def _approve_request_logic(request_id):
                     if 'expires_at' in r_sub and r_sub['expires_at']:
                         new_expiry = r_sub['expires_at'].replace(tzinfo=timezone.utc) + timedelta(days=7)
                         db.collection('subscriptions').document(r_sub_doc.id).update({'expires_at': new_expiry})
-                send_telegram_notification(f"🎉 مكافأة إحالة!\nالمستخدم {user_data.get('email')} اشترى باقة عبر رابط {r_user.get('email')}.\nتمت إضافة 7 أيام لاشتراكه النشط.")
+                send_telegram_notification(f"🎉 مكافأة إحالة! / Referral Reward!\nالمستخدم / User {user_data.get('email')} اشترى باقة عبر رابط / bought a plan via the link of {r_user.get('email')}.\nتمت إضافة 7 أيام لاشتراكه النشط. / 7 days added to their active subscription.")
             else:
                 expired_subs = [d for d in all_r_subs if d.to_dict().get('status') == 'expired']
                 if expired_subs:
@@ -389,7 +389,7 @@ def _approve_request_logic(request_id):
                         'status': 'active',
                         'expires_at': new_expiry
                     })
-                    send_telegram_notification(f"🎉 مكافأة إحالة!\nالمستخدم {user_data.get('email')} اشترى باقة عبر رابط {r_user.get('email')}.\nتم تفعيل اشتراكه المنتهي لمدة 7 أيام مجانية.")
+                    send_telegram_notification(f"🎉 مكافأة إحالة! / Referral Reward!\nالمستخدم / User {user_data.get('email')} اشترى باقة عبر رابط / bought a plan via the link of {r_user.get('email')}.\nتم تفعيل اشتراكه المنتهي لمدة 7 أيام مجانية. / Expired subscription activated for 7 free days.")
         user_doc_ref.update({'referred_by': firestore.DELETE_FIELD})
         
     return True, "Success"
