@@ -328,7 +328,7 @@
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <span style="display: inline-block; width: 85px; color: #aaa;">⏳ Expires:</span>
                             <input type="number" name="expires_minutes_input" placeholder="+ Mins" class="form-control" style="width: 75px; padding: 0.2rem 0.4rem; font-size: 0.75rem;" title="Add minutes from now">
-                            <span class="live-countdown" data-expires="{{ s.expires_at.isoformat() ~ 'Z' if s.expires_at else '' }}" style="font-size: 0.75rem; color: #ffeb3b; font-weight: bold;">Calculating...</span>
+                            <span class="live-countdown" data-expires="{{ s.expires_at.isoformat() if s.expires_at else '' }}" style="font-size: 0.75rem; color: #ffeb3b; font-weight: bold;">Calculating...</span>
                         </div>
                     </div>
                 </td>
@@ -455,7 +455,7 @@
                                     </td>
                                     <td style="width: 35%; border: none;">
                                         <div class="action-btn-group" style="justify-content: flex-end;">
-                                            <button type="button" class="icon-btn mod-btn" onclick="openModifyModal('{{ u.id }}', '{{ sub.expires_at.isoformat() + 'Z' if sub.expires_at else '' }}', '{{ sub.id }}')" title="Modify Duration">
+                                            <button type="button" class="icon-btn mod-btn" onclick="openModifyModal('{{ u.id }}', '{{ sub.expires_at.isoformat() if sub.expires_at else '' }}', '{{ sub.id }}')" title="Modify Duration">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                                             </button>
                                             
@@ -2219,7 +2219,7 @@ function rescanServers() {
                                 </div>
                                 <div style="display:flex; flex-wrap:wrap; align-items:center; gap:5px;">
                                     ⏳ Expires:
-                                    <span class="live-countdown" data-expires="${s.expires_at ? s.expires_at + (s.expires_at.endsWith('Z') ? '' : 'Z') : ''}" style="font-size: 0.75rem; color: #ffeb3b; font-weight: bold;">Calculating...</span>
+                                    <span class="live-countdown" data-expires="${s.expires_at || ''}" style="font-size: 0.75rem; color: #ffeb3b; font-weight: bold;">Calculating...</span>
                                     <input type="number" name="expires_minutes_input" placeholder="+ Mins" class="form-control" style="width: 70px; padding: 0.1rem 0.3rem; font-size: 0.75rem;" title="Set expiration in minutes from now">
                                     ${isExpired ? '<span style="font-size: 0.7rem; background: #F44336; color: #fff; padding: 2px 6px; border-radius: 4px;">Expired</span>' : ''}
                                 </div>

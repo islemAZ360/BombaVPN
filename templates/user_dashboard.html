@@ -86,7 +86,7 @@
 
                 {% if sub.status == 'active' and sub.expires_at %}
                     <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px;">{{ _('ExpiresAt') }}</p>
-                    <div class="countdown-timer-widget" style="display: flex; gap: 8px; font-family: 'Space Mono', monospace; margin-bottom: 1.5rem; flex-wrap: wrap;" data-time="{{ sub.expires_at.isoformat() }}Z">
+                    <div class="countdown-timer-widget" style="display: flex; gap: 8px; font-family: 'Space Mono', monospace; margin-bottom: 1.5rem; flex-wrap: wrap;" data-time="{{ sub.expires_at.isoformat() }}">
                         <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 8px; text-align: center; min-width: 60px;">
                             <div class="cd-days" style="font-size: 1.5rem; font-weight: bold; color: #fff; line-height: 1;">00</div>
                             <div style="font-size: 0.65rem; color: var(--primary); text-transform: uppercase; margin-top: 5px;">Days</div>
