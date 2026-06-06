@@ -1,10 +1,16 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="header-actions" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+<div class="header-actions"
+    style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
     <h2>{{ _('Welcome', user.email) }}</h2>
     <div style="display: flex; gap: 10px; align-items: center;">
-        <a href="{{ url_for('main.user_dashboard') }}" class="btn btn-primary btn-small" style="text-decoration: none; display: flex; align-items: center; gap: 6px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        <a href="{{ url_for('main.user_dashboard') }}" class="btn btn-primary btn-small"
+            style="text-decoration: none; display: flex; align-items: center; gap: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
             {{ _('Dashboard') if _ else 'Dashboard' }}
         </a>
         <button id="logout-btn" class="btn btn-transparent-danger btn-small">{{ _('Logout') }}</button>
@@ -13,94 +19,140 @@
 
 <div class="card card-flush" style="max-width: 800px; margin: 0 auto;">
     <h3 style="text-align: center; margin-bottom: 1.5rem;">{{ _('SelectPlan') }}</h3>
-    
+
     <!-- Tags Explanation -->
-    <div class="tags-explanation-box" style="margin-bottom: 1.5rem; background: var(--bg-card); border: 1px solid var(--glass-border); border-radius: 16px; padding: 1.25rem; color: var(--text-primary); font-size: 0.9rem; line-height: 1.6; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+    <div class="tags-explanation-box"
+        style="margin-bottom: 1.5rem; background: var(--bg-card); border: 1px solid var(--glass-border); border-radius: 16px; padding: 1.25rem; color: var(--text-primary); font-size: 0.9rem; line-height: 1.6; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
         <p style="margin-top: 0; margin-bottom: 1rem; font-weight: 500;">{{ _('ServersExplanation') }}</p>
         <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px;">
             <li style="display: flex; align-items: flex-start; gap: 10px;">
-                <span class="filter-chip" style="padding: 4px 10px; pointer-events:none; flex-shrink: 0; font-size: 0.75rem; background: rgba(0, 255, 204, 0.05); color: var(--primary); border-color: rgba(0, 255, 204, 0.2);">▶️ YouTube</span> 
+                <span class="filter-chip"
+                    style="padding: 4px 10px; pointer-events:none; flex-shrink: 0; font-size: 0.75rem; background: rgba(0, 255, 204, 0.05); color: var(--primary); border-color: rgba(0, 255, 204, 0.2);">▶️
+                    YouTube</span>
                 <span style="color: var(--text-secondary); font-size: 0.85rem;">{{ _('TagYT_Desc') }}</span>
             </li>
             <li style="display: flex; align-items: flex-start; gap: 10px;">
-                <span class="filter-chip" style="padding: 4px 10px; pointer-events:none; flex-shrink: 0; font-size: 0.75rem; background: rgba(59, 130, 246, 0.05); color: var(--info); border-color: rgba(59, 130, 246, 0.2);">🌀 Gemini</span> 
+                <span class="filter-chip"
+                    style="padding: 4px 10px; pointer-events:none; flex-shrink: 0; font-size: 0.75rem; background: rgba(59, 130, 246, 0.05); color: var(--info); border-color: rgba(59, 130, 246, 0.2);">🌀
+                    Gemini</span>
                 <span style="color: var(--text-secondary); font-size: 0.85rem;">{{ _('TagGemini_Desc') }}</span>
             </li>
             <li style="display: flex; align-items: flex-start; gap: 10px;">
-                <span class="filter-chip" style="padding: 4px 10px; pointer-events:none; flex-shrink: 0; font-size: 0.75rem; background: rgba(245, 158, 11, 0.05); color: var(--warning); border-color: rgba(245, 158, 11, 0.2);">📶 LTE</span> 
+                <span class="filter-chip"
+                    style="padding: 4px 10px; pointer-events:none; flex-shrink: 0; font-size: 0.75rem; background: rgba(245, 158, 11, 0.05); color: var(--warning); border-color: rgba(245, 158, 11, 0.2);">📶
+                    LTE</span>
                 <span style="color: var(--text-secondary); font-size: 0.85rem;">{{ _('TagLTE_Desc') }}</span>
             </li>
             <li style="display: flex; align-items: flex-start; gap: 10px;">
-                <span class="filter-chip" style="padding: 4px 10px; pointer-events:none; flex-shrink: 0; font-size: 0.75rem; background: rgba(239, 68, 68, 0.05); color: var(--danger); border-color: rgba(239, 68, 68, 0.2);">🇷🇺 Russia</span> 
+                <span class="filter-chip"
+                    style="padding: 4px 10px; pointer-events:none; flex-shrink: 0; font-size: 0.75rem; background: rgba(239, 68, 68, 0.05); color: var(--danger); border-color: rgba(239, 68, 68, 0.2);">🇷🇺
+                    Russia</span>
                 <span style="color: var(--text-secondary); font-size: 0.85rem;">{{ _('TagRU_Desc') }}</span>
             </li>
             <li style="display: flex; align-items: flex-start; gap: 10px;">
-                <span class="filter-chip" style="padding: 4px 10px; pointer-events:none; flex-shrink: 0; font-size: 0.75rem; background: rgba(16, 185, 129, 0.05); color: var(--success); border-color: rgba(16, 185, 129, 0.2);">🔗 Torrent</span> 
+                <span class="filter-chip"
+                    style="padding: 4px 10px; pointer-events:none; flex-shrink: 0; font-size: 0.75rem; background: rgba(16, 185, 129, 0.05); color: var(--success); border-color: rgba(16, 185, 129, 0.2);">🔗
+                    Torrent</span>
                 <span style="color: var(--text-secondary); font-size: 0.85rem;">{{ _('TagTorrent_Desc') }}</span>
             </li>
         </ul>
     </div>
-    
+
     <!-- Filter Bar -->
     <div id="filter-bar" style="margin-bottom: 1.5rem;">
         <!-- Duration Filter -->
         <div style="margin-bottom: 12px;">
-            <div style="font-size: 0.8rem; color: var(--text-muted, #888); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <div
+                style="font-size: 0.8rem; color: var(--text-muted, #888); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
                 {{ _('FilterByDuration') if _('FilterByDuration') != 'FilterByDuration' else 'Filter by Duration' }}
             </div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="duration-filters">
-                <button class="filter-chip active" data-duration="all" onclick="setDurationFilter('all', this)">{{ _('All') if _('All') != 'All' else 'All' }}</button>
-                <button class="filter-chip" data-duration="2592000" onclick="setDurationFilter(2592000, this)">1 {{ _('Month') if _('Month') != 'Month' else 'Month' }}</button>
-                <button class="filter-chip" data-duration="7776000" onclick="setDurationFilter(7776000, this)">3 {{ _('Months') if _('Months') != 'Months' else 'Months' }}</button>
-                <button class="filter-chip" data-duration="15552000" onclick="setDurationFilter(15552000, this)">6 {{ _('Months') if _('Months') != 'Months' else 'Months' }}</button>
-                <button class="filter-chip" data-duration="31104000" onclick="setDurationFilter(31104000, this)">1 {{ _('Year') if _('Year') != 'Year' else 'Year' }}</button>
+                <button class="filter-chip active" data-duration="all" onclick="setDurationFilter('all', this)">{{
+                    _('All') if _('All') != 'All' else 'All' }}</button>
+                <button class="filter-chip" data-duration="2592000" onclick="setDurationFilter(2592000, this)">1 {{
+                    _('Month') if _('Month') != 'Month' else 'Month' }}</button>
+                <button class="filter-chip" data-duration="7776000" onclick="setDurationFilter(7776000, this)">3 {{
+                    _('Months') if _('Months') != 'Months' else 'Months' }}</button>
+                <button class="filter-chip" data-duration="15552000" onclick="setDurationFilter(15552000, this)">6 {{
+                    _('Months') if _('Months') != 'Months' else 'Months' }}</button>
+                <button class="filter-chip" data-duration="31104000" onclick="setDurationFilter(31104000, this)">1 {{
+                    _('Year') if _('Year') != 'Year' else 'Year' }}</button>
             </div>
         </div>
         <!-- Country Filter -->
         <div style="margin-bottom: 12px;">
-            <div style="font-size:0.8rem; color:var(--text-muted,#888); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            <div
+                style="font-size:0.8rem; color:var(--text-muted,#888); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path
+                        d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                    </path>
+                </svg>
                 {{ _('FilterByCountry') if _('FilterByCountry') != 'FilterByCountry' else 'Filter by Country' }}
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;" id="country-filters">
-                <button class="filter-chip active" data-country="all" onclick="setCountryFilter('all', this)">{{ _('All') if _('All') != 'All' else 'All' }}</button>
+                <button class="filter-chip active" data-country="all" onclick="setCountryFilter('all', this)">{{
+                    _('All') if _('All') != 'All' else 'All' }}</button>
                 <!-- flag chips injected by buildCountryFilters() -->
             </div>
         </div>
         <!-- Tag Filter -->
         <div>
-            <div style="font-size: 0.8rem; color: var(--text-muted, #888); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+            <div
+                style="font-size: 0.8rem; color: var(--text-muted, #888); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                </svg>
                 {{ _('FilterByTag') if _('FilterByTag') != 'FilterByTag' else 'Filter by Tag' }}
             </div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="tag-filters">
-                <button class="filter-chip active" data-tag="all" onclick="setTagFilter('all', this)">{{ _('All') if _('All') != 'All' else 'All' }}</button>
+                <button class="filter-chip active" data-tag="all" onclick="setTagFilter('all', this)">{{ _('All') if
+                    _('All') != 'All' else 'All' }}</button>
                 <button class="filter-chip" data-tag="gemini" onclick="setTagFilter('gemini', this)">🌀 Gemini</button>
                 <button class="filter-chip" data-tag="yt" onclick="setTagFilter('yt', this)">▶️ YouTube</button>
                 <button class="filter-chip" data-tag="lte" onclick="setTagFilter('lte', this)">📶 LTE</button>
                 <button class="filter-chip" data-tag="ru" onclick="setTagFilter('ru', this)">🇷🇺 Russia</button>
-                <button class="filter-chip" data-tag="torrent" onclick="setTagFilter('torrent', this)">🔗 Torrent</button>
+                <button class="filter-chip" data-tag="torrent" onclick="setTagFilter('torrent', this)">🔗
+                    Torrent</button>
             </div>
         </div>
     </div>
     <!-- No Results Message -->
-    <div id="no-results-msg" style="display: none; text-align: center; padding: 2rem 1rem; color: var(--text-muted, #888);">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px; opacity: 0.4;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <div style="font-size: 1rem;">{{ _('NoMatchingPlans') if _('NoMatchingPlans') != 'NoMatchingPlans' else 'No plans match your filters' }}</div>
-        <div style="font-size: 0.85rem; margin-top: 6px; opacity: 0.6;">{{ _('TryDifferentFilter') if _('TryDifferentFilter') != 'TryDifferentFilter' else 'Try a different combination' }}</div>
+    <div id="no-results-msg"
+        style="display: none; text-align: center; padding: 2rem 1rem; color: var(--text-muted, #888);">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px; opacity: 0.4;">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <div style="font-size: 1rem;">{{ _('NoMatchingPlans') if _('NoMatchingPlans') != 'NoMatchingPlans' else 'No
+            plans match your filters' }}</div>
+        <div style="font-size: 0.85rem; margin-top: 6px; opacity: 0.6;">{{ _('TryDifferentFilter') if
+            _('TryDifferentFilter') != 'TryDifferentFilter' else 'Try a different combination' }}</div>
     </div>
 
     <div class="plans-grid" id="plans-container">
         {% for server in servers %}
-        <div class="plan-card" data-id="{{ server.id }}" data-name="{{ server.name }}" data-price="{{ server.price }}" data-country="{{ server.country_code or '' }}" 
-             data-days="{{ server.plan_days or 0 }}" data-hours="{{ server.plan_hours or 0 }}" data-minutes="{{ server.plan_minutes or 0 }}"
-             data-tags="{{ server.tags | join(',') if server.tags else '' }}"
-             data-total-seconds="{{ server.total_plan_seconds or ((server.plan_days or 0) * 86400 + (server.plan_hours or 0) * 3600 + (server.plan_minutes or 0) * 60) }}"
-             onclick="openPaymentModal(this)">
+        <div class="plan-card" data-id="{{ server.id }}" data-name="{{ server.name }}" data-price="{{ server.price }}"
+            data-country="{{ server.country_code or '' }}" data-days="{{ server.plan_days or 0 }}"
+            data-hours="{{ server.plan_hours or 0 }}" data-minutes="{{ server.plan_minutes or 0 }}"
+            data-tags="{{ server.tags | join(',') if server.tags else '' }}"
+            data-total-seconds="{{ server.total_plan_seconds or ((server.plan_days or 0) * 86400 + (server.plan_hours or 0) * 3600 + (server.plan_minutes or 0) * 60) }}"
+            onclick="openPaymentModal(this)">
             <div class="plan-name" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                 {% if server.country_code %}
-                <img src="https://flagcdn.com/24x18/{{ server.country_code }}.png" alt="{{ server.country_code }}" style="border-radius: 2px;">
+                <img src="https://flagcdn.com/24x18/{{ server.country_code }}.png" alt="{{ server.country_code }}"
+                    style="border-radius: 2px;">
                 {% endif %}
                 {{ server.name }}
             </div>
@@ -109,11 +161,13 @@
                 {% if server.plan_days %}{{ server.plan_days }} {{ _('Days') }} {% endif %}
                 {% if server.plan_hours %}{{ server.plan_hours }} {{ _('Hours') }} {% endif %}
                 {% if server.plan_minutes %}{{ server.plan_minutes }} {{ _('Minutes') }}{% endif %}
-                {% if not server.plan_days and not server.plan_hours and not server.plan_minutes %}0 {{ _('Days') }}{% endif %}
+                {% if not server.plan_days and not server.plan_hours and not server.plan_minutes %}0 {{ _('Days') }}{%
+                endif %}
             </div>
         </div>
         {% else %}
-        <div class="alert alert-warning" style="grid-column: 1 / -1; text-align: center;">{{ _('NoPlansAvailable') }}</div>
+        <div class="alert alert-warning" style="grid-column: 1 / -1; text-align: center;">{{ _('NoPlansAvailable') }}
+        </div>
         {% endfor %}
     </div>
 </div>
@@ -131,11 +185,13 @@
         font-family: inherit;
         white-space: nowrap;
     }
+
     .filter-chip:hover {
         background: rgba(0, 255, 204, 0.08);
         border-color: rgba(0, 255, 204, 0.3);
         color: #fff;
     }
+
     .filter-chip.active {
         background: linear-gradient(135deg, rgba(0, 255, 204, 0.15), rgba(0, 200, 255, 0.15));
         border-color: rgba(0, 255, 204, 0.5);
@@ -143,90 +199,188 @@
         font-weight: 600;
         box-shadow: 0 0 12px rgba(0, 255, 204, 0.1);
     }
+
     .plan-card {
         transition: all 0.3s ease;
     }
+
     .plan-card.hidden-by-filter {
         display: none !important;
     }
-    @keyframes fadeInCard { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    @keyframes fadeInCard {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 </style>
 
 <!-- Payment Modal Overlay -->
-<div id="payment-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); backdrop-filter:blur(5px); z-index:9999; align-items:center; justify-content:center;">
-    <div class="pay-modal-card" style="background:linear-gradient(160deg, #161a2e 0%, #11131f 100%); border:1px solid rgba(255,255,255,0.08); border-radius:20px; padding:0; max-width:440px; width:90%; max-height:95vh; overflow-y:auto; box-shadow:0 24px 70px rgba(0,0,0,0.6); position:relative; animation:modalIn 0.3s ease;">
-        <button type="button" onclick="closePaymentModal()" aria-label="Close" style="position:absolute; top:10px; right:10px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:50%; color:var(--text-muted); font-size:1.3rem; line-height:1; cursor:pointer; transition:all 0.2s; z-index:2;" onmouseover="this.style.background='rgba(255,80,80,0.15)';this.style.color='#ff6b6b';" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='var(--text-muted)';">&times;</button>
+<div id="payment-modal"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); backdrop-filter:blur(5px); z-index:9999; align-items:center; justify-content:center;">
+    <div class="pay-modal-card"
+        style="background:linear-gradient(160deg, #161a2e 0%, #11131f 100%); border:1px solid rgba(255,255,255,0.08); border-radius:20px; padding:0; max-width:440px; width:90%; max-height:95vh; overflow-y:auto; box-shadow:0 24px 70px rgba(0,0,0,0.6); position:relative; animation:modalIn 0.3s ease;">
+        <button type="button" onclick="closePaymentModal()" aria-label="Close"
+            style="position:absolute; top:10px; right:10px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:50%; color:var(--text-muted); font-size:1.3rem; line-height:1; cursor:pointer; transition:all 0.2s; z-index:2;"
+            onmouseover="this.style.background='rgba(255,80,80,0.15)';this.style.color='#ff6b6b';"
+            onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='var(--text-muted)';">&times;</button>
 
         <!-- Header with accent banner -->
         <div style="text-align:center; padding:1.25rem 1.25rem 0.5rem;">
-            <div style="width:40px; height:40px; margin:0 auto 8px; border-radius:12px; background:linear-gradient(135deg, #00ffcc, #00a3ff); display:flex; align-items:center; justify-content:center; box-shadow:0 10px 26px rgba(0,255,204,0.28);">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06121f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+            <div
+                style="width:40px; height:40px; margin:0 auto 8px; border-radius:12px; background:linear-gradient(135deg, #00ffcc, #00a3ff); display:flex; align-items:center; justify-content:center; box-shadow:0 10px 26px rgba(0,255,204,0.28);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06121f" stroke-width="2.2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <polyline points="9 12 11 14 15 10"></polyline>
+                </svg>
             </div>
-            <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:#fff; letter-spacing:0.3px;">{{ _('BuySubscription') }}</h3>
+            <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:#fff; letter-spacing:0.3px;">{{
+                _('BuySubscription') }}</h3>
         </div>
 
         <div style="padding:0 1.25rem 1.25rem;">
-        <!-- Selected Plan Info Box -->
-        <div style="background:linear-gradient(135deg, rgba(0,255,204,0.10), rgba(0,163,255,0.05)); border:1px solid rgba(0,255,204,0.25); border-radius:12px; padding:12px 14px; margin-bottom:1rem; text-align:center;">
-            <div id="modal-plan-name" style="font-weight:700; font-size:0.95rem; margin-bottom:6px; color:#fff;"></div>
-            <div id="modal-plan-price" style="background:linear-gradient(135deg,#00ffcc,#00a3ff); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; font-size:1.6rem; font-weight:800; line-height:1;"></div>
-            <div style="display:inline-flex; align-items:center; gap:6px; margin-top:8px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12); padding:4px 12px; border-radius:20px;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00ffcc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                <span id="modal-plan-duration" style="font-size:0.75rem; color:#d6fff5; font-weight:600;"></span>
-            </div>
-        </div>
-
-        <!-- Important payment tips -->
-        <div style="background:rgba(255,193,7,0.06); border:1px solid rgba(255,193,7,0.22); border-radius:10px; padding:10px 12px; margin-bottom:1rem; text-align:{{ 'right' if dir == 'rtl' else 'left' }};">
-            <strong style="display:flex; align-items:center; gap:7px; margin-bottom:6px; color:var(--warning); font-size:0.85rem;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                {{ _('ImportantTips') }}
-            </strong>
-            <ul style="margin:0; padding-{{ 'right' if dir == 'rtl' else 'left' }}:18px; list-style-type:disc; display:flex; flex-direction:column; gap:4px; font-size:0.78rem; line-height:1.4; color:var(--text-muted);">
-                <li>{{ _('TipExactAmount') | safe }}</li>
-                <li>{{ _('TipClearReceipt') | safe }}</li>
-                <li>{{ _('ScanQR') }}</li>
-            </ul>
-        </div>
-
-        <!-- Sberbank QR -->
-        <div style="text-align:center; margin-bottom:1rem;">
-            <div style="display:inline-block; padding:8px; background:#fff; border-radius:12px; box-shadow:0 10px 26px rgba(0,0,0,0.45);">
-                <img src="{{ url_for('static', filename='images/qr.jpg') }}" alt="Sberbank QR Code" style="display:block; max-width:130px; width:100%; border-radius:6px;">
-            </div>
-            <div style="display:flex; align-items:center; justify-content:center; gap:4px; font-size:0.7rem; color:var(--text-muted); margin-top:6px;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><line x1="14" y1="14" x2="14" y2="21"></line><line x1="21" y1="14" x2="21" y2="21"></line><line x1="17" y1="17" x2="18" y2="17"></line></svg>
-                Sberbank
-            </div>
-        </div>
-
-        <form method="POST" enctype="multipart/form-data" id="payment-form">
-            <input type="hidden" name="server_id" id="selected_server_id" required>
-            <input type="hidden" name="renew_sub_id" id="renew_sub_id">
-
-            <div class="form-group" style="margin-bottom:1rem;">
-                <label style="display:block; font-size:0.8rem; font-weight:600; color:var(--text-primary); margin-bottom:6px;">{{ _('UploadReceipt') }}</label>
-                <input type="file" name="receipt" id="receipt-upload" accept="image/*" required style="display:none;">
-                <div class="drag-drop-zone" id="drop-zone" onclick="document.getElementById('receipt-upload').click()" style="padding:1rem; min-height:80px; border:2px dashed rgba(0,255,204,0.3); border-radius:10px; background:rgba(0,255,204,0.03); transition:all 0.2s; cursor:pointer;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:6px; color:var(--primary);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    <div class="zone-text" id="drop-zone-text" style="font-size:0.75rem; color:var(--text-muted);">Drag & drop your receipt here or click to browse</div>
+            <!-- Selected Plan Info Box -->
+            <div
+                style="background:linear-gradient(135deg, rgba(0,255,204,0.10), rgba(0,163,255,0.05)); border:1px solid rgba(0,255,204,0.25); border-radius:12px; padding:12px 14px; margin-bottom:1rem; text-align:center;">
+                <div id="modal-plan-name" style="font-weight:700; font-size:0.95rem; margin-bottom:6px; color:#fff;">
+                </div>
+                <div id="modal-plan-price"
+                    style="background:linear-gradient(135deg,#00ffcc,#00a3ff); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; font-size:1.6rem; font-weight:800; line-height:1;">
+                </div>
+                <div
+                    style="display:inline-flex; align-items:center; gap:6px; margin-top:8px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12); padding:4px 12px; border-radius:20px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00ffcc" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span id="modal-plan-duration" style="font-size:0.75rem; color:#d6fff5; font-weight:600;"></span>
                 </div>
             </div>
 
-            <button type="submit" id="submit-btn" class="btn btn-success" style="width:100%; display:flex; justify-content:center; align-items:center; gap:8px; font-size:0.95rem; font-weight:700; padding:12px; border:none; border-radius:10px; background:linear-gradient(135deg,#00ffcc,#00a3ff); color:#06121f; cursor:pointer; box-shadow:0 8px 22px rgba(0,255,204,0.25); transition:all 0.15s;" onmouseover="if(!this.disabled){this.style.transform='translateY(-1px)';this.style.boxShadow='0 12px 28px rgba(0,255,204,0.35)';}" onmouseout="if(!this.disabled){this.style.transform='none';this.style.boxShadow='0 8px 22px rgba(0,255,204,0.25)';}">
-                <svg id="submit-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none; animation:spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
-                <span id="submit-text">{{ _('Submit') }}</span>
-            </button>
-        </form>
+            <!-- Important payment tips -->
+            <div
+                style="background:rgba(255,193,7,0.06); border:1px solid rgba(255,193,7,0.22); border-radius:10px; padding:10px 12px; margin-bottom:1rem; text-align:{{ 'right' if dir == 'rtl' else 'left' }};">
+                <strong
+                    style="display:flex; align-items:center; gap:7px; margin-bottom:6px; color:var(--warning); font-size:0.85rem;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    {{ _('ImportantTips') }}
+                </strong>
+                <ul
+                    style="margin:0; padding-{{ 'right' if dir == 'rtl' else 'left' }}:18px; list-style-type:disc; display:flex; flex-direction:column; gap:4px; font-size:0.78rem; line-height:1.4; color:var(--text-muted);">
+                    <li>{{ _('TipExactAmount') | safe }}</li>
+                    <li>{{ _('TipClearReceipt') | safe }}</li>
+                    <li>{{ _('ScanQR') }}</li>
+                </ul>
+            </div>
+
+            <!-- Sberbank QR -->
+            <div style="text-align:center; margin-bottom:1rem;">
+                <div
+                    style="display:inline-block; padding:8px; background:#fff; border-radius:12px; box-shadow:0 10px 26px rgba(0,0,0,0.45);">
+                    <img src="{{ url_for('static', filename='images/qr.jpg') }}" alt="Sberbank QR Code"
+                        style="display:block; max-width:130px; width:100%; border-radius:6px;">
+                </div>
+                <div
+                    style="display:flex; align-items:center; justify-content:center; gap:4px; font-size:0.7rem; color:var(--text-muted); margin-top:6px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                        <line x1="14" y1="14" x2="14" y2="21"></line>
+                        <line x1="21" y1="14" x2="21" y2="21"></line>
+                        <line x1="17" y1="17" x2="18" y2="17"></line>
+                    </svg>
+                    Sberbank
+                </div>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data" id="payment-form">
+                <input type="hidden" name="server_id" id="selected_server_id" required>
+                <input type="hidden" name="renew_sub_id" id="renew_sub_id">
+
+                <div class="form-group" style="margin-bottom:1rem;">
+                    <label
+                        style="display:block; font-size:0.8rem; font-weight:600; color:var(--text-primary); margin-bottom:6px;">{{
+                        _('UploadReceipt') }}</label>
+                    <input type="file" name="receipt" id="receipt-upload" accept="image/*" required
+                        style="display:none;">
+                    <div class="drag-drop-zone" id="drop-zone"
+                        onclick="document.getElementById('receipt-upload').click()"
+                        style="padding:1rem; min-height:80px; border:2px dashed rgba(0,255,204,0.3); border-radius:10px; background:rgba(0,255,204,0.03); transition:all 0.2s; cursor:pointer;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                            style="margin-bottom:6px; color:var(--primary);">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <div class="zone-text" id="drop-zone-text" style="font-size:0.75rem; color:var(--text-muted);">
+                            Drag & drop your receipt here or click to browse</div>
+                    </div>
+                </div>
+
+                <button type="submit" id="submit-btn" class="btn btn-success"
+                    style="width:100%; display:flex; justify-content:center; align-items:center; gap:8px; font-size:0.95rem; font-weight:700; padding:12px; border:none; border-radius:10px; background:linear-gradient(135deg,#00ffcc,#00a3ff); color:#06121f; cursor:pointer; box-shadow:0 8px 22px rgba(0,255,204,0.25); transition:all 0.15s;"
+                    onmouseover="if(!this.disabled){this.style.transform='translateY(-1px)';this.style.boxShadow='0 12px 28px rgba(0,255,204,0.35)';}"
+                    onmouseout="if(!this.disabled){this.style.transform='none';this.style.boxShadow='0 8px 22px rgba(0,255,204,0.25)';}">
+                    <svg id="submit-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+                        style="display:none; animation:spin 1s linear infinite;">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                    </svg>
+                    <span id="submit-text">{{ _('Submit') }}</span>
+                </button>
+            </form>
         </div>
     </div>
 </div>
 <style>
-    @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-    @keyframes spin { 100% { transform: rotate(360deg); } }
-    #drop-zone.drag-over, #drop-zone:hover { border-color: var(--primary) !important; background: rgba(0,255,204,0.08) !important; }
-    .pay-modal-card::-webkit-scrollbar { width: 8px; }
-    .pay-modal-card::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+    @keyframes modalIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95) translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+
+    @keyframes spin {
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    #drop-zone.drag-over,
+    #drop-zone:hover {
+        border-color: var(--primary) !important;
+        background: rgba(0, 255, 204, 0.08) !important;
+    }
+
+    .pay-modal-card::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .pay-modal-card::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 4px;
+    }
 </style>
 {% endblock %}
 
@@ -241,8 +395,8 @@
     const countryLabel = (() => {
         try {
             const dn = new Intl.DisplayNames(['{{ lang or "en" }}'], { type: 'region' });
-            return c => { try { return dn.of(c.toUpperCase()) || c.toUpperCase(); } catch(e){ return c.toUpperCase(); } };
-        } catch(e) { return c => c.toUpperCase(); }
+            return c => { try { return dn.of(c.toUpperCase()) || c.toUpperCase(); } catch (e) { return c.toUpperCase(); } };
+        } catch (e) { return c => c.toUpperCase(); }
     })();
 
     let renderedCountrySig = null;
@@ -301,7 +455,7 @@
         const cards = document.querySelectorAll('#plans-container .plan-card');
         let visibleCount = 0;
         const tolerance = 0.15; // 15% tolerance for duration matching
-        
+
         cards.forEach(card => {
             let showDuration = true;
             let showTag = true;
@@ -335,7 +489,7 @@
                 card.classList.add('hidden-by-filter');
             }
         });
-        
+
         // Show/hide no results message
         const noResultsMsg = document.getElementById('no-results-msg');
         if (visibleCount === 0 && cards.length > 0) {
@@ -344,14 +498,14 @@
             noResultsMsg.style.display = 'none';
         }
     }
-    
+
     // Smart duration: show the largest single clean unit (e.g. 30 days -> 1 Month,
     // 90 days -> 3 Months, 360 days -> 1 Year) instead of "0 Months 29 Days".
     const DURATION_LABELS = {
-        year:   { one: '{{ _("Year") }}',   many: '{{ _("Years") }}' },
-        month:  { one: '{{ _("Month") }}',  many: '{{ _("Months") }}' },
-        day:    { one: '{{ _("Day") }}',    many: '{{ _("Days") }}' },
-        hour:   { one: '{{ _("Hour") }}',   many: '{{ _("Hours") }}' },
+        year: { one: '{{ _("Year") }}', many: '{{ _("Years") }}' },
+        month: { one: '{{ _("Month") }}', many: '{{ _("Months") }}' },
+        day: { one: '{{ _("Day") }}', many: '{{ _("Days") }}' },
+        hour: { one: '{{ _("Hour") }}', many: '{{ _("Hours") }}' },
         minute: { one: '{{ _("Minute") }}', many: '{{ _("Minutes") }}' },
         second: { one: '{{ _("Second") }}', many: '{{ _("Seconds") }}' },
     };
@@ -360,12 +514,12 @@
         if (totalSecs <= 0) return '—';
         const DAY = 86400, MONTH = 30 * DAY, YEAR = 360 * DAY;
         let n, unit;
-        if (totalSecs % YEAR === 0)       { n = totalSecs / YEAR;  unit = 'year'; }
+        if (totalSecs % YEAR === 0) { n = totalSecs / YEAR; unit = 'year'; }
         else if (totalSecs % MONTH === 0) { n = totalSecs / MONTH; unit = 'month'; }
-        else if (totalSecs % DAY === 0)   { n = totalSecs / DAY;   unit = 'day'; }
-        else if (totalSecs % 3600 === 0)  { n = totalSecs / 3600;  unit = 'hour'; }
-        else if (totalSecs % 60 === 0)    { n = totalSecs / 60;    unit = 'minute'; }
-        else                              { n = totalSecs;         unit = 'second'; }
+        else if (totalSecs % DAY === 0) { n = totalSecs / DAY; unit = 'day'; }
+        else if (totalSecs % 3600 === 0) { n = totalSecs / 3600; unit = 'hour'; }
+        else if (totalSecs % 60 === 0) { n = totalSecs / 60; unit = 'minute'; }
+        else { n = totalSecs; unit = 'second'; }
         return n + ' ' + (n === 1 ? DURATION_LABELS[unit].one : DURATION_LABELS[unit].many);
     }
 
@@ -385,14 +539,14 @@
 
         paymentModal.style.display = 'flex';
     }
-    
+
     function closePaymentModal() {
         paymentModal.style.display = 'none';
         document.getElementById('selected_server_id').value = '';
     }
-    
+
     // Close modal when clicking outside
-    paymentModal.addEventListener('click', function(e) {
+    paymentModal.addEventListener('click', function (e) {
         if (e.target === paymentModal) {
             closePaymentModal();
         }
@@ -429,14 +583,14 @@
     dropZone.addEventListener('drop', (e) => {
         let dt = e.dataTransfer;
         let files = dt.files;
-        if(files.length > 0) {
+        if (files.length > 0) {
             fileInput.files = files;
             updateDropZoneText(files[0]);
         }
     });
 
-    fileInput.addEventListener('change', function() {
-        if(this.files.length > 0) {
+    fileInput.addEventListener('change', function () {
+        if (this.files.length > 0) {
             updateDropZoneText(this.files[0]);
         }
     });
@@ -449,7 +603,7 @@
     // Prevent double form submission
     const paymentForm = document.getElementById('payment-form');
     if (paymentForm) {
-        paymentForm.addEventListener('submit', function(e) {
+        paymentForm.addEventListener('submit', function (e) {
             // Check if file is selected
             if (fileInput.files.length === 0) {
                 e.preventDefault();
@@ -470,24 +624,24 @@
 
     // Auto-refresh available servers every 30 seconds
     const serverContainer = document.getElementById('plans-container');
-    
+
     async function refreshServers() {
         try {
             const resp = await fetch('/api/available_servers');
             if (!resp.ok) return;
             const servers = await resp.json();
-            
+
             const selectedId = document.getElementById('selected_server_id').value;
             serverContainer.innerHTML = '';
-            
+
             if (servers.length === 0) {
                 serverContainer.innerHTML = '<div class="alert alert-warning" style="grid-column: 1 / -1;">{{ _("NoPlansAvailable") }}</div>';
                 document.querySelector('button[type="submit"]').disabled = true;
                 return;
             }
-            
+
             document.querySelector('button[type="submit"]').disabled = false;
-            
+
             servers.forEach(server => {
                 const card = document.createElement('div');
                 card.className = 'plan-card';
@@ -504,12 +658,12 @@
                 card.setAttribute('data-tags', (server.tags || []).join(','));
                 const totalSecs = server.total_plan_seconds || ((server.plan_days || 0) * 86400 + (server.plan_hours || 0) * 3600 + (server.plan_minutes || 0) * 60);
                 card.setAttribute('data-total-seconds', totalSecs);
-                card.onclick = function() { openPaymentModal(this); };
-                
-                const flagImg = server.country_code 
-                    ? `<img src="https://flagcdn.com/24x18/${server.country_code}.png" alt="${server.country_code}" style="border-radius: 2px;">` 
+                card.onclick = function () { openPaymentModal(this); };
+
+                const flagImg = server.country_code
+                    ? `<img src="https://flagcdn.com/24x18/${server.country_code}.png" alt="${server.country_code}" style="border-radius: 2px;">`
                     : '';
-                
+
                 const duration = formatPlanDuration(totalSecs);
 
                 card.innerHTML = `
@@ -521,16 +675,16 @@
                 `;
                 serverContainer.appendChild(card);
             });
-            
+
             // Rebuild country chips (new countries appear automatically) and re-filter
             buildCountryFilters();
             applyFilters();
-        } catch(e) {
+        } catch (e) {
             console.log('Auto-refresh error:', e);
         }
     }
-    
-    setInterval(refreshServers, 30000);
+
+    setInterval(refreshServers, 60000);
 
     window.addEventListener("DOMContentLoaded", () => {
         // Format the durations of the initial (server-rendered) cards
@@ -545,15 +699,15 @@
         const urlParams = new URLSearchParams(window.location.search);
         const renewServerId = urlParams.get('renew_server_id');
         const renewSubId = urlParams.get('renew_sub_id');
-        
+
         if (renewSubId) {
             document.getElementById('renew_sub_id').value = renewSubId;
         }
 
-        if(renewServerId) {
+        if (renewServerId) {
             setTimeout(() => {
                 const card = document.querySelector(`.plan-card[data-id="${renewServerId}"]`);
-                if(card) {
+                if (card) {
                     openPaymentModal(card);
                 } else {
                     alert('عذراً، هذه الباقة/السيرفر لم يعد متوفراً. الرجاء اختيار باقة أخرى من القائمة لترقية اشتراكك.');

@@ -138,8 +138,8 @@ def background_expiry_checker():
         except Exception as e:
             print(f"Background expiry checker error: {e}")
             
-        # Run every 30 seconds
-        time.sleep(30)
+        # Run every 300 seconds
+        time.sleep(300)
 
 if __name__ == '__main__':
     try:
