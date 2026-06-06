@@ -626,11 +626,11 @@ def delete_user(user_id):
     # 4. Delete the user document
     supabase_admin.table('users').delete().eq('id', user_id).execute()
     
-    # 5. Delete from Firebase Auth
+    # 5. Delete from Auth
     try:
-        firebase_auth.delete_user(user_id)
+        supabase_admin.auth.admin.delete_user(user_id)
     except Exception as e:
-        print(f"Error deleting user from Firebase Auth: {e}")
+        print(f"Error deleting user from Auth: {e}")
         
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'status': 'success'})
