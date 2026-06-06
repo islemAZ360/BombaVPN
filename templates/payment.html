@@ -449,24 +449,65 @@
     // Prevent double form submission
     const paymentForm = document.getElementById('payment-form');
     if (paymentForm) {
-        paymentForm.addEventListener('submit', function(e) {
+        paymentForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
             // Check if file is selected
             if (fileInput.files.length === 0) {
-                e.preventDefault();
                 alert('الرجاء اختيار صورة الوصل / Please select a receipt image');
                 return;
             }
             const btn = paymentForm.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
             if (btn) {
-                setTimeout(() => {
-                    btn.disabled = true;
-                    btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 10 10"></path></svg> Processing...`;
-                    btn.style.opacity = '0.7';
-                    btn.style.cursor = 'not-allowed';
-                }, 10);
+                btn.disabled = true;
+                btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 10 10"></path></svg> Processing...`;
+                btn.style.opacity = '0.7';
+                btn.style.cursor = 'not-allowed';
             }
-        });
-    }
+            
+            try {
+                const formData = new FormData(paymentForm);
+                const response = await fetch('/pay', {
+                    method: 'POST',
+                    body: formData,
+                    redirect: 'follow'
+                });
+                
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Close modal before transitioning
+                closePaymentModal();
+                
+                // Smoothly replace the entire body to transition to the Dashboard
+                document.body.innerHTML = doc.body.innerHTML;
+                
+                // Update URL in browser history without reloading
+                if (response.url) {
+                    window.history.pushState({}, '', response.url);
+                }
+                
+                // Re-execute scripts in the new page (user_dashboard.html)
+                const scripts = document.body.querySelectorAll('script');
+                scripts.forEach(script => {
+                    const newScript = document.createElement('script');
+                    Array.from(script.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                    newScript.appendChild(document.createTextNode(script.innerHTML));
+                    script.parentNode.replaceChild(newScript, script);
+                });
+                
+            } catch(err) {
+                console.error(err);
+                alert('حدث خطأ في الشبكة. يرجى المحاولة مرة أخرى.');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                }
+            }
+        });   }
 
     // Auto-refresh available servers every 30 seconds
     const serverContainer = document.getElementById('plans-container');
