@@ -93,7 +93,7 @@ CREATE POLICY "Allow public read access for servers" ON public.servers FOR SELEC
 -- Create messages table
 CREATE TABLE IF NOT EXISTS messages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
     message TEXT,
     image TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -105,8 +105,8 @@ CREATE TABLE IF NOT EXISTS messages (
 -- Create purchase_requests table
 CREATE TABLE IF NOT EXISTS purchase_requests (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    server_id UUID REFERENCES servers(id) ON DELETE SET NULL,
+    user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+    server_id TEXT REFERENCES servers(id) ON DELETE SET NULL,
     status TEXT DEFAULT 'pending',
     receipt_url TEXT,
     price TEXT,
@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS purchase_requests (
 -- Create admin_messages table
 CREATE TABLE IF NOT EXISTS admin_messages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
     message TEXT,
     image TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
