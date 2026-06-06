@@ -55,8 +55,17 @@ def background_expiry_checker():
                                 break
                                 
                     is_temp = sub.get('is_temporary', False)
+                    original_server_id = sub.get('original_server_id')
                     
-                    if server_dead or is_temp:
+                    # Check if the original server has come back to life
+                    original_server_active = False
+                    if original_server_id and original_server_id != allocated_server_id:
+                        for active_s in all_active_servers:
+                            if active_s['id'] == original_server_id:
+                                original_server_active = True
+                                break
+                    
+                    if server_dead or is_temp or original_server_active:
                         required_tags = set(sub.get('required_tags') or [])
                         candidate_servers = []
                         for s in all_active_servers:
@@ -64,7 +73,11 @@ def background_expiry_checker():
                             if required_tags.issubset(s_tags):
                                 candidate_servers.append(s)
                                 
-                        if candidate_servers:
+                        if original_server_active:
+                            # Force return to the original server since it's alive again
+                            best_server = next(s for s in all_active_servers if s['id'] == original_server_id)
+                            new_temp = False
+                        elif candidate_servers:
                             best_server = max(candidate_servers, key=lambda s: s['expires_at'])
                             new_temp = False
                         elif server_dead:
@@ -110,6 +123,14 @@ def background_expiry_checker():
                                         'created_at': datetime.now(timezone.utc),
                                         'is_read': False,
                                         'type': 'debt'
+                                    })
+                                elif original_server_active:
+                                    db.collection('notifications').add({
+                                        'title': 'العودة للسيرفر الأصلي / Returned to original server',
+                                        'message': f'تم إرجاع المشترك / User {user_data.get("email")} إلى سيرفره الأصلي / returned to original server {best_server.get("name")} بعد أن عاد للعمل. / after it became active again.',
+                                        'created_at': datetime.now(timezone.utc),
+                                        'is_read': False,
+                                        'type': 'system'
                                     })
                 except Exception as e:
                     print(f"Error processing sub {sub_id} in background task: {e}")

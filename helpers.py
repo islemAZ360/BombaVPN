@@ -335,6 +335,7 @@ def _approve_request_logic(request_id):
     _, new_sub_ref = db.collection('subscriptions').add({
         'user_id': user_id,
         'server_id': server_id,
+        'original_server_id': server_id,
         'allocated_subdomain': None,
         'status': 'active',
         'required_tags': s_data.get('tags', []) if s_data else [],
