@@ -2551,6 +2551,7 @@ async function submitAjaxForm(event) {
 
             // Determine if it's a row deletion/action
             const isRowAction = form.action.includes('/delete') || form.action.includes('delete_') || form.action.includes('manage_user_sub') || form.action.includes('approve_') || form.action.includes('reject_');
+            const isPricingRuleAdd = form.action.includes('api/admin/pricing_rules') && !isRowAction;
             
             if (isRowAction) {
                 // Remove the row smoothly. Handle tr, request-card, li, or just the parent div for pricing rules
@@ -2569,8 +2570,11 @@ async function submitAjaxForm(event) {
                 if (typeof fetchDashboardSync === 'function') fetchDashboardSync();
                 if (typeof fetchPendingRequests === 'function') fetchPendingRequests();
                 if (typeof fetchPricingRules === 'function') fetchPricingRules();
+            } else if (isPricingRuleAdd) {
+                // For adding pricing rules, just re-fetch the pricing rules list!
+                if (typeof fetchPricingRules === 'function') fetchPricingRules();
             } else {
-                // For Add/Import operations, we soft reload to ensure new data appears
+                // For other Add/Import operations, we soft reload to ensure new data appears
                 await softReloadDashboard();
             }
         }
