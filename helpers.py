@@ -314,6 +314,12 @@ def _approve_request_logic(request_id):
             days = 30
         
     duration_delta = timedelta(days=days, hours=hours, minutes=minutes)
+    # Apply banked bonus days if the user has them!
+    banked_bonus_days = user_data.get('banked_bonus_days', 0)
+    if banked_bonus_days > 0:
+        duration_delta += timedelta(days=banked_bonus_days)
+        user_doc_ref.update({'banked_bonus_days': 0})
+        
     expires_at = datetime.now(timezone.utc) + duration_delta
     
     # Check if server expires before the subscription
@@ -366,8 +372,27 @@ def _approve_request_logic(request_id):
             all_r_subs = list(db.collection('subscriptions').where('user_id', '==', r_doc.id).stream())
             
             # Grant 7 free days to the NEW USER as well!
-            new_sub_expiry = expires_at + timedelta(days=7)
-            new_sub_ref.update({'expires_at': new_sub_expiry})
+            # Smart logic: if adding 7 days exceeds the server's life, we bank the remainder.
+            s_exp = s_data.get('expires_at')
+            if not s_exp:
+                new_sub_expiry = expires_at + timedelta(days=7)
+                new_sub_ref.update({'expires_at': new_sub_expiry})
+            else:
+                s_exp = s_exp.replace(tzinfo=timezone.utc)
+                if expires_at + timedelta(days=7) <= s_exp:
+                    new_sub_expiry = expires_at + timedelta(days=7)
+                    new_sub_ref.update({'expires_at': new_sub_expiry})
+                elif expires_at < s_exp:
+                    # Add what we can, bank the rest
+                    room = (s_exp - expires_at).days
+                    new_sub_ref.update({'expires_at': s_exp})
+                    if 7 - room > 0:
+                        cur_banked = user_data.get('banked_bonus_days', 0)
+                        user_doc_ref.update({'banked_bonus_days': cur_banked + (7 - room)})
+                else:
+                    # Already in debt, bank all 7
+                    cur_banked = user_data.get('banked_bonus_days', 0)
+                    user_doc_ref.update({'banked_bonus_days': cur_banked + 7})
             
             if not all_r_subs:
                 send_telegram_notification(f"⚠️ إحالة بدون مكافأة! / Referral Without Reward!\nالمستخدم / User {user_data.get('email')} اشترى باقة عبر رابط / bought a plan via the link of {r_user.get('email')}، لكن صاحب الرابط لا يملك أي اشتراك سابق لنضيف له الأيام. / but the referrer has no previous subscription to add days to. (المستخدم الجديد حصل على 7 أيام / The new user got 7 days).")
@@ -382,9 +407,33 @@ def _approve_request_logic(request_id):
                     latest_active = max(active_subs, key=get_expiry)
                     r_sub = latest_active.to_dict()
                     if 'expires_at' in r_sub and r_sub['expires_at']:
-                        new_expiry = r_sub['expires_at'].replace(tzinfo=timezone.utc) + timedelta(days=7)
-                        db.collection('subscriptions').document(latest_active.id).update({'expires_at': new_expiry})
-                    send_telegram_notification(f"🎉 مكافأة إحالة! / Referral Reward!\nالمستخدم / User {user_data.get('email')} اشترى باقة عبر رابط / bought a plan via the link of {r_user.get('email')}.\nتمت إضافة 7 أيام لآخر اشتراك نشط له. / 7 days added to their latest active subscription.")
+                        r_server_id = r_sub.get('server_id')
+                        r_server_doc = db.collection('servers').document(r_server_id).get() if r_server_id else None
+                        
+                        base_exp = r_sub['expires_at'].replace(tzinfo=timezone.utc)
+                        r_s_exp = None
+                        if r_server_doc and r_server_doc.exists:
+                            r_s_exp = r_server_doc.to_dict().get('expires_at')
+                            
+                        if not r_s_exp:
+                            new_expiry = base_exp + timedelta(days=7)
+                            db.collection('subscriptions').document(latest_active.id).update({'expires_at': new_expiry})
+                        else:
+                            r_s_exp = r_s_exp.replace(tzinfo=timezone.utc)
+                            if base_exp + timedelta(days=7) <= r_s_exp:
+                                new_expiry = base_exp + timedelta(days=7)
+                                db.collection('subscriptions').document(latest_active.id).update({'expires_at': new_expiry})
+                            elif base_exp < r_s_exp:
+                                room = (r_s_exp - base_exp).days
+                                db.collection('subscriptions').document(latest_active.id).update({'expires_at': r_s_exp})
+                                if 7 - room > 0:
+                                    r_cur_banked = r_user.get('banked_bonus_days', 0)
+                                    referrer_docs[0].reference.update({'banked_bonus_days': r_cur_banked + (7 - room)})
+                            else:
+                                r_cur_banked = r_user.get('banked_bonus_days', 0)
+                                referrer_docs[0].reference.update({'banked_bonus_days': r_cur_banked + 7})
+                                
+                    send_telegram_notification(f"🎉 مكافأة إحالة! / Referral Reward!\\nالمستخدم / User {user_data.get('email')} اشترى باقة عبر رابط / bought a plan via the link of {r_user.get('email')}.\\nتمت إضافة 7 أيام أو حفظها كرصيد إضافي. / 7 days added or banked.")
                 else:
                     expired_subs = [d for d in all_r_subs if d.to_dict().get('status') == 'expired']
                     if expired_subs:

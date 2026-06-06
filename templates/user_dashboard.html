@@ -38,6 +38,13 @@
             {% elif user.status == 'expired' %}
                 <span class="badge" style="background: rgba(255, 71, 87, 0.1); border: 1px solid #ff4757; color: #ff4757; padding: 6px 16px; border-radius: 50px; font-weight: bold; letter-spacing: 1px;">{{ _('StatusExpired') }}</span>
             {% endif %}
+            
+            {% if user.banked_bonus_days and user.banked_bonus_days > 0 %}
+                <span class="badge" style="background: rgba(156, 39, 176, 0.1); border: 1px solid #9c27b0; color: #e1bee7; padding: 6px 16px; border-radius: 50px; font-weight: bold; letter-spacing: 1px; margin-left: 10px; display: inline-flex; align-items: center; gap: 5px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path></svg>
+                    Banked Bonus: {{ user.banked_bonus_days }} Days
+                </span>
+            {% endif %}
         </div>
         
         {% if not (user.latest_req and user.latest_req.status == 'pending') %}
