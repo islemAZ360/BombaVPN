@@ -2553,23 +2553,22 @@ async function submitAjaxForm(event) {
             const isRowAction = form.action.includes('/delete') || form.action.includes('delete_') || form.action.includes('manage_user_sub') || form.action.includes('approve_') || form.action.includes('reject_');
             
             if (isRowAction) {
-                // Remove the row smoothly
-                const row = form.closest('tr');
+                // Remove the row smoothly. Handle tr, request-card, li, or just the parent div for pricing rules
+                const row = form.closest('tr') || form.closest('.request-card') || form.closest('li');
                 if (row) {
                     row.style.transition = 'all 0.3s ease';
                     row.style.opacity = '0';
                     setTimeout(() => row.remove(), 300);
-                } else if (form.closest('.request-card') || form.closest('li')) {
-                    const card = form.closest('.request-card') || form.closest('li');
-                    card.style.transition = 'all 0.3s ease';
-                    card.style.opacity = '0';
-                    setTimeout(() => card.remove(), 300);
+                } else if (form.parentElement && form.parentElement.tagName === 'DIV') {
+                    form.parentElement.style.transition = 'all 0.3s ease';
+                    form.parentElement.style.opacity = '0';
+                    setTimeout(() => form.parentElement.remove(), 300);
                 }
                 
                 // Trigger localized syncs instead of full DOM replacement
                 if (typeof fetchDashboardSync === 'function') fetchDashboardSync();
-                if (typeof loadPendingRequests === 'function') loadPendingRequests();
-                if (typeof loadPricingRules === 'function' && form.action.includes('pricing_rules')) loadPricingRules();
+                if (typeof fetchPendingRequests === 'function') fetchPendingRequests();
+                if (typeof fetchPricingRules === 'function') fetchPricingRules();
             } else {
                 // For Add/Import operations, we soft reload to ensure new data appears
                 await softReloadDashboard();
