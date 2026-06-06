@@ -26,12 +26,15 @@ def admin_dashboard():
     if not request.is_admin:
         return "Unauthorized", 403
         
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     servers = []
     for doc in db.collection('servers').stream():
         data = doc.to_dict()
         data['id'] = doc.id
         if 'expires_at' in data and data['expires_at']:
-            data['expires_at'] = data['expires_at']
+            data['expires_at'] = data['expires_at'].replace(tzinfo=None)
+            if data['expires_at'] <= now:
+                continue # Skip expired servers
         servers.append(data)
     
     # Sort servers: group by country, then by number
@@ -280,7 +283,39 @@ def admin_debts():
     except Exception as e:
         print("Error fetching debts:", e)
         
-    return render_template('debts.html', users=in_debt_users, now=datetime.now(timezone.utc))
+    return render_template('debts.html', users=in_debt_users, now=datetime.now(timezone.utc).replace(tzinfo=None))
+
+@admin_bp.route('/admin/expired_servers')
+@login_required
+def expired_servers_dashboard():
+    if not request.is_admin:
+        return "Unauthorized", 403
+        
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    servers = []
+    for doc in db.collection('servers').stream():
+        data = doc.to_dict()
+        data['id'] = doc.id
+        if 'expires_at' in data and data['expires_at']:
+            data['expires_at'] = data['expires_at'].replace(tzinfo=None)
+            if data['expires_at'] <= now:
+                servers.append(data)
+                
+    import re as _re
+    def server_sort_key(s):
+        name = s.get('name', '')
+        base = name.split('|')[0].strip()
+        match = _re.match(r'^(.+?)\s*#(\d+)$', base)
+        if match:
+            country = match.group(1).strip()
+            num = int(match.group(2))
+        else:
+            country = base
+            num = 0
+        return (country.lower(), num)
+    servers.sort(key=server_sort_key)
+    
+    return render_template('expired_servers.html', servers=servers, now=now)
 
 @admin_bp.route('/admin/add_servers', methods=['POST'])
 @login_required
