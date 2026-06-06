@@ -35,6 +35,9 @@ def admin_dashboard():
             data['expires_at'] = parse_dt(data['expires_at']).replace(tzinfo=None)
             if data['expires_at'] <= now:
                 continue # Skip expired servers
+        # created_at comes from the DB as a string; the template calls .strftime()
+        if data.get('created_at'):
+            data['created_at'] = parse_dt(data['created_at'])
         servers.append(data)
     
     # Sort servers: group by country, then by number
@@ -60,9 +63,9 @@ def admin_dashboard():
     
     for doc in (supabase_admin.table('users').select('*').execute().data or []):
         data = doc
-        if 'created_at' in data and data['created_at']:
-            data['created_at'] = data['created_at']
-            
+        if data.get('created_at'):
+            data['created_at'] = parse_dt(data['created_at'])
+
         data['subscriptions'] = []
         users_dict[data['id']] = data
         all_users.append(data)
@@ -72,9 +75,12 @@ def admin_dashboard():
     # Fetch all subscriptions
     for doc in (supabase_admin.table('subscriptions').select('*').execute().data or []):
         sub = doc
-        if 'expires_at' in sub and sub['expires_at']:
-            sub['expires_at'] = sub['expires_at']
-            
+        # expires_at / created_at arrive as strings; the template calls .strftime()/.isoformat()
+        if sub.get('expires_at'):
+            sub['expires_at'] = parse_dt(sub['expires_at'])
+        if sub.get('created_at'):
+            sub['created_at'] = parse_dt(sub['created_at'])
+
         uid = sub.get('user_id')
         if uid in users_dict:
             if sub.get('server_id'):
