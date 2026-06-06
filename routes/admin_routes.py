@@ -726,27 +726,33 @@ def send_admin_message(user_id):
     
     # Support both JSON and Form Data
     message = request.json.get('message') if request.is_json else request.form.get('message')
+    image_data = request.json.get('image') if request.is_json else request.form.get('image')
     
-    if not message or not message.strip():
+    if (not message or not message.strip()) and not image_data:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
             return jsonify({'status': 'error', 'error': 'Message cannot be empty'}), 400
         flash('Message cannot be empty', 'danger')
         return redirect(url_for('admin.admin_dashboard'))
 
     dt_now = datetime.now(timezone.utc)
-    db.collection('admin_messages').add({
+    doc_data = {
         'user_id': user_id,
-        'message': message.strip(),
+        'message': message.strip() if message else '',
         'created_at': dt_now,
         'is_read': False
-    })
+    }
+    if image_data:
+        doc_data['image'] = image_data
+        
+    db.collection('admin_messages').add(doc_data)
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
         return jsonify({
             'status': 'success',
             'chat_message': {
                 'sender': 'admin',
-                'text': message.strip(),
+                'text': message.strip() if message else '',
+                'image': image_data if image_data else None,
                 'timestamp': dt_now.strftime('%Y-%m-%d %H:%M')
             }
         })
@@ -772,6 +778,7 @@ def get_user_chat(user_id):
                 chat.append({
                     'sender': 'user',
                     'text': data.get('message', ''),
+                    'image': data.get('image', None),
                     'timestamp': dt.strftime('%Y-%m-%d %H:%M'),
                     '_dt': dt
                 })
@@ -794,6 +801,7 @@ def get_user_chat(user_id):
                 chat.append({
                     'sender': 'admin',
                     'text': data.get('message', ''),
+                    'image': data.get('image', None),
                     'timestamp': dt.strftime('%Y-%m-%d %H:%M'),
                     '_dt': dt
                 })

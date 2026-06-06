@@ -267,20 +267,28 @@ def user_dashboard():
 @login_required
 def send_message():
     text = request.json.get('message') if request.is_json else request.form.get('message')
+    image_data = request.json.get('image') if request.is_json else request.form.get('image')
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json
     
-    if text:
+    if text or image_data:
         dt_now = datetime.now(timezone.utc)
-        db.collection('messages').add({
+        
+        doc_data = {
             'user_id': request.user['uid'],
             'email': request.user['email'],
-            'message': text,
+            'message': text or '',
             'created_at': dt_now,
             'admin_reply': None
-        })
+        }
+        
+        if image_data:
+            doc_data['image'] = image_data
+            
+        db.collection('messages').add(doc_data)
         
         # إرسال إشعار تيليجرام
-        msg = f"💬 *رسالة دعم جديدة!*\nالمستخدم: `{request.user['email']}`\nالرسالة:\n{text}"
+        msg_text = text if text else "[صورة مرفقة]"
+        msg = f"💬 *رسالة دعم جديدة!*\nالمستخدم: `{request.user['email']}`\nالرسالة:\n{msg_text}"
         send_telegram_notification(msg)
         
         if is_ajax:
@@ -288,7 +296,8 @@ def send_message():
                 'status': 'success', 
                 'chat_message': {
                     'sender': 'user',
-                    'text': text,
+                    'text': text or '',
+                    'image': image_data if image_data else None,
                     'timestamp': dt_now.strftime('%Y-%m-%d %H:%M')
                 }
             }), 200

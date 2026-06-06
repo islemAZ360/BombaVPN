@@ -242,12 +242,21 @@
             </div>
             
             <form id="user-chat-form" method="POST" onsubmit="submitUserChatMessage(event)" style="padding:1rem 1.5rem; border-top:1px solid var(--border-color, #333); background:rgba(255,255,255,0.02);">
-                <div style="display:flex; gap:10px; align-items:flex-end;">
-                    <textarea id="user-chat-input" name="message" rows="2" placeholder="Type your message..." style="flex:1; resize:none; border-radius:8px; padding:10px; background:rgba(0,0,0,0.3); color:#fff; border:1px solid rgba(255,255,255,0.1); font-family:inherit;" required onkeydown="if(event.keyCode===13 && !event.shiftKey){event.preventDefault();submitUserChatMessage(event);}"></textarea>
+                <div style="display:flex; gap:10px; align-items:flex-end; position:relative;">
+                    <input type="file" id="user-chat-image-input" accept="image/*" style="display:none;" onchange="handleUserImageSelect(event)">
+                    <button type="button" onclick="document.getElementById('user-chat-image-input').click()" class="btn btn-secondary" style="padding:0 12px; height:44px; border-radius:8px; background:rgba(255,255,255,0.05); color:#00ffcc; border:1px solid rgba(0,255,204,0.3);">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                    </button>
+                    <textarea id="user-chat-input" name="message" rows="2" placeholder="Type your message..." style="flex:1; resize:none; border-radius:8px; padding:10px; background:rgba(0,0,0,0.3); color:#fff; border:1px solid rgba(255,255,255,0.1); font-family:inherit;" onkeydown="if(event.keyCode===13 && !event.shiftKey){event.preventDefault();submitUserChatMessage(event);}"></textarea>
                     <button type="submit" id="user-chat-submit-btn" class="btn btn-primary" style="padding:0 1.5rem; height:44px; border-radius:8px; display:flex; align-items:center; gap:8px; width:auto; flex:none;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                         Send
                     </button>
+                    <!-- Image Preview Area -->
+                    <div id="user-chat-image-preview-container" style="display:none; position:absolute; bottom:55px; left:55px; background:var(--card-bg, #1a1a2e); border:1px solid var(--border-color, #333); padding:5px; border-radius:8px; box-shadow:0 5px 15px rgba(0,0,0,0.5);">
+                        <img id="user-chat-image-preview" src="" style="max-width:100px; max-height:100px; border-radius:4px;">
+                        <button type="button" onclick="clearUserImage()" style="position:absolute; top:-10px; right:-10px; background:red; color:white; border:none; border-radius:50%; width:20px; height:20px; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center;">&times;</button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -303,8 +312,14 @@
                 bubble.style.color = '#ccc';
             }
             
+            let imgHtml = '';
+            if (msg.image) {
+                imgHtml = `<img src="${msg.image}" style="max-width:100%; border-radius:8px; margin-bottom:8px; display:block;">`;
+            }
+            
             bubble.innerHTML = `
-                <div style="font-size: 0.95rem; margin-bottom: 4px; word-wrap: break-word;">${msg.text.replace(/\n/g, '<br>')}</div>
+                ${imgHtml}
+                <div style="font-size: 0.95rem; margin-bottom: 4px; word-wrap: break-word;">${(msg.text || '').replace(/\n/g, '<br>')}</div>
                 <div style="font-size: 0.7rem; color: ${isUser ? 'rgba(0,255,204,0.6)' : 'rgba(255,255,255,0.4)'}; text-align: right;">${msg.timestamp}</div>
             `;
             
@@ -314,20 +329,65 @@
             chatContainer.appendChild(bubble);
         }
         
+        let userPendingImageBase64 = null;
+        
+        function handleUserImageSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const max_dim = 800;
+                    
+                    if (width > height && width > max_dim) {
+                        height *= max_dim / width;
+                        width = max_dim;
+                    } else if (height > max_dim) {
+                        width *= max_dim / height;
+                        height = max_dim;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    userPendingImageBase64 = canvas.toDataURL('image/jpeg', 0.6);
+                    document.getElementById('user-chat-image-preview').src = userPendingImageBase64;
+                    document.getElementById('user-chat-image-preview-container').style.display = 'block';
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+        
+        function clearUserImage() {
+            userPendingImageBase64 = null;
+            document.getElementById('user-chat-image-preview-container').style.display = 'none';
+            document.getElementById('user-chat-image-preview').src = '';
+            document.getElementById('user-chat-image-input').value = '';
+        }
+        
         async function submitUserChatMessage(e) {
             e.preventDefault();
             const input = document.getElementById('user-chat-input');
             const btn = document.getElementById('user-chat-submit-btn');
             const text = input.value.trim();
             
-            if (!text) return;
+            if (!text && !userPendingImageBase64) return;
             
             btn.disabled = true;
             btn.style.opacity = '0.5';
             
             try {
                 const formData = new FormData();
-                formData.append('message', text);
+                if (text) formData.append('message', text);
+                if (userPendingImageBase64) formData.append('image', userPendingImageBase64);
                 
                 const resp = await fetch(`/api/message`, {
                     method: 'POST',
@@ -338,6 +398,7 @@
                 const result = await resp.json();
                 if (resp.ok && result.status === 'success') {
                     input.value = '';
+                    clearUserImage();
                     appendUserChatBubble(result.chat_message);
                     const chatContainer = document.getElementById('user-chat-history');
                     chatContainer.scrollTop = chatContainer.scrollHeight;
