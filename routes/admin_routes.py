@@ -506,14 +506,14 @@ def edit_server(server_id):
             new_plan_minutes = request.form.get('plan_minutes_input')
             if new_plan_minutes:
                 try:
-                    update_data['total_plan_seconds'] = int(new_plan_minutes) * 60
+                    update_data['total_plan_seconds'] = int(float(new_plan_minutes) * 60)
                 except ValueError:
                     pass
                     
             new_expires_minutes = request.form.get('expires_minutes_input')
             if new_expires_minutes:
                 try:
-                    mins = int(new_expires_minutes)
+                    mins = float(new_expires_minutes)
                     update_data['expires_at'] = datetime.now(timezone.utc) + timedelta(minutes=mins)
                 except ValueError:
                     pass
