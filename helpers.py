@@ -30,7 +30,8 @@ def send_telegram_notification(message):
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
         payload = {'chat_id': chat_id, 'text': message, 'parse_mode': 'HTML'}
         try:
-            requests.post(url, json=payload, timeout=5)
+            response = requests.post(url, json=payload, timeout=5)
+            response.raise_for_status()
         except Exception as e:
             print(f"Telegram notification failed: {e}")
 
@@ -66,12 +67,25 @@ def send_telegram_receipt_review(req_id, user_email, server_name, receipt_filena
                         'parse_mode': 'HTML',
                         'reply_markup': json.dumps(reply_markup)
                     }
-                    requests.post(url, files=files, data=data, timeout=15)
+                    response = requests.post(url, files=files, data=data, timeout=15)
+                    response.raise_for_status()
             else:
                 # Fallback to text if file missing
                 send_telegram_notification(caption)
     except Exception as e:
-        print(f"Telegram receipt review failed: {e}")
+        error_msg = str(e)
+        print(f"Telegram receipt review failed: {error_msg}")
+        try:
+            from extensions import db
+            db.collection('notifications').add({
+                'title': 'Telegram API Error',
+                'body': f'Failed to send receipt photo for request {req_id}. Error: {error_msg}',
+                'type': 'danger',
+                'created_at': datetime.now(timezone.utc).isoformat(),
+                'is_read': False
+            })
+        except Exception as db_e:
+            print(f"Failed to save error notification: {db_e}")
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
 
