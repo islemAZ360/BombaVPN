@@ -96,6 +96,8 @@ CREATE TABLE IF NOT EXISTS messages (
     user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
     message TEXT,
     image TEXT,
+    email TEXT,
+    admin_reply TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     is_read BOOLEAN DEFAULT FALSE,
     reply_to UUID,
@@ -121,6 +123,8 @@ CREATE TABLE IF NOT EXISTS admin_messages (
     user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
     message TEXT,
     image TEXT,
+    email TEXT,
+    admin_reply TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     is_read BOOLEAN DEFAULT FALSE
 );
