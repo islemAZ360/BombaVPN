@@ -159,7 +159,7 @@ TRANSLATIONS = {
         'TagYT_Desc': 'Unblocks everything (ChatGPT, Claude, Facebook, etc.) EXCEPT Gemini. Specifically runs YouTube without annoying ads.',
         'TagGemini_Desc': 'Unblocks all restricted sites and apps, AND successfully unblocks Gemini (which is notoriously difficult for most other VPNs).',
         'TagLTE_Desc': 'Unblocks everything (except Gemini). Designed to work reliably even during severe internet disruptions or drone interference (e.g. in Russia). Highly recommended when using a SIM card / mobile data.',
-        'TagRU_Desc': 'Specifically optimized to work inside Russia. Successfully bypasses "white list" blocks and unblocks all restricted sites efficiently.',
+        'TagRU_Desc': 'Specifically optimized to work inside Russia. These are actually external servers, but they are specially designed to bypass the restrictions on foreign sites in Russia, so they work perfectly to unblock "white list" blocks and all restricted sites efficiently.',
         'TagTorrent_Desc': 'Unblocks everything (except Gemini), and allows high-speed, secure Torrent downloading.'
     },
     'ar': {
@@ -325,7 +325,7 @@ TRANSLATIONS = {
         'TagYT_Desc': 'يفتح كل شيء (ChatGPT، كلود، فيسبوك...) ما عدا Gemini. الميزة الأساسية أنه يقوم بتشغيل اليوتيوب بدون أي إعلانات مزعجة.',
         'TagGemini_Desc': 'يفتح جميع البرامج والمواقع المحجوبة بالإضافة إلى فك حظر Gemini، والذي يُعتبر فك حظره أمراً صعباً جداً على أغلب الـ VPNs الأخرى.',
         'TagLTE_Desc': 'يفتح كل شيء (ما عدا Gemini). مصمم ليعمل بكفاءة حتى في أسوأ ظروف انقطاع الإنترنت أو وجود تشويش من طائرات الدرون (مثلما يحدث في روسيا). يُنصح به بشدة عند استخدام بطاقة الـ SIM (بيانات الهاتف).',
-        'TagRU_Desc': 'مخصص بشكل أساسي للعمل داخل روسيا. قادر على تخطي حجب "القائمة البيضاء" بنجاح، ويفتح كل المواقع والبرامج المحجوبة بكفاءة.',
+        'TagRU_Desc': 'مخصص بشكل أساسي للعمل داخل روسيا. السيرفرات التي من روسيا هي في الحقيقة سيرفرات خارجية ولكنها مصممة أكثر لكي تعمل مع الحظر المفروض على المواقع الأجنبية في روسيا، إذن هي تعمل بشكل مثالي أيضاً لتخطي حجب "القائمة البيضاء" بنجاح، وتفتح كل المواقع والبرامج المحجوبة بكفاءة.',
         'TagTorrent_Desc': 'يفتح كل شيء (ما عدا Gemini)، ويسمح أيضاً بتحميل التورنت بسرعة وأمان.'
     },
     'ru': {
@@ -491,7 +491,7 @@ TRANSLATIONS = {
         'TagYT_Desc': 'Разблокирует все (ChatGPT, Claude, Facebook и т.д.) КРОМЕ Gemini. Специально работает с YouTube без назойливой рекламы.',
         'TagGemini_Desc': 'Разблокирует все заблокированные сайты и приложения, А ТАКЖЕ успешно разблокирует Gemini (что очень сложно для большинства других VPN).',
         'TagLTE_Desc': 'Разблокирует все (кроме Gemini). Разработан для надежной работы даже во время серьезных сбоев в работе интернета или помех от дронов (например, в России). Настоятельно рекомендуется при использовании SIM-карты / мобильного интернета.',
-        'TagRU_Desc': 'Специально оптимизирован для работы в России. Успешно обходит блокировки "белого списка" и эффективно разблокирует все заблокированные сайты.',
+        'TagRU_Desc': 'Специально оптимизирован для работы в России. На самом деле это внешние серверы, но они специально разработаны для обхода ограничений на иностранные сайты в России, поэтому они идеально подходят для успешного обхода блокировок "белого списка" и эффективной разблокировки всех заблокированных сайтов.',
         'TagTorrent_Desc': 'Разблокирует все (кроме Gemini) и позволяет быстро и безопасно скачивать торренты.'
     }
 }
