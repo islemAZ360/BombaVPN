@@ -128,18 +128,21 @@ def pay():
             # إرسال صورة الوصل لتيليجرام مع أزرار القبول والرفض
             req_id = doc_ref.id
             user_email_str = request.user.get('email', data.get('email', 'Unknown'))
+            app = current_app._get_current_object()
             try:
-                def send_receipt():
-                    try:
-                        send_telegram_receipt_review(req_id, user_email_str, server_name, filename, price)
-                    except Exception as inner_e:
-                        print(f"Inner thread error sending telegram receipt: {inner_e}")
+                def send_receipt(app_instance):
+                    with app_instance.app_context():
+                        try:
+                            send_telegram_receipt_review(req_id, user_email_str, server_name, filename, price)
+                        except Exception as inner_e:
+                            print(f"Inner thread error sending telegram receipt: {inner_e}")
                 
-                threading.Thread(target=send_receipt, daemon=True).start()
+                threading.Thread(target=send_receipt, args=(app,), daemon=True).start()
             except Exception as e:
                 print(f"Error starting thread for telegram receipt: {e}")
             
-            flash('تم إرسال الطلب بنجاح. جاري مراجعته من قبل الإدارة. / Request submitted successfully. Under review.', 'success')
+            from helpers import get_translation
+            flash(get_translation('FlashReqSubmitted'), 'success')
             return redirect(url_for('main.user_dashboard'))
             
     return render_template('payment.html', servers=servers, user=request.user)
