@@ -19,6 +19,8 @@ limiter = Limiter(
 db = None
 FIREBASE_READY = False
 
+# Serializer for secure tokens
+sub_serializer = URLSafeSerializer(os.environ.get('SECRET_KEY', 'bomba_vpn_fallback_secret_key_12345'))
 try:
     cred = credentials.Certificate("firebase-adminsdk.json")
     if not firebase_admin._apps:
