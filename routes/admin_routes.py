@@ -140,8 +140,71 @@ def admin_dashboard():
         'ru': sum(1 for s in servers if 'ru' in [t.lower() for t in s.get('tags', [])]),
         'torrent': sum(1 for s in servers if 'torrent' in [t.lower() for t in s.get('tags', [])])
     }
+
+    financial_stats = {
+        'total_revenue': 0,
+        'monthly_revenue': 0,
+        'pending_revenue': 0,
+        'outstanding_debts': 0,
+        'revenue_over_time': {},
+        'transactions': []
+    }
     
-    return render_template('admin_dashboard.html', servers=servers, pending_users=pending_users, active_users=active_users, all_users=all_users, tickets=tickets, now=now, server_stats=server_stats)
+    current_month = now.month
+    current_year = now.year
+
+    try:
+        # Calculate debts
+        for doc in (supabase_admin.table('debts').select('*').execute().data or []):
+            try:
+                financial_stats['outstanding_debts'] += float(doc.get('amount', 0))
+            except:
+                pass
+                
+        # Calculate revenues and transactions from purchase_requests
+        requests = supabase_admin.table('purchase_requests').select('*').order('created_at', desc=True).execute().data or []
+        for doc in requests:
+            status = doc.get('status')
+            price_str = doc.get('price', '0')
+            try:
+                # Remove non-numeric characters except dot
+                price_val = float(''.join(c for c in str(price_str) if c.isdigit() or c == '.'))
+            except:
+                price_val = 0
+                
+            created_at = parse_dt(doc.get('created_at'))
+            if created_at and created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+                
+            if status == 'pending':
+                financial_stats['pending_revenue'] += price_val
+            elif status == 'approved':
+                financial_stats['total_revenue'] += price_val
+                if created_at and created_at.month == current_month and created_at.year == current_year:
+                    financial_stats['monthly_revenue'] += price_val
+                    
+                if created_at:
+                    # Group by day for Revenue Over Time
+                    day_str = created_at.strftime('%Y-%m-%d')
+                    financial_stats['revenue_over_time'][day_str] = financial_stats['revenue_over_time'].get(day_str, 0) + price_val
+                
+            # Add to transactions if it's approved or rejected
+            if status in ['approved', 'rejected'] and len(financial_stats['transactions']) < 10:
+                user_email = "Unknown"
+                if doc.get('user_id') in users_dict:
+                    user_email = users_dict[doc.get('user_id')].get('email', 'Unknown')
+                    
+                financial_stats['transactions'].append({
+                    'email': user_email,
+                    'price': price_val,
+                    'status': status,
+                    'date': created_at.strftime('%Y-%m-%d %H:%M') if created_at else 'Unknown'
+                })
+                
+    except Exception as e:
+        print("Error fetching financial stats:", e)
+
+    return render_template('admin_dashboard.html', servers=servers, pending_users=pending_users, active_users=active_users, all_users=all_users, tickets=tickets, now=now, server_stats=server_stats, financial_stats=financial_stats)
 
 @admin_bp.route('/admin/notifications')
 @login_required

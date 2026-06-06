@@ -22,15 +22,71 @@
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <h3 style="margin: 0;">{{ _('Analytics') }}</h3>
     </div>
-    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px;">
-        <div style="flex: 1; min-width: 300px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
-            <canvas id="usersChart"></canvas>
+    
+    <!-- KPIs Row -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+        <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div style="font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px;">Total Revenue</div>
+            <div style="font-size: 1.8rem; font-weight: 700; color: #10b981;">{{ financial_stats.total_revenue | round(2) }} ₽</div>
         </div>
-        <div style="flex: 1; min-width: 300px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
-            <canvas id="financeChart"></canvas>
+        <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div style="font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px;">Monthly Revenue</div>
+            <div style="font-size: 1.8rem; font-weight: 700; color: #3b82f6;">{{ financial_stats.monthly_revenue | round(2) }} ₽</div>
+        </div>
+        <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div style="font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px;">Pending Revenue</div>
+            <div style="font-size: 1.8rem; font-weight: 700; color: #f59e0b;">{{ financial_stats.pending_revenue | round(2) }} ₽</div>
+        </div>
+        <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div style="font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px;">Outstanding Debts</div>
+            <div style="font-size: 1.8rem; font-weight: 700; color: #ef4444;">{{ financial_stats.outstanding_debts | round(2) }} ₽</div>
         </div>
     </div>
+
+    <!-- Charts Row -->
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px;">
+        <div style="flex: 2; min-width: 400px; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+            <canvas id="revenueChart" style="max-height: 300px;"></canvas>
+        </div>
+        <div style="flex: 1; min-width: 300px; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+            <canvas id="serverSalesChart" style="max-height: 300px;"></canvas>
+        </div>
+    </div>
+
+    <!-- Recent Transactions Table -->
+    <h4 style="margin-top: 30px; margin-bottom: 15px; color: #e2e8f0; font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">Recent Transactions</h4>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for txn in financial_stats.transactions %}
+                <tr>
+                    <td style="color: #e2e8f0; font-family: monospace;">{{ txn.email }}</td>
+                    <td style="color: #94a3b8; font-size: 0.9rem;">{{ txn.date }}</td>
+                    <td style="font-weight: bold; color: #10b981;">{{ txn.price }} ₽</td>
+                    <td>
+                        {% if txn.status == 'approved' %}
+                            <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">Approved</span>
+                        {% else %}
+                            <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">Rejected</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" style="text-align: center; color: #94a3b8;">No recent transactions.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
+
 
 <div class="card">
     <h3>{{ _('PendingRequests') }}</h3>
@@ -2337,56 +2393,72 @@ function rescanServers() {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-        try {
-            const res = await fetch('/api/admin/stats');
-            const data = await res.json();
-            if (!data.error) {
-                // Users Chart
-                new Chart(document.getElementById('usersChart'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: ["{{ _('ActiveStatus') }}", "{{ _('ExpiredStatus') }}"],
-                        datasets: [{
-                            data: [data.users_active, data.users_expired],
-                            backgroundColor: ['#00ffcc', '#ff4757'],
-                            borderColor: 'transparent'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: { labels: { color: '#fff' } },
-                            title: { display: true, text: "{{ _('UserStatus') }}", color: '#fff' }
-                        }
-                    }
-                });
+    document.addEventListener('DOMContentLoaded', () => {
+        const revData = {{ financial_stats.revenue_over_time | tojson }};
+        const labels = Object.keys(revData).sort();
+        const dataPoints = labels.map(l => revData[l]);
 
-                // Finance Chart
-                new Chart(document.getElementById('financeChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: ["{{ _('TotalServers') }}", "{{ _('OutstandingDebts') }}"],
-                        datasets: [{
-                            label: "{{ _('CountOrValue') }}",
-                            data: [data.servers_total, data.total_debt],
-                            backgroundColor: ['#007bff', '#ffc107']
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: { display: false },
-                            title: { display: true, text: "{{ _('ServersAndDebts') }}", color: '#fff' }
-                        },
-                        scales: {
-                            y: { ticks: { color: '#aaa' } },
-                            x: { ticks: { color: '#aaa' } }
-                        }
-                    }
-                });
+        // Gradient for line chart
+        const revCtx = document.getElementById('revenueChart').getContext('2d');
+        let gradient = revCtx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.5)');
+        gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+        new Chart(revCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Revenue (₽)',
+                    data: dataPoints,
+                    borderColor: '#10b981',
+                    backgroundColor: gradient,
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#10b981',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: 'Revenue Over Time', color: '#e2e8f0', font: { size: 16 } },
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                }
             }
-        } catch (e) { console.error('Failed to load stats', e); }
+        });
+
+        // Donut chart for server stats
+        const serverStats = {{ server_stats | tojson }};
+        const serverCtx = document.getElementById('serverSalesChart').getContext('2d');
+        new Chart(serverCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Gemini', 'YT', 'LTE', 'RU', 'Torrent'],
+                datasets: [{
+                    data: [serverStats.gemini, serverStats.yt, serverStats.lte, serverStats.ru, serverStats.torrent],
+                    backgroundColor: ['#3b82f6', '#ef4444', '#f59e0b', '#8b5cf6', '#10b981'],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '75%',
+                plugins: {
+                    title: { display: true, text: 'Servers by Type', color: '#e2e8f0', font: { size: 16 } },
+                    legend: { position: 'bottom', labels: { color: '#e2e8f0', padding: 20 } }
+                }
+            }
+        });
     });
 
     function scrollToServer(serverId) {
