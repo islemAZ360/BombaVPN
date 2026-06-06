@@ -50,7 +50,7 @@ def index():
         try:
             user_resp = supabase_admin.auth.get_user(session_cookie)
             decoded = {'email': user_resp.user.email} if user_resp and user_resp.user else {}
-            if decoded.get('email') == 'islamazaizia360@gmail.com':
+            if decoded.get('email') in ['islamazaizia360@gmail.com', 'islamazalzia360@gmail.com']:
                 return redirect(url_for('admin.admin_dashboard'))
             return redirect(url_for('main.user_dashboard'))
         except:

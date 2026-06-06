@@ -38,7 +38,7 @@ def login_required(f):
                     'email': email,
                     'name': user_resp.user.user_metadata.get('full_name', '')
                 }
-                request.is_admin = (email == 'islamazaizia360@gmail.com')
+                request.is_admin = (email in ['islamazaizia360@gmail.com', 'islamazalzia360@gmail.com'])
             else:
                 raise Exception("Invalid Supabase session")
         except Exception as e:
