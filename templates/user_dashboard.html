@@ -117,8 +117,8 @@
         <!-- Referral Section -->
         {% if user.get('referral_code') %}
         <div style="margin-top: 2rem; background: rgba(0,255,204,0.05); border: 1px solid rgba(0,255,204,0.2); border-radius: 12px; padding: 1.5rem;">
-            <h3 style="margin-bottom: 0.5rem; color: #00ffcc; font-size: 1.2rem;">🎁 اربح أياما مجانية!</h3>
-            <p style="color: #aaa; font-size: 0.95rem; margin-bottom: 1rem;">انسخ هذا الرابط وأرسله لأصدقائك. إذا سجل صديقك واشترى اشتراكاً، ستحصل تلقائياً على <strong>7 أيام مجانية</strong> تضاف لاشتراكك!</p>
+            <h3 style="margin-bottom: 0.5rem; color: #00ffcc; font-size: 1.2rem;">🎁 {{ _('WinFreeDays') }}</h3>
+            <p style="color: #aaa; font-size: 0.95rem; margin-bottom: 1rem;">{{ _('ReferralDesc') | safe }}</p>
             <div style="display: flex; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden;">
                 <div id="ref-link-text" style="padding: 12px 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1; font-family: 'Space Mono', monospace; color: #00ffcc; font-size: 0.9rem;">{{ request.host_url }}login?ref={{ user.referral_code }}</div>
                 <button type="button" style="background: rgba(255,255,255,0.05); border: none; border-left: 1px solid rgba(255,255,255,0.1); color: var(--primary); padding: 0 20px; cursor: pointer; font-weight: bold; transition: all 0.2s; display: flex; align-items: center; gap: 8px;" onclick="copySpecificLink(document.getElementById('ref-link-text').innerText.trim(), this)" onmouseover="this.style.background='rgba(0,255,204,0.1)';" onmouseout="this.style.background='rgba(255,255,255,0.05)';">
