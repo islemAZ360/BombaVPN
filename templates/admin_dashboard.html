@@ -438,7 +438,13 @@
                                 <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                                     <td style="width: 25%; border: none;">
                                         <div style="color: rgba(255,255,255,0.85); font-size: 0.9rem;">
-                                            {{ sub.allocated_server_name | default('<span style="color:rgba(255,255,255,0.3);">-</span>') | safe }}
+                                            {% if sub.server_id %}
+                                                <a href="javascript:void(0)" onclick="scrollToServer('{{ sub.server_id }}')" style="color: inherit; text-decoration: none; border-bottom: 1px dashed rgba(255,255,255,0.3); transition: all 0.3s;" onmouseover="this.style.color='#00ffcc'; this.style.borderBottomColor='#00ffcc';" onmouseout="this.style.color='inherit'; this.style.borderBottomColor='rgba(255,255,255,0.3)';">
+                                                    {{ sub.allocated_server_name | default('<span style="color:rgba(255,255,255,0.3);">-</span>') | safe }}
+                                                </a>
+                                            {% else %}
+                                                {{ sub.allocated_server_name | default('<span style="color:rgba(255,255,255,0.3);">-</span>') | safe }}
+                                            {% endif %}
                                         </div>
                                     </td>
                                     <td style="width: 25%; border: none;">
@@ -2378,5 +2384,21 @@ function rescanServers() {
             }
         } catch (e) { console.error('Failed to load stats', e); }
     });
+
+    function scrollToServer(serverId) {
+        const row = document.getElementById('server-row-' + serverId);
+        if (row) {
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const originalBg = row.style.backgroundColor;
+            row.style.transition = 'background-color 0.5s ease';
+            row.style.backgroundColor = 'rgba(0, 255, 204, 0.3)';
+            setTimeout(() => {
+                row.style.backgroundColor = originalBg;
+                setTimeout(() => {
+                    row.style.transition = '';
+                }, 500);
+            }, 2000);
+        }
+    }
 </script>
 {% endblock %}
