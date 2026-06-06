@@ -340,24 +340,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const hr = r * 1.85;
             ctx.drawImage(halo, dx - hr, dy - hr, hr * 2, hr * 2);
 
-            // استخدام Offscreen Canvas بحجم كافٍ لاستيعاب دوران الكوكب دون قص أطرافه
+            // استخدام Offscreen Canvas بحجم كافٍ جداً لتجنب أي قص
             const pSize = r * 2;
-            const cSize = Math.ceil(pSize * 1.5); // زيادة الحجم بنسبة 1.5 لاستيعاب أطراف الصورة عند الدوران
+            const cSize = Math.ceil(pSize * 2.5); 
             const center = cSize / 2;
 
             if (!window.planetOffscreenCanvas) {
                 window.planetOffscreenCanvas = document.createElement('canvas');
-                window.planetOffscreenCtx = window.planetOffscreenCanvas.getContext('2d', { willReadFrequently: true });
+                window.planetOffscreenCtx = window.planetOffscreenCanvas.getContext('2d');
             }
             const pCanvas = window.planetOffscreenCanvas;
             const pCtx = window.planetOffscreenCtx;
             
-            // تكبير الـ Canvas إذا لزم الأمر
-            if (pCanvas.width < cSize) {
-                pCanvas.width = pCanvas.height = cSize;
-            }
-            
-            pCtx.clearRect(0, 0, cSize, cSize);
+            // ضبط العرض والارتفاع في كل إطار يضمن مسح الكانفاس بالكامل وتجنب أي أخطاء متعلقة بالقص
+            pCanvas.width = cSize;
+            pCanvas.height = cSize;
             
             // 1. رسم الكوكب بشكل طبيعي في المنتصف
             pCtx.globalCompositeOperation = 'source-over';
@@ -368,19 +365,16 @@ document.addEventListener('DOMContentLoaded', () => {
             pCtx.drawImage(this.image, -r, -r, pSize, pSize);
             pCtx.restore();
             
-            // 2. تطبيق الظل بوضع source-atop بدلاً من multiply + destination-in
-            // هذا الوضع يرسم الظل فقط على الأجزاء غير الشفافة من الكوكب (بما فيها الحلقات)
-            // وهو أسرع بكثير ولا يسبب مشاكل في القص!
+            // 2. تطبيق الظل بوضع source-atop
             pCtx.globalCompositeOperation = 'source-atop';
             const lightAngle = Math.atan2(sun.y - this.y, sun.x - this.x);
             pCtx.save();
             pCtx.translate(center, center);
             pCtx.rotate(lightAngle);
-            pCtx.globalAlpha = 0.85; // تقليل عتامة الظل قليلاً لكي لا يخفي الحلقات تماماً
+            pCtx.globalAlpha = 0.85; 
             
-            // تكبير حجم الظل ليكون أكبر من الكوكب بـ 1.5 مرة
-            // هذا يضمن أن أطراف مربع الظل لن تقطع أطراف الكوكب عند دورانهما بزوايا مختلفة!
-            const shadeSize = pSize * 1.5;
+            // تكبير حجم الظل ليكون أكبر بكثير من الكوكب لضمان عدم حدوث قص
+            const shadeSize = pSize * 2.5;
             pCtx.drawImage(shadeSprite, -shadeSize/2, -shadeSize/2, shadeSize, shadeSize);
             
             pCtx.restore();
