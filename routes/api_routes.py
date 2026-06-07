@@ -533,18 +533,26 @@ def api_debts_sync():
         for sub_id, sub_dict in get_all_subscriptions().items():
             if sub_dict.get('status') == 'active':
                 server_id = sub_dict.get('server_id')
-                sub_exp = sub_dict.get('expires_at')
-                if not server_id or not sub_exp:
+                sub_exp_str = sub_dict.get('expires_at')
+                if not server_id or not sub_exp_str:
                     continue
-                if isinstance(sub_exp, datetime):
-                    sub_exp = sub_exp
+                    
+                sub_exp = parse_dt(sub_exp_str)
+                if not sub_exp:
+                    continue
+                if sub_exp.tzinfo is None:
+                    sub_exp = sub_exp.replace(tzinfo=timezone.utc)
                     
                 s_data = servers_map.get(server_id)
                 if not s_data: continue
-                s_exp = s_data.get('expires_at')
-                if not s_exp: continue
-                if isinstance(s_exp, datetime):
-                    s_exp = s_exp
+                s_exp_str = s_data.get('expires_at')
+                if not s_exp_str: continue
+                
+                s_exp = parse_dt(s_exp_str)
+                if not s_exp:
+                    continue
+                if s_exp.tzinfo is None:
+                    s_exp = s_exp.replace(tzinfo=timezone.utc)
                     
                 if s_exp < sub_exp:
                     delta = sub_exp - s_exp
@@ -558,8 +566,8 @@ def api_debts_sync():
                         'id': sub_id,
                         'email': u_email,
                         'server_name': s_data.get('name', 'Unknown'),
-                        'server_expires_at': s_exp.isoformat() if isinstance(s_exp, datetime) else str(s_exp),
-                        'subscription_expires_at': sub_exp.isoformat() if isinstance(sub_exp, datetime) else str(sub_exp),
+                        'server_expires_at': s_exp.isoformat(),
+                        'subscription_expires_at': sub_exp.isoformat(),
                         'debt_days': delta.days,
                         'debt_hours': delta.seconds // 3600
                     })

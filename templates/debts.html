@@ -18,6 +18,7 @@
                 <th>{{ _('ActualExpiry') }}</th>
                 <th>{{ _('DueDebt') }}</th>
             </tr>
+            <tbody id="debts-tbody">
             {% for u in users %}
             <tr>
                 <td>{{ u.email }}</td>
@@ -41,6 +42,7 @@
                 <td colspan="5" style="text-align: center; color: #2ed573; padding: 20px;">{{ _('NoDebtsMsg') }}</td>
             </tr>
             {% endfor %}
+            </tbody>
         </table>
     </div>
 </div>

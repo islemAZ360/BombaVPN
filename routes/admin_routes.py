@@ -348,9 +348,11 @@ def expired_servers_dashboard():
     for doc in (supabase_admin.table('servers').select('*').execute().data or []):
         data = doc
         if 'expires_at' in data and data['expires_at']:
-            data['expires_at'] = parse_dt(data['expires_at']).replace(tzinfo=None)
-            if data['expires_at'] <= now:
-                servers.append(data)
+            dt = parse_dt(data['expires_at'])
+            if dt:
+                data['expires_at'] = dt.replace(tzinfo=None)
+                if data['expires_at'] <= now:
+                    servers.append(data)
                 
     import re as _re
     def server_sort_key(s):
