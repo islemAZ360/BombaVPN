@@ -383,6 +383,7 @@
                 <th>{{ _('ExpiresAt') }}</th>
                 <th>{{ _('Action') }}</th>
             </tr>
+            <tbody id="servers-tbody">
             {% for s in servers %}
             <tr id="server-row-{{ s.id }}">
                 <td>
@@ -431,6 +432,7 @@
             {% else %}
             <tr><td colspan="4" style="text-align: center;">{{ _('Servers') }}: 0</td></tr>
             {% endfor %}
+            </tbody>
         </table>
     </div>
 </div>
