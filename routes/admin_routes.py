@@ -854,7 +854,7 @@ def get_user_chat(user_id):
         msgs = (supabase_admin.table('messages').select('*').eq('user_id', user_id).execute().data or [])
         for m in msgs:
             data = m
-            dt = data.get('created_at')
+            dt = parse_dt(data.get('created_at'))  # created_at is an ISO string in the DB
             if dt:
                 chat.append({
                     'sender': 'user',
@@ -872,12 +872,12 @@ def get_user_chat(user_id):
                     'timestamp': dt.strftime('%Y-%m-%d %H:%M'),
                     '_dt': dt + timedelta(seconds=1) # artificially offset slightly
                 })
-                
+
         # Get admin -> user messages
         admin_msgs = (supabase_admin.table('admin_messages').select('*').eq('user_id', user_id).execute().data or [])
         for am in admin_msgs:
             data = am
-            dt = data.get('created_at')
+            dt = parse_dt(data.get('created_at'))
             if dt:
                 chat.append({
                     'sender': 'admin',
@@ -905,7 +905,7 @@ def read_admin_message(msg_id):
     user_id = request.user['uid']
     msg_resp = supabase_admin.table('admin_messages').select('*').eq('id', msg_id).execute()
     doc = msg_resp.data[0] if msg_resp.data else None
-    if doc.exists and doc.get('user_id') == user_id:
+    if doc and doc.get('user_id') == user_id:
         supabase_admin.table('admin_messages').update({'is_read': True}).eq('id', msg_id).execute()
     return jsonify({'success': True})
 
@@ -917,12 +917,12 @@ def delete_chat(user_id):
         # Delete user -> admin messages
         msgs = (supabase_admin.table('messages').select('*').eq('user_id', user_id).execute().data or [])
         for msg in msgs:
-            supabase_admin.table('messages').delete().eq('id', msg.id).execute()
-            
+            supabase_admin.table('messages').delete().eq('id', msg['id']).execute()
+
         # Delete admin -> user messages
         admin_msgs = (supabase_admin.table('admin_messages').select('*').eq('user_id', user_id).execute().data or [])
         for am in admin_msgs:
-            supabase_admin.table('admin_messages').delete().eq('id', am.id).execute()
+            supabase_admin.table('admin_messages').delete().eq('id', am['id']).execute()
             
         return jsonify({'status': 'success'}), 200
     except Exception as e:
@@ -942,27 +942,29 @@ def admin_support():
             d = m
             uid = d.get('user_id')
             if uid:
+                created = d.get('created_at') or ''  # ISO string; '' default avoids mixing with datetime
                 if uid not in conversations:
-                    conversations[uid] = {'email': d.get('email', 'Unknown'), 'last_msg': d.get('created_at', datetime.min), 'user_id': uid}
-                elif d.get('created_at') and d['created_at'] > conversations[uid]['last_msg']:
-                    conversations[uid]['last_msg'] = d['created_at']
-                    
+                    conversations[uid] = {'email': d.get('email', 'Unknown'), 'last_msg': created, 'user_id': uid}
+                elif created and created > conversations[uid]['last_msg']:
+                    conversations[uid]['last_msg'] = created
+
         admin_msgs = (supabase_admin.table('admin_messages').select('*').execute().data or [])
         for am in admin_msgs:
             d = am
             uid = d.get('user_id')
             if uid:
+                created = d.get('created_at') or ''
                 if uid not in conversations:
                     # Fetch email from users collection
                     try:
                         u_resp = supabase_admin.table('users').select('*').eq('id', uid).execute()
                         u_doc = u_resp.data[0] if u_resp.data else None
-                        email = u_doc.get('email', 'Unknown') if u_doc.exists else 'Unknown'
+                        email = u_doc.get('email', 'Unknown') if u_doc else 'Unknown'
                     except:
                         email = 'Unknown'
-                    conversations[uid] = {'email': email, 'last_msg': d.get('created_at', datetime.min), 'user_id': uid}
-                elif d.get('created_at') and d['created_at'] > conversations[uid]['last_msg']:
-                    conversations[uid]['last_msg'] = d['created_at']
+                    conversations[uid] = {'email': email, 'last_msg': created, 'user_id': uid}
+                elif created and created > conversations[uid]['last_msg']:
+                    conversations[uid]['last_msg'] = created
                     
     except Exception as e:
         print("Error fetching conversations:", e)

@@ -132,9 +132,30 @@ def before_request_handler():
                 try:
                     checker_thread = threading.Thread(target=background_expiry_checker, daemon=True)
                     checker_thread.start()
-                    thread_started = True
                 except Exception as e:
                     print("Could not start background thread:", e)
+
+                # Register the Telegram webhook once so Approve/Reject buttons work
+                # without anyone opening the admin page. Uses the public Render URL
+                # (RENDER_EXTERNAL_URL) and falls back to the request host (forced to
+                # https, since Telegram requires it).
+                try:
+                    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+                    if bot_token:
+                        base = os.environ.get('RENDER_EXTERNAL_URL') or request.host_url
+                        base = base.rstrip('/').replace('http://', 'https://')
+                        webhook_url = base + '/api/telegram/webhook'
+                        import requests as _requests
+                        _requests.post(
+                            f"https://api.telegram.org/bot{bot_token}/setWebhook",
+                            json={'url': webhook_url, 'allowed_updates': ['callback_query', 'message']},
+                            timeout=10
+                        )
+                        print(f"Telegram webhook registered: {webhook_url}")
+                except Exception as e:
+                    print("Could not register Telegram webhook:", e)
+
+                thread_started = True
 
 
 @app.after_request
