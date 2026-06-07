@@ -664,7 +664,14 @@ document.addEventListener('DOMContentLoaded', () => {
     resize();
     if (prefersReduced) {
         running = false;
-        renderFrame(); // مشهد ثابت أنيق دون حركة
+        // Render for a short time to allow images to load, then stop
+        let framesToRender = 60;
+        function staticAnimate() {
+            renderFrame();
+            framesToRender--;
+            if (framesToRender > 0) requestAnimationFrame(staticAnimate);
+        }
+        staticAnimate();
     } else {
         animate();
     }

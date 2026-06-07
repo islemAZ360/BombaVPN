@@ -235,7 +235,7 @@ def user_dashboard():
         reqs = []
         reqs = supabase_admin.table('purchase_requests').select('*').eq('user_id', user_id).execute().data or []
         if reqs:
-            reqs.sort(key=lambda x: x.get('created_at', datetime.min).timestamp() if isinstance(x.get('created_at'), datetime) else 0, reverse=True)
+            reqs.sort(key=lambda x: parse_dt(x.get('created_at')).timestamp() if x.get('created_at') else 0, reverse=True)
             user_data['latest_req'] = reqs[0]
     except Exception as e:
         print("Error fetching purchase requests:", e)
