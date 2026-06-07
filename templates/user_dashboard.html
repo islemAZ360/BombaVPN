@@ -232,7 +232,13 @@
 
 
 <script>
+    window.timerIntervals = window.timerIntervals || [];
+    
     function initTimers() {
+        // Clear any existing intervals to prevent duplicates on soft reload
+        window.timerIntervals.forEach(clearInterval);
+        window.timerIntervals = [];
+        
         const timerWidgets = document.querySelectorAll(".countdown-timer-widget");
         
         timerWidgets.forEach(widget => {
@@ -263,7 +269,7 @@
             }
             
             updateTimer();
-            setInterval(updateTimer, 1000);
+            window.timerIntervals.push(setInterval(updateTimer, 1000));
         });
     }
     
@@ -338,6 +344,11 @@
                     newScript.appendChild(document.createTextNode(script.innerHTML));
                     script.parentNode.replaceChild(newScript, script);
                 });
+                
+                // Re-initialize timers for the newly rendered DOM elements
+                if (typeof initTimers === 'function') {
+                    initTimers();
+                }
             }
         } catch(err) {
             console.error('Soft reload failed:', err);
