@@ -221,11 +221,14 @@ def user_dashboard():
                 if s_data:
                     s_name = s_data.get('name', 'Unknown')
                     c_code = s_data.get('country_code', '').upper()
-                    if c_code and len(c_code) == 2:
-                        flag_emoji = chr(ord(c_code[0]) + 127397) + chr(ord(c_code[1]) + 127397)
-                        if flag_emoji not in s_name:
-                            s_name = f"{flag_emoji} {s_name}"
+                    
+                    # Instead of an emoji that breaks on Windows, pass the country code
+                    # to the frontend to render an SVG flag from flagcdn
                     sub['allocated_server_name'] = s_name
+                    if c_code and len(c_code) == 2:
+                        sub['allocated_server_country'] = c_code.lower()
+                    else:
+                        sub['allocated_server_country'] = None
                 else:
                     sub['allocated_server_name'] = 'Unknown'
             else:

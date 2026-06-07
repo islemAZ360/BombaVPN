@@ -70,7 +70,12 @@
                         </div>
                         <div>
                             <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: bold;">{{ _('ConnectionDetails') }}</p>
-                            <p style="margin: 0; font-size: 1.2rem; font-weight: bold; color: #fff; letter-spacing: 0.5px;">{{ sub.allocated_server_name }}</p>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                {% if sub.allocated_server_country %}
+                                <img src="https://flagcdn.com/24x18/{{ sub.allocated_server_country }}.png" width="24" height="18" alt="{{ sub.allocated_server_country }}" style="border-radius: 3px; box-shadow: 0 0 5px rgba(0,0,0,0.5);">
+                                {% endif %}
+                                <p style="margin: 0; font-size: 1.2rem; font-weight: bold; color: #fff; letter-spacing: 0.5px;">{{ sub.allocated_server_name }}</p>
+                            </div>
                         </div>
                     </div>
                     <div>
