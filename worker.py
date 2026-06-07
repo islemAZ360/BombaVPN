@@ -84,21 +84,75 @@ def background_expiry_checker():
                     
                     if server_dead or is_temp or original_server_active:
                         required_tags = set(sub.get('required_tags') or [])
-                        candidate_servers = []
-                        for s in all_active_servers:
-                            s_tags = set(s.get('tags') or [])
-                            if required_tags.issubset(s_tags):
-                                candidate_servers.append(s)
-                                
+                        
+                        original_country_code = 'xx'
+                        if original_server_id:
+                            orig_s_resp = supabase_admin.table('servers').select('country_code').eq('id', original_server_id).execute()
+                            if orig_s_resp.data:
+                                original_country_code = orig_s_resp.data[0].get('country_code', 'xx')
+                        elif allocated_server_id:
+                            orig_s_resp = supabase_admin.table('servers').select('country_code').eq('id', allocated_server_id).execute()
+                            if orig_s_resp.data:
+                                original_country_code = orig_s_resp.data[0].get('country_code', 'xx')
+
+                        best_server = None
+                        new_temp = True
+                        
                         if original_server_active:
                             # Force return to the original server since it's alive again
                             best_server = next(s for s in all_active_servers if s['id'] == original_server_id)
                             new_temp = False
-                        elif candidate_servers:
-                            best_server = max(candidate_servers, key=lambda s: s['expires_at_dt'])
-                            new_temp = False
-                        elif server_dead:
-                            if not all_active_servers:
+                        elif all_active_servers:
+                            # User's Migration Rules Priority
+                            
+                            has_gemini = 'gemini' in required_tags
+                            req_len = len(required_tags)
+                            
+                            def filter_servers(servers_list, condition_fn):
+                                matches = [s for s in servers_list if condition_fn(s)]
+                                if matches:
+                                    return max(matches, key=lambda s: s['expires_at_dt'])
+                                return None
+
+                            # Condition 1: Exact tags and exact country
+                            cond1 = lambda s: set(s.get('tags') or []) == required_tags and s.get('country_code', 'xx') == original_country_code
+                            
+                            # Condition 2: Exact country, same length of tags, strict gemini match
+                            def cond2(s):
+                                s_tags = set(s.get('tags') or [])
+                                if s.get('country_code', 'xx') != original_country_code: return False
+                                if len(s_tags) != req_len: return False
+                                if has_gemini and 'gemini' not in s_tags: return False
+                                if not has_gemini and 'gemini' in s_tags: return False
+                                return True
+                                
+                            # Condition 3: Different country, exact tags
+                            cond3 = lambda s: set(s.get('tags') or []) == required_tags
+                            
+                            # Condition 4: Different country, same length of tags, strict gemini match
+                            def cond4(s):
+                                s_tags = set(s.get('tags') or [])
+                                if len(s_tags) != req_len: return False
+                                if has_gemini and 'gemini' not in s_tags: return False
+                                if not has_gemini and 'gemini' in s_tags: return False
+                                return True
+                                
+                            best_server = filter_servers(all_active_servers, cond1)
+                            if best_server:
+                                new_temp = False
+                            else:
+                                best_server = filter_servers(all_active_servers, cond2)
+                                if not best_server:
+                                    best_server = filter_servers(all_active_servers, cond3)
+                                    if not best_server:
+                                        best_server = filter_servers(all_active_servers, cond4)
+                                        if not best_server:
+                                            # Fallback to longest expiration
+                                            best_server = max(all_active_servers, key=lambda s: s['expires_at_dt'])
+                                new_temp = True
+                        
+                        if not best_server:
+                            if server_dead:
                                 # No active servers available to migrate this user!
                                 user_resp = supabase_admin.table('users').select('*').eq('id', sub.get('user_id')).execute()
                                 user_email = 'Unknown'
@@ -119,10 +173,6 @@ def background_expiry_checker():
                                     'type': 'system'
                                 }).execute()
                                 send_telegram_notification(f"⚠️ <b>اشتراك بدون سيرفر</b>\n{msg_text}")
-                                continue
-                            best_server = max(all_active_servers, key=lambda s: s['expires_at_dt'])
-                            new_temp = True
-                        else:
                             continue
                             
                         if best_server['id'] != allocated_server_id:
