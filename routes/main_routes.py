@@ -128,7 +128,7 @@ def pay():
                 }).execute()
             except Exception as e:
                 import traceback; traceback.print_exc()
-                flash('حدث خطأ أثناء حفظ طلبك. حاول مرة أخرى أو تواصل مع الدعم. / Error saving your request. Please try again.', 'error')
+                flash(f'تعذّر حفظ الطلب / Could not save request: {e}', 'error')
                 return redirect(request.url)
 
             # إرسال صورة الوصل لتيليجرام مع أزرار القبول والرفض
