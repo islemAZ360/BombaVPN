@@ -621,7 +621,7 @@ def edit_server(server_id):
             if new_expires_minutes:
                 try:
                     mins = float(new_expires_minutes)
-                    update_data['expires_at'] = datetime.now(timezone.utc) + timedelta(minutes=mins)
+                    update_data['expires_at'] = (datetime.now(timezone.utc) + timedelta(minutes=mins)).isoformat()
                 except ValueError:
                     pass
                 
