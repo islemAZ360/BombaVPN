@@ -860,7 +860,7 @@
 
     function openModifyModal(userId, expiresAtISO, subId) {
         const form = document.getElementById('modify-form');
-        form.action = "{{ url_for('admin.manage_user_sub', user_id='PLACEHOLDER') }}".replace('PLACEHOLDER', userId);
+        form.setAttribute('action', "{{ url_for('admin.manage_user_sub', user_id='PLACEHOLDER') }}".replace('PLACEHOLDER', userId));
         
         let subInput = form.querySelector('input[name="sub_id"]');
         if (!subInput) {
@@ -909,7 +909,7 @@
 
     function openAssignModal(userId, subId) {
         const form = document.getElementById('assign-form');
-        form.action = "{{ url_for('admin.manage_user_sub', user_id='PLACEHOLDER') }}".replace('PLACEHOLDER', userId);
+        form.setAttribute('action', "{{ url_for('admin.manage_user_sub', user_id='PLACEHOLDER') }}".replace('PLACEHOLDER', userId));
         
         let subInput = form.querySelector('input[name="sub_id"]');
         if (!subInput) {
@@ -925,7 +925,7 @@
 
     async function openMessageModal(userId, email) {
         const form = document.getElementById('message-form');
-        form.action = "{{ url_for('admin.send_admin_message', user_id='PLACEHOLDER') }}".replace('PLACEHOLDER', userId);
+        form.setAttribute('action', "{{ url_for('admin.send_admin_message', user_id='PLACEHOLDER') }}".replace('PLACEHOLDER', userId));
         document.getElementById('msg-user-email').textContent = email;
         document.getElementById('message-modal').style.display = 'flex';
         
@@ -999,7 +999,7 @@
             const formData = new FormData();
             formData.append('message', text);
             
-            const resp = await fetch(form.action, {
+            const resp = await fetch(form.getAttribute('action') || window.location.href, {
                 method: 'POST',
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 body: formData
@@ -1394,7 +1394,7 @@ function rescanServers() {
             let successCount = 0;
             
             for (let form of forms) {
-                const url = form.action;
+                const url = form.getAttribute('action') || window.location.href;
                 const formData = new FormData(form);
                 const btn = form.querySelector('button[type="submit"]');
                 btn.disabled = true;
@@ -2803,7 +2803,8 @@ async function submitAjaxForm(event) {
     });
 
     try {
-        const response = await fetch(form.action, {
+        const fetchUrl = form.getAttribute('action') || window.location.href;
+        const response = await fetch(fetchUrl, {
             method: form.method || 'POST',
             body: formData,
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -2826,7 +2827,7 @@ async function submitAjaxForm(event) {
         }
 
         if (isSuccess) {
-            const action = form.action;
+            const action = form.getAttribute('action') || window.location.href;
             const isPricingRule = action.includes('api/admin/pricing_rules');
             const isRowAction = action.includes('/delete') || action.includes('delete_') || action.includes('approve_') || action.includes('reject_');
 
