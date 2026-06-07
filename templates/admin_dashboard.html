@@ -11,10 +11,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
         Expired Servers
     </a>
-    <button onclick="setupTelegram()" class="btn btn-primary btn-small" style="width: fit-content; background: #0088cc; border:none; display:flex; align-items:center; gap:6px;" title="ربط البوت">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-        {{ _('ConnectTelegramBot') }}
-    </button>
+    
     <button id="logout-btn" class="btn btn-transparent-danger btn-small">{{ _('Logout') }}</button>
 </div>
 
@@ -26,6 +23,23 @@
     
     <!-- KPIs Row -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+        <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div style="font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px;">Active / Total Users</div>
+            <div style="font-size: 1.8rem; font-weight: 700; color: #a855f7;">
+                <span id="kpi-active-users">{{ financial_stats.active_users }}</span> <span style="font-size: 1rem; color: #64748b;">/ <span id="kpi-total-users">{{ financial_stats.total_users }}</span></span>
+            </div>
+        </div>
+        <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div style="font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px;">ARPU (Avg Revenue)</div>
+            <div id="kpi-arpu" style="font-size: 1.8rem; font-weight: 700; color: #ec4899;">{{ financial_stats.arpu | round(2) }} ₽</div>
+        </div>
+        <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div style="font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px;">Active Subs</div>
+            <div style="font-size: 1.8rem; font-weight: 700; color: #06b6d4;">
+                <span id="kpi-active-subs">{{ financial_stats.active_subscriptions }}</span> <span style="font-size: 1rem; color: #64748b;">/ <span id="kpi-total-subs">{{ financial_stats.total_subscriptions }}</span></span>
+            </div>
+        </div>
+
         <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             <div style="font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px;">Total Revenue</div>
             <div id="kpi-total-revenue" style="font-size: 1.8rem; font-weight: 700; color: #10b981;">{{ financial_stats.total_revenue | round(2) }} ₽</div>
@@ -1209,16 +1223,7 @@
             btn.innerHTML = originalHtml;
             btn.disabled = false;
         }
-    }
-
-    function setupTelegram() {
-    if(confirm('هل أنت متأكد من ربط بوت التلغرام بهذا الرابط لتتمكن من القبول والرفض من التلغرام مباشرة؟')) {
-        fetch('/api/admin/setup_telegram', { method: 'POST' })
-        .then(res => res.json())
-        .then(data => {
-            if(data.status === 'success') {
-                alert('تم ربط البوت بنجاح! جرب إرسال إيصال جديد للتحقق.');
-            } else {
+    } else {
                 alert('حدث خطأ: ' + (data.error || 'Unknown error'));
             }
         }).catch(e => {
@@ -2627,6 +2632,16 @@ function rescanServers() {
             setKpi('kpi-monthly-revenue', financialStats.monthly_revenue);
             setKpi('kpi-pending-revenue', financialStats.pending_revenue);
             setKpi('kpi-outstanding-debts', financialStats.outstanding_debts);
+            
+            const setKpiNum = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = val || 0;
+            };
+            setKpiNum('kpi-active-users', financialStats.active_users);
+            setKpiNum('kpi-total-users', financialStats.total_users);
+            setKpiNum('kpi-active-subs', financialStats.active_subscriptions);
+            setKpiNum('kpi-total-subs', financialStats.total_subscriptions);
+            setKpi('kpi-arpu', financialStats.arpu);
 
             // Revenue-over-time line chart
             if (window.revenueChartInstance && financialStats.revenue_over_time) {

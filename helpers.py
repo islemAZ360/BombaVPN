@@ -80,6 +80,32 @@ def compute_financial_stats(users_dict, now):
     except Exception as e:
         print("Error fetching financial stats:", e)
 
+    # Compute additional metrics
+    total_users = len(users_dict)
+    active_users = 0
+    total_subscriptions = 0
+    active_subscriptions = 0
+    
+    for u in users_dict.values():
+        is_active = False
+        for s in u.get('subscriptions', []):
+            total_subscriptions += 1
+            if s.get('status') == 'active':
+                is_active = True
+                active_subscriptions += 1
+        if is_active:
+            active_users += 1
+            
+    financial_stats['total_users'] = total_users
+    financial_stats['active_users'] = active_users
+    financial_stats['total_subscriptions'] = total_subscriptions
+    financial_stats['active_subscriptions'] = active_subscriptions
+    
+    if total_users > 0:
+        financial_stats['arpu'] = financial_stats['total_revenue'] / total_users
+    else:
+        financial_stats['arpu'] = 0.0
+
     return financial_stats
 
 
