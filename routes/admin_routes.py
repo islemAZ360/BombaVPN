@@ -237,7 +237,7 @@ def delete_all_transactions():
     if not getattr(request, 'is_admin', False):
         return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
     try:
-        supabase_admin.table('purchase_requests').delete().neq('id', 'dummy_value_to_match_all').execute()
+        supabase_admin.table('purchase_requests').delete().neq('id', '00000000-0000-0000-0000-000000000000').execute()
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'status': 'success', 'message': 'تم حذف جميع العمليات بنجاح'})
         flash('تم حذف جميع العمليات بنجاح', 'success')

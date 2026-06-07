@@ -2474,10 +2474,21 @@ function rescanServers() {
                 data.servers.forEach(s => {
                     let countryCode = s.country_code ? s.country_code : 'xx';
                     let isExpired = s.expires_at ? new Date(s.expires_at) < new Date() : true;
-                    let expStr = s.expires_at ? new Date(s.expires_at).toLocaleString() : 'No Expire Data';
                     let createdStr = s.created_at ? new Date(s.created_at).toLocaleString() : 'Unknown';
                     let planSecs = s.total_plan_seconds || (s.plan_days ? s.plan_days * 24 * 3600 : 0);
                     
+                    let expiresText = 'No expiry date';
+                    let expiresColor = '#ffeb3b';
+                    if (s.expires_at) {
+                        let diff = new Date(s.expires_at) - new Date();
+                        if (diff <= 0) {
+                            expiresText = '<span style="background: #F44336; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">Expired</span>';
+                        } else {
+                            expiresText = formatDurationSmart(Math.floor(diff/1000));
+                            expiresColor = '#4CAF50';
+                        }
+                    }
+
                     let sourceLinkHtml = '';
                     if (s.source_link_id && data.source_links) {
                         let sl = data.source_links.find(l => l.id === s.source_link_id);
@@ -2516,7 +2527,7 @@ function rescanServers() {
                                 </div>
                                 <div style="display:flex; flex-wrap:wrap; align-items:center; gap:5px;">
                                     ⏳ Expires:
-                                    <span class="live-countdown" data-expires="${s.expires_at || ''}" style="font-size: 0.75rem; color: #ffeb3b; font-weight: bold;">Calculating...</span>
+                                    <span class="live-countdown" data-expires="${s.expires_at || ''}" style="font-size: 0.75rem; color: ${expiresColor}; font-weight: bold;">${expiresText}</span>
                                     <input type="number" name="expires_minutes_input" placeholder="+ Mins" class="form-control" style="width: 70px; padding: 0.1rem 0.3rem; font-size: 0.75rem;" title="Set expiration in minutes from now">
                                 </div>
                             </div>
