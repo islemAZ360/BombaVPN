@@ -239,7 +239,7 @@ def user_dashboard():
             subscriptions.append(sub)
             
         # Sort so active are first, and latest expiration is first
-        subscriptions.sort(key=lambda x: (0 if x.get('status') == 'active' else 1, x.get('expires_at', datetime.min).timestamp() if isinstance(x.get('expires_at'), datetime) else 0))
+        subscriptions.sort(key=lambda x: (0 if x.get('status') == 'active' else 1, parse_dt(x.get('expires_at')).timestamp() if parse_dt(x.get('expires_at')) else 0))
     except Exception as e:
         print("Error fetching subscriptions:", e)
         
@@ -353,9 +353,12 @@ def api_user_status():
     if subs:
         active_subs = [s for s in subs if s.get('status') == 'active']
         if active_subs:
-            latest = max(active_subs, key=lambda x: x.get('expires_at', datetime.min).timestamp() if isinstance(x.get('expires_at'), datetime) else 0)
-            if 'expires_at' in latest and isinstance(latest['expires_at'], datetime):
-                expires_at = latest['expires_at'].isoformat()
+            def get_ts(s):
+                dt = parse_dt(s.get('expires_at'))
+                return dt.timestamp() if dt else 0
+            latest = max(active_subs, key=get_ts)
+            if latest.get('expires_at'):
+                expires_at = latest['expires_at']
 
     reqs = supabase_admin.table('purchase_requests').select('*').eq('user_id', user_id).execute().data or []
     latest_req_status = ""

@@ -2828,7 +2828,13 @@ async function submitAjaxForm(event) {
         if (isSuccess) {
             const action = form.action;
             const isPricingRule = action.includes('api/admin/pricing_rules');
-            const isRowAction = action.includes('/delete') || action.includes('delete_') || action.includes('manage_user_sub') || action.includes('approve_') || action.includes('reject_');
+            const isRowAction = action.includes('/delete') || action.includes('delete_') || action.includes('approve_') || action.includes('reject_');
+
+            // Close any containing modal
+            const modal = form.closest('.modal-overlay') || form.closest('[id$="-modal"]') || form.closest('[id$="Modal"]');
+            if (modal) {
+                modal.style.display = 'none';
+            }
 
             // clear inputs for add forms
             if (action.includes('add_') || action.includes('import_') || isPricingRule || action.includes('api/admin/source_links')) {
