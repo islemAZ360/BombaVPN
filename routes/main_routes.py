@@ -250,7 +250,15 @@ def user_dashboard():
             for s_id, s_dict in get_all_servers().items():
                 server_map[s_id] = s_dict
                 
-        for sub in (supabase_admin.table('subscriptions').select('*').eq('user_id', user_id).execute().data or []):
+        user_subs = []
+        for sub_id, sub_dict in get_all_subscriptions().items():
+            if sub_dict.get('user_id') == user_id:
+                s = sub_dict.copy()
+                if 'id' not in s:
+                    s['id'] = sub_id
+                user_subs.append(s)
+                
+        for sub in user_subs:
             if 'expires_at' in sub and sub['expires_at']:
                 sub['expires_at'] = parse_dt(sub['expires_at'])
             
