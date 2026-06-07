@@ -312,6 +312,40 @@ def delete_pricing_rule(rule_id):
         return jsonify({'status': 'success'})
     return redirect(url_for('admin.admin_dashboard'))
 
+@api_bp.route('/api/admin/pricing_rules/<rule_id>/update', methods=['POST'])
+@login_required
+def update_pricing_rule(rule_id):
+    if not getattr(request, 'is_admin', False):
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    tags_str = request.form.get('tags', '')
+    duration_months = int(request.form.get('duration_months') or '0')
+    duration_days = int(request.form.get('duration_days') or '0')
+    duration_hours = int(request.form.get('duration_hours') or '0')
+    duration_minutes = int(request.form.get('duration_minutes') or '0')
+    duration_seconds = int(request.form.get('duration_seconds') or '0')
+
+    total_duration_seconds = (duration_months * 30 * 24 * 3600) + (duration_days * 24 * 3600) + (duration_hours * 3600) + (duration_minutes * 60) + duration_seconds
+
+    try:
+        price = float(request.form.get('price') or '0')
+    except (TypeError, ValueError):
+        price = 0.0
+
+    tags_list = [tag.strip().lower() for tag in tags_str.split(',') if tag.strip()]
+
+    supabase_admin.table('pricing_rules').update({
+        'tags': tags_list,
+        'duration_days': duration_days,
+        'total_duration_seconds': total_duration_seconds,
+        'price': price
+    }).eq('id', rule_id).execute()
+    invalidate_pricing_rules()
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'status': 'success'})
+    return redirect(url_for('admin.admin_dashboard'))
+
 @api_bp.route('/api/admin/rescan_servers', methods=['POST'])
 @login_required
 def rescan_servers():
