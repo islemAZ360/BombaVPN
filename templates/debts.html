@@ -60,26 +60,22 @@
             let html = '';
             data.debts.forEach(debt => {
                 const tr = document.createElement('tr');
+                let serverExp = new Date(debt.server_expires_at);
+                let userExp = new Date(debt.subscription_expires_at);
                 let rowHtml = `
                     <td>
                         <div style="font-weight: 500; color: #fff;">${debt.email}</div>
                     </td>
                     <td style="color: #aaa;">${debt.server_name}</td>
-                    <td>
-                        <span style="color: #F44336; font-weight: bold;">
-                            ${debt.debt_days}d ${debt.debt_hours}h
-                        </span>
+                    <td style="color: #F44336;">
+                        ${serverExp.getFullYear()}-${String(serverExp.getMonth()+1).padStart(2, '0')}-${String(serverExp.getDate()).padStart(2, '0')} ${String(serverExp.getHours()).padStart(2, '0')}:${String(serverExp.getMinutes()).padStart(2, '0')}
                     </td>
-                    <td style="color: #aaa;">
-                        <div style="font-size: 0.85rem; margin-bottom: 4px;">Server: ${new Date(debt.server_expires_at).toLocaleString()}</div>
-                        <div style="font-size: 0.85rem;">User: ${new Date(debt.subscription_expires_at).toLocaleString()}</div>
+                    <td style="color: #00ffcc;">
+                        ${userExp.getFullYear()}-${String(userExp.getMonth()+1).padStart(2, '0')}-${String(userExp.getDate()).padStart(2, '0')} ${String(userExp.getHours()).padStart(2, '0')}:${String(userExp.getMinutes()).padStart(2, '0')}
                     </td>
                     <td>
-                        <div style="display: flex; gap: 5px;">
-                            <button class="btn btn-hollow-primary btn-small" onclick="openMessageModal('${debt.id}', '${debt.email}')">Message</button>
-                            <form method="POST" action="/admin/delete_user/${debt.id}" onsubmit="return confirm('Delete this user?');" style="margin: 0;">
-                                <button type="submit" class="btn btn-hollow-danger btn-small">Delete User</button>
-                            </form>
+                        <div class="badge" style="background: transparent; border: 1px solid #fff; color: #fff;">
+                            ${debt.debt_days} DAYS ${debt.debt_hours} HOURS
                         </div>
                     </td>
                 `;
