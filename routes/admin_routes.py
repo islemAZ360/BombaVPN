@@ -384,6 +384,8 @@ def expired_servers_dashboard():
             if dt:
                 data['expires_at'] = dt.replace(tzinfo=None)
                 if data['expires_at'] <= now:
+                    if data.get('created_at'):
+                        data['created_at'] = parse_dt(data['created_at'])
                     servers.append(data)
                 
     import re as _re
