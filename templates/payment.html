@@ -480,22 +480,12 @@
                 // Close modal before transitioning
                 closePaymentModal();
                 
-                // Smoothly replace the entire body to transition to the Dashboard
-                document.body.innerHTML = doc.body.innerHTML;
-                
-                // Update URL in browser history without reloading
+                // Redirect to the Dashboard
                 if (response.url) {
-                    window.history.pushState({}, '', response.url);
+                    window.location.href = response.url;
+                } else {
+                    window.location.href = '/dashboard';
                 }
-                
-                // Re-execute scripts in the new page (user_dashboard.html)
-                const scripts = document.body.querySelectorAll('script');
-                scripts.forEach(script => {
-                    const newScript = document.createElement('script');
-                    Array.from(script.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-                    newScript.appendChild(document.createTextNode(script.innerHTML));
-                    script.parentNode.replaceChild(newScript, script);
-                });
                 
             } catch(err) {
                 console.error(err);
