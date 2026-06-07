@@ -485,10 +485,10 @@
                 {% for u in all_users %}
                 <tr>
                     <td>
-                        <div style="font-weight: 500; color: #fff; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px;" title="{{ u.email }}">
-                            {{ u.email }}
+                        <div style="font-weight: 500; color: #fff; max-width: 250px; display: flex; align-items: center; gap: 8px;" title="{{ u.email }}">
+                            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ u.email }}</span>
                             {% if u.is_admin %}
-                                <span style="background:var(--primary); color:#000; font-size:0.65rem; padding:2px 6px; border-radius:4px; font-weight:bold;">Admin</span>
+                                <span style="background:var(--primary); color:#000; font-size:0.65rem; padding:2px 6px; border-radius:4px; font-weight:bold; flex-shrink: 0;">Admin</span>
                             {% endif %}
                         </div>
                         {% if u.accessed_ips or u.accessed_devices %}
@@ -2367,9 +2367,9 @@ function rescanServers() {
                     
                     html += `<tr>
                         <td>
-                            <div style="font-weight: 500; color: #fff; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px;" title="${u.email}">
-                                ${u.email}
-                                ${u.is_admin ? '<span style="background:var(--primary); color:#000; font-size:0.65rem; padding:2px 6px; border-radius:4px; font-weight:bold;">Admin</span>' : ''}
+                            <div style="font-weight: 500; color: #fff; max-width: 250px; display: flex; align-items: center; gap: 8px;" title="${u.email}">
+                                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${u.email}</span>
+                                ${u.is_admin ? '<span style="background:var(--primary); color:#000; font-size:0.65rem; padding:2px 6px; border-radius:4px; font-weight:bold; flex-shrink: 0;">Admin</span>' : ''}
                             </div>
                             ${(ips > 0 || devices > 0) ? `
                             <div style="margin-top: 5px; font-size: 0.8rem; color: #aaa;">
