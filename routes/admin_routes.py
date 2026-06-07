@@ -8,8 +8,8 @@ import uuid
 import requests
 from extensions import limiter, login_required, sub_serializer
 from supabase_client import supabase_admin
-from db_helpers import get_all_users, get_all_servers, get_all_messages, get_all_subscriptions, get_all_pricing_rules, get_all_source_links
-from db_helpers import invalidate_servers, invalidate_source_links
+from db_helpers import invalidate_subscriptions, get_all_users, get_all_servers, get_all_messages, get_all_subscriptions, get_all_pricing_rules, get_all_source_links
+from db_helpers import invalidate_subscriptions, invalidate_servers, invalidate_source_links
 from utils import extract_ip_from_json, modify_json_address, extract_name_from_json, generate_vless_uri, generate_full_config, parse_dt
 from vless_parser import extract_vless_from_text
 import urllib.parse
@@ -731,10 +731,12 @@ def manage_subscription(sub_id):
             update_data['allocated_subdomain'] = None
             update_data['server_id'] = None
         supabase_admin.table('subscriptions').update(update_data).eq('id', sub_id).execute()
+        invalidate_subscriptions()
         flash('تم إلغاء الاشتراك بنجاح / Subscription cancelled', 'success')
         
     elif action == 'delete':
         supabase_admin.table('subscriptions').delete().eq('id', sub_id).execute()
+        invalidate_subscriptions()
         flash('تم حذف الاشتراك نهائياً / Subscription deleted permanently', 'success')
         
     elif action == 'modify':
@@ -769,6 +771,7 @@ def manage_subscription(sub_id):
             'expires_at': new_expires.isoformat() if hasattr(new_expires, 'isoformat') else new_expires,
             'status': 'active' if new_expires > datetime.now(timezone.utc) else 'expired'
         }).eq('id', sub_id).execute()
+        invalidate_subscriptions()
         flash('تم تعديل مدة الاشتراك بنجاح / Subscription duration modified', 'success')
         
     elif action == 'assign':
@@ -787,6 +790,7 @@ def manage_subscription(sub_id):
                     'allocated_subdomain': None,
                     'status': 'active'
                 }).eq('id', sub_id).execute()
+                invalidate_subscriptions()
                 flash('تم تعيين السيرفر للاشتراك بنجاح / Server assigned to subscription', 'success')
                 
     return redirect(url_for('admin.admin_dashboard'))
@@ -834,6 +838,7 @@ def manage_user_sub(user_id):
                     'created_at': datetime.now(timezone.utc),
                     'expires_at': (datetime.now(timezone.utc) + duration).isoformat()
                 }).execute()
+                invalidate_subscriptions()
                 flash('تم تعيين السيرفر كمشترك جديد بنجاح / New subscription assigned', 'success')
                 
     return redirect(url_for('admin.admin_dashboard'))
