@@ -71,6 +71,16 @@
     box-shadow: 0 0 10px var(--primary);
 }
 
+@keyframes spin-anim {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.loading-spinner {
+    animation: spin-anim 1s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+}
+
 html {
     scroll-behavior: smooth;
 }
