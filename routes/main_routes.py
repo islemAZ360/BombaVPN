@@ -1,3 +1,50 @@
+
+def parse_device_info(user_agent):
+    if not user_agent: return "Unknown Device"
+    ua = user_agent.lower()
+    
+    client = "Unknown Client"
+    if 'v2rayng' in ua: client = 'v2rayNG'
+    elif 'v2rayn' in ua: client = 'v2rayN'
+    elif 'shadowrocket' in ua: client = 'Shadowrocket'
+    elif 'streisand' in ua: client = 'Streisand'
+    elif 'clash' in ua or 'clashforwindows' in ua or 'clashx' in ua: client = 'Clash'
+    elif 'quantumult' in ua or 'quantumult%20x' in ua: client = 'Quantumult X'
+    elif 'surge' in ua: client = 'Surge'
+    elif 'loon' in ua: client = 'Loon'
+    elif 'hiddify' in ua: client = 'Hiddify'
+    elif 'nekoray' in ua or 'nekobox' in ua: client = 'NekoBox'
+    elif 'fair%20vpn' in ua or 'fairvpn' in ua: client = 'Fair VPN'
+    elif 'v2box' in ua: client = 'V2Box'
+    elif 'v2ray tuning' in ua or 'v2raytun' in ua: client = 'V2Ray Tun'
+    elif 'sing-box' in ua: client = 'sing-box'
+    elif 'mozilla' in ua or 'chrome' in ua or 'safari' in ua:
+        if 'edg/' in ua or 'edge' in ua: client = 'Edge'
+        elif 'chrome' in ua: client = 'Chrome'
+        elif 'firefox' in ua: client = 'Firefox'
+        elif 'safari' in ua: client = 'Safari'
+        else: client = 'Web Browser'
+    elif 'dart' in ua: client = 'Flutter App'
+    elif 'go-http-client' in ua: client = 'Go Client'
+    elif 'cfnetwork' in ua: client = 'Apple CFNetwork'
+    
+    os_name = "Unknown OS"
+    if 'android' in ua: os_name = 'Android'
+    elif 'iphone' in ua or 'ipad' in ua or 'ios' in ua or 'cfnetwork' in ua or 'shadowrocket' in ua or 'quantumult' in ua: os_name = 'iOS'
+    elif 'windows' in ua or 'win64' in ua or 'win32' in ua or 'v2rayn' in ua: os_name = 'Windows'
+    elif 'mac os' in ua or 'macintosh' in ua: os_name = 'macOS'
+    elif 'linux' in ua: os_name = 'Linux'
+    
+    if client == 'v2rayNG': os_name = 'Android'
+    if client == 'v2rayN': os_name = 'Windows'
+    if client == 'Shadowrocket': os_name = 'iOS'
+    
+    if os_name == "Unknown OS" and client == "Unknown Client":
+        return user_agent[:30] + "..." if len(user_agent) > 30 else user_agent
+        
+    return f"{os_name} | {client}"
+
+
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, make_response, current_app
 from datetime import datetime, timedelta, timezone
 from werkzeug.utils import secure_filename
@@ -387,8 +434,26 @@ def get_subscription(token):
         user_doc = supabase_admin.table('users').select('*').eq('id', user_id).execute().data[0]
         ips = user_doc.get('accessed_ips') or []
         devices = user_doc.get('accessed_devices') or []
-        if client_ip not in ips: ips.append(client_ip)
-        if user_agent not in devices: devices.append(user_agent)
+        
+        if client_ip not in ips: 
+            ips.append(client_ip)
+            if len(ips) > 10: ips = ips[-10:]
+            
+        parsed_device = parse_device_info(user_agent)
+        
+        cleaned_devices = []
+        for d in devices:
+            if '|' in d or d == 'Unknown Device':
+                if d not in cleaned_devices: cleaned_devices.append(d)
+            else:
+                pd = parse_device_info(d)
+                if pd not in cleaned_devices: cleaned_devices.append(pd)
+                
+        if parsed_device not in cleaned_devices:
+            cleaned_devices.append(parsed_device)
+            
+        if len(cleaned_devices) > 10: cleaned_devices = cleaned_devices[-10:]
+        devices = cleaned_devices
         supabase_admin.table('users').update({
             'accessed_ips': ips,
             'accessed_devices': devices

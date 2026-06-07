@@ -2315,7 +2315,7 @@ function rescanServers() {
                                 ${u.is_admin ? '<span style="background:var(--primary); color:#000; font-size:0.65rem; padding:2px 6px; border-radius:4px; font-weight:bold;">Admin</span>' : ''}
                             </div>
                             <div style="margin-top: 5px; font-size: 0.8rem; color: #aaa;">
-                                <span>🌐 ${ips} IPs</span> | <span>📱 ${devices} Devices</span>
+                                <span title="${u.accessed_ips ? u.accessed_ips.join('&#10;') : 'No IPs'}" style="cursor: help; border-bottom: 1px dotted rgba(255,255,255,0.5);">🌐 ${ips} IPs</span> | <span title="${u.accessed_devices ? u.accessed_devices.join('&#10;') : 'No Devices'}" style="cursor: help; border-bottom: 1px dotted rgba(255,255,255,0.5);">📱 ${devices} Devices</span>
                             </div>
                             <div style="margin-top: 10px; display: flex; gap: 5px;">
                                 <button type="button" class="icon-btn assign-btn" onclick="openAssignModal('${u.id}', '')" title="Assign New Server" style="padding: 4px;">
