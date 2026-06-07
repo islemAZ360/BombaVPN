@@ -101,21 +101,8 @@ def pay():
             filename = f"receipt_{user_id}_{uuid.uuid4().hex[:8]}.{ext}"
             file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
             
-            # Save the new purchase request in the dedicated collection
-            renew_sub_id = request.form.get('renew_sub_id')
-            req_id = str(uuid.uuid4())
-            supabase_admin.table('purchase_requests').insert({
-                'user_id': user_id,
-                'email': request.user.get('email', data.get('email', 'Unknown')),
-                'server_id': server_id,
-                'renew_sub_id': renew_sub_id,
-                'receipt_url': filename,
-                'status': 'pending',
-                'id': req_id,
-                'created_at': datetime.now(timezone.utc).isoformat()
-            }).execute()
-            
-            # Fetch server name and price for telegram
+            # Fetch server name and price first; the price is stored on the
+            # request so admin revenue/analytics reflect the real amount.
             server_name = 'Unknown'
             price = 0
             s_resp = supabase_admin.table('servers').select('*').eq('id', server_id).execute()
@@ -123,7 +110,27 @@ def pay():
             if s_doc:
                 server_name = s_doc.get('name', 'Unknown')
                 price = s_doc.get('price', 0)
-            
+
+            # Save the new purchase request in the dedicated collection
+            renew_sub_id = request.form.get('renew_sub_id')
+            req_id = str(uuid.uuid4())
+            try:
+                supabase_admin.table('purchase_requests').insert({
+                    'user_id': user_id,
+                    'email': request.user.get('email', data.get('email', 'Unknown')),
+                    'server_id': server_id,
+                    'renew_sub_id': renew_sub_id,
+                    'receipt_url': filename,
+                    'price': str(price),
+                    'status': 'pending',
+                    'id': req_id,
+                    'created_at': datetime.now(timezone.utc).isoformat()
+                }).execute()
+            except Exception as e:
+                import traceback; traceback.print_exc()
+                flash('حدث خطأ أثناء حفظ طلبك. حاول مرة أخرى أو تواصل مع الدعم. / Error saving your request. Please try again.', 'error')
+                return redirect(request.url)
+
             # إرسال صورة الوصل لتيليجرام مع أزرار القبول والرفض
             
             user_email_str = request.user.get('email', data.get('email', 'Unknown'))

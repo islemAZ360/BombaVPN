@@ -140,8 +140,15 @@ CREATE TABLE IF NOT EXISTS purchase_requests (
     status TEXT DEFAULT 'pending',
     receipt_url TEXT,
     price TEXT,
+    email TEXT,
+    renew_sub_id TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- For existing databases created before these columns were added (safe to re-run):
+ALTER TABLE public.purchase_requests ADD COLUMN IF NOT EXISTS email        TEXT;
+ALTER TABLE public.purchase_requests ADD COLUMN IF NOT EXISTS renew_sub_id TEXT;
+ALTER TABLE public.purchase_requests ADD COLUMN IF NOT EXISTS price        TEXT;
 
 -- Note: admin_messages was originally a subcollection in Firestore. In SQL, we can just use the messages table with is_admin_reply=true.
 
