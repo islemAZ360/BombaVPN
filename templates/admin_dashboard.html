@@ -1286,6 +1286,7 @@ function rescanServers() {
                 const data = await resp.json();
                 if (resp.ok) {
                     showToast('success', 'Re-Scan', 'تم تحديث ' + (data.updated || 0) + ' سيرفر بنجاح ✅');
+                    if (typeof fetchDashboardSync === 'function') fetchDashboardSync();
                 } else {
                     showToast('error', 'Re-Scan', data.error || 'حدث خطأ أثناء الفحص');
                 }
@@ -2178,9 +2179,10 @@ function rescanServers() {
             });
             const data = await resp.json();
             if (resp.ok && data.status === 'success') {
-                if (typeof showToast !== 'undefined') showToast('success', 'تم', 'تم تحديث القاعدة بنجاح');
+                if (typeof showToast !== 'undefined') showToast('success', 'تم', 'تم تحديث القاعدة وإعادة تسعير السيرفرات');
                 window.editingRuleId = null;
                 fetchPricingRules();
+                if (typeof fetchDashboardSync === 'function') fetchDashboardSync();
             } else {
                 if (typeof showToast !== 'undefined') showToast('error', 'خطأ', data.message || 'فشل تحديث القاعدة');
             }
@@ -2758,8 +2760,10 @@ async function submitAjaxForm(event) {
             // Trigger ONLY the localized sync that this action affects, so the rest of the
             // page is never re-rendered (no full-table flash that looks like a reload).
             if (isPricingRule) {
-                // Pricing rules add/delete only touch the rules list.
+                // Pricing rule changes also re-price servers — refresh the rules
+                // list AND the servers table so new prices show immediately.
                 if (typeof fetchPricingRules === 'function') fetchPricingRules();
+                if (typeof fetchDashboardSync === 'function') fetchDashboardSync();
             } else {
                 if (typeof fetchDashboardSync === 'function') fetchDashboardSync();
                 if (typeof fetchPendingRequests === 'function') fetchPendingRequests();

@@ -20,7 +20,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from helpers import *
-from helpers import _approve_request_logic, _reject_request_logic, _import_vless_servers, compute_financial_stats
+from helpers import _approve_request_logic, _reject_request_logic, _import_vless_servers, compute_financial_stats, reprice_all_servers
 
 api_bp = Blueprint('api', __name__)
 
@@ -295,10 +295,12 @@ def api_pricing_rules():
         }).execute()
         # Drop the cache so the new rule shows up on the very next fetch
         invalidate_pricing_rules()
+        # Apply this rule to existing servers right away (no manual Re-Scan needed)
+        repriced = reprice_all_servers()
 
         # If AJAX, return json. Otherwise redirect
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'status': 'success'})
+            return jsonify({'status': 'success', 'repriced': repriced})
         return redirect(url_for('admin.admin_dashboard'))
 
 @api_bp.route('/api/admin/pricing_rules/<rule_id>/delete', methods=['POST'])
@@ -308,6 +310,7 @@ def delete_pricing_rule(rule_id):
         return jsonify({'error': 'Unauthorized'}), 403
     supabase_admin.table('pricing_rules').delete().eq('id', rule_id).execute()
     invalidate_pricing_rules()
+    reprice_all_servers()
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'status': 'success'})
     return redirect(url_for('admin.admin_dashboard'))
@@ -341,9 +344,10 @@ def update_pricing_rule(rule_id):
         'price': price
     }).eq('id', rule_id).execute()
     invalidate_pricing_rules()
+    repriced = reprice_all_servers()
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({'status': 'success'})
+        return jsonify({'status': 'success', 'repriced': repriced})
     return redirect(url_for('admin.admin_dashboard'))
 
 @api_bp.route('/api/admin/rescan_servers', methods=['POST'])

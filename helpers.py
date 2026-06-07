@@ -338,10 +338,15 @@ def _import_vless_servers(subscription_text, total_plan_seconds, total_real_seco
             final_price = price_base
             keywords_lower = set(k.lower() for k in keywords)
 
-            plan_days_equiv = total_plan_seconds // 86400
+            # Match on tags + exact duration. Compare total_duration_seconds against
+            # the server's total_plan_seconds (consistent with rescan / reprice);
+            # duration_days alone misses month/hour-based rules.
             matched_rules = []
             for rule in pricing_rules:
-                if rule['tags'].issubset(keywords_lower) and rule.get('duration_days', 0) == plan_days_equiv:
+                rule_secs = rule.get('total_duration_seconds')
+                if rule_secs is None:
+                    rule_secs = rule.get('duration_days', 0) * 24 * 3600
+                if rule['tags'].issubset(keywords_lower) and rule_secs == total_plan_seconds:
                     matched_rules.append(rule)
 
             if matched_rules:
@@ -384,6 +389,68 @@ def _import_vless_servers(subscription_text, total_plan_seconds, total_real_seco
         invalidate_servers()
 
     return len(parsed_configs), added
+
+
+def reprice_all_servers():
+    """Re-apply the pricing rules to every existing server.
+
+    A server's price = the price of the most specific rule (most tags) whose
+    tags are a subset of the server's tags AND whose duration exactly matches
+    the server's plan duration. Called whenever a pricing rule is added/edited/
+    deleted so existing servers are re-priced automatically (no manual Re-Scan).
+    Returns the number of servers whose price changed.
+    """
+    rules = []
+    for r_id, r_dict in get_all_pricing_rules().items():
+        r = r_dict.copy()
+        r['tags'] = set(t.lower() for t in r.get('tags', []))
+        rule_secs = r.get('total_duration_seconds')
+        if rule_secs is None:
+            rule_secs = r.get('duration_days', 0) * 24 * 3600
+        r['_secs'] = rule_secs
+        rules.append(r)
+
+    updated = 0
+    for s_id, s_dict in list(get_all_servers().items()):
+        server_tags = set(t.lower() for t in (s_dict.get('tags') or []))
+        server_secs = s_dict.get('total_plan_seconds')
+        if server_secs is None:
+            server_secs = (s_dict.get('plan_days', 0) * 24 * 3600) + (s_dict.get('plan_hours', 0) * 3600) + (s_dict.get('plan_minutes', 0) * 60)
+
+        matched = []
+        for rule in rules:
+            if not rule['tags'] and not server_tags:
+                tags_ok = True
+            elif rule['tags'] and rule['tags'].issubset(server_tags):
+                tags_ok = True
+            else:
+                tags_ok = False
+            if tags_ok and rule['_secs'] == server_secs:
+                matched.append(rule)
+
+        if not matched:
+            continue
+
+        best = max(matched, key=lambda r: len(r['tags']))
+        try:
+            new_price = float(best['price'])
+        except (TypeError, ValueError):
+            new_price = 0.0
+
+        try:
+            current_price = float(s_dict.get('price') or 0)
+        except (TypeError, ValueError):
+            current_price = 0.0
+
+        if current_price != new_price:
+            db.table('servers').update({'price': new_price}).eq('id', s_id).execute()
+            updated += 1
+
+    if updated:
+        invalidate_servers()
+
+    return updated
+
 
 def _approve_request_logic(request_id):
     req_resp = db.table('purchase_requests').select('*').eq('id', request_id).execute()
