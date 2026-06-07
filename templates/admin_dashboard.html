@@ -55,7 +55,10 @@
     </div>
 
     <!-- Recent Transactions Table -->
-    <h4 style="margin-top: 30px; margin-bottom: 15px; color: #e2e8f0; font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">Recent Transactions</h4>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-top:30px; margin-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:8px;">
+        <h4 style="margin:0; color:#e2e8f0; font-size:1.1rem;">Recent Transactions</h4>
+        <a href="{{ url_for('admin.admin_transactions') }}" class="btn btn-hollow-primary btn-small" style="font-size:0.78rem; padding:5px 14px; white-space:nowrap;">📊 {{ _('ViewAllTransactions') }}</a>
+    </div>
     <div class="table-responsive">
         <table>
             <thead>

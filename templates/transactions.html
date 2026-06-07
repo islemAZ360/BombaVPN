@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="header-actions" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+    <h2 style="margin:0;">{{ _('TransactionsTitle') }}</h2>
+    <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-secondary">{{ _('BackToDashboard') }}</a>
+</div>
+
+<!-- Summary KPIs -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin: 20px 0;">
+    <div style="background: linear-gradient(135deg, rgba(30,41,59,0.8), rgba(15,23,42,0.8)); border:1px solid rgba(255,255,255,0.05); padding:18px; border-radius:12px;">
+        <div style="font-size:0.8rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">{{ _('TotalRevenue') }}</div>
+        <div style="font-size:1.6rem; font-weight:700; color:#10b981;">{{ stats.total_revenue | round(2) }} ₽</div>
+    </div>
+    <div style="background: linear-gradient(135deg, rgba(30,41,59,0.8), rgba(15,23,42,0.8)); border:1px solid rgba(255,255,255,0.05); padding:18px; border-radius:12px;">
+        <div style="font-size:0.8rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">{{ _('Approved') }}</div>
+        <div style="font-size:1.6rem; font-weight:700; color:#10b981;">{{ stats.approved }}</div>
+    </div>
+    <div style="background: linear-gradient(135deg, rgba(30,41,59,0.8), rgba(15,23,42,0.8)); border:1px solid rgba(255,255,255,0.05); padding:18px; border-radius:12px;">
+        <div style="font-size:0.8rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">{{ _('Rejected') }}</div>
+        <div style="font-size:1.6rem; font-weight:700; color:#ef4444;">{{ stats.rejected }}</div>
+    </div>
+    <div style="background: linear-gradient(135deg, rgba(30,41,59,0.8), rgba(15,23,42,0.8)); border:1px solid rgba(255,255,255,0.05); padding:18px; border-radius:12px;">
+        <div style="font-size:0.8rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">{{ _('Pending') }}</div>
+        <div style="font-size:1.6rem; font-weight:700; color:#f59e0b;">{{ stats.pending }}</div>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 1rem;">{{ _('TransactionsTitle') }} <span style="color:#94a3b8; font-size:0.9rem;">({{ stats.count }})</span></h3>
+    <div class="table-responsive" style="max-height: 65vh; overflow-y: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>{{ _('Email') }}</th>
+                    <th>{{ _('Server') }}</th>
+                    <th>{{ _('Date') }}</th>
+                    <th>{{ _('Amount') }}</th>
+                    <th>{{ _('Status') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for txn in transactions %}
+                <tr>
+                    <td style="color:#e2e8f0; font-family:monospace;">{{ txn.email }}</td>
+                    <td style="color:#cbd5e1;">{{ txn.server }}</td>
+                    <td style="color:#94a3b8; font-size:0.9rem;">{{ txn.date }}</td>
+                    <td style="font-weight:bold; color:#10b981;">{{ txn.price }} ₽</td>
+                    <td>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            {% if txn.status == 'approved' %}
+                                <span class="badge" style="background:rgba(16,185,129,0.2); color:#10b981;">{{ _('Approved') }}</span>
+                            {% elif txn.status == 'rejected' %}
+                                <span class="badge" style="background:rgba(239,68,68,0.2); color:#ef4444;">{{ _('Rejected') }}</span>
+                            {% else %}
+                                <span class="badge" style="background:rgba(245,158,11,0.2); color:#f59e0b;">{{ _('Pending') }}</span>
+                            {% endif %}
+                            {% if txn.receipt_url and txn.id %}
+                            <a href="{{ url_for('admin.view_receipt', request_id=txn.id) }}" target="_blank" class="btn btn-primary btn-small" style="padding:2px 8px; font-size:0.75rem; background:rgba(59,130,246,0.2); color:#3b82f6; border:1px solid rgba(59,130,246,0.3);">{{ _('Receipt') }}</a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:25px;">{{ _('NoTransactions') }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -162,13 +162,57 @@ def admin_notifications():
     try:
         for doc in (supabase_admin.table('notifications').select('*').order('created_at', desc=True).limit(50).execute().data or []):
             n = doc
-            if 'created_at' in n and n['created_at']:
-                n['created_at'] = n['created_at']
+            # created_at is an ISO string in the DB; the template calls .strftime()
+            if n.get('created_at'):
+                n['created_at'] = parse_dt(n['created_at'])
             notifications.append(n)
     except Exception as e:
         print("Error fetching notifications:", e)
         
     return render_template('notifications.html', notifications=notifications)
+
+@admin_bp.route('/admin/transactions')
+@login_required
+def admin_transactions():
+    if not request.is_admin:
+        return "Unauthorized", 403
+
+    # All purchase requests, newest first — full history for analytics
+    reqs = supabase_admin.table('purchase_requests').select('*').order('created_at', desc=True).execute().data or []
+    users_map = {u['id']: u.get('email', 'Unknown') for u in (supabase_admin.table('users').select('id, email').execute().data or [])}
+    server_map = {s['id']: s.get('name', 'Unknown') for s in (supabase_admin.table('servers').select('id, name').execute().data or [])}
+
+    transactions = []
+    stats = {'total_revenue': 0.0, 'approved': 0, 'rejected': 0, 'pending': 0, 'count': 0}
+
+    for doc in reqs:
+        status = doc.get('status')
+        try:
+            price_val = float(''.join(c for c in str(doc.get('price', '0')) if c.isdigit() or c == '.') or 0)
+        except (TypeError, ValueError):
+            price_val = 0.0
+
+        created = parse_dt(doc.get('created_at'))
+        transactions.append({
+            'id': doc.get('id'),
+            'email': doc.get('email') or users_map.get(doc.get('user_id'), 'Unknown'),
+            'server': server_map.get(doc.get('server_id'), '—'),
+            'price': price_val,
+            'status': status,
+            'date': created.strftime('%Y-%m-%d %H:%M') if created else 'Unknown',
+            'receipt_url': doc.get('receipt_url'),
+        })
+
+        stats['count'] += 1
+        if status == 'approved':
+            stats['approved'] += 1
+            stats['total_revenue'] += price_val
+        elif status == 'rejected':
+            stats['rejected'] += 1
+        elif status == 'pending':
+            stats['pending'] += 1
+
+    return render_template('transactions.html', transactions=transactions, stats=stats)
 
 @admin_bp.route('/admin/notifications/read/<notif_id>', methods=['POST'])
 @login_required
