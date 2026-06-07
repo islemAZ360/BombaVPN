@@ -224,7 +224,7 @@
 
 
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
+    function initTimers() {
         const timerWidgets = document.querySelectorAll(".countdown-timer-widget");
         
         timerWidgets.forEach(widget => {
@@ -257,7 +257,14 @@
             updateTimer();
             setInterval(updateTimer, 1000);
         });
-    });
+    }
+    
+    // Run immediately
+    initTimers();
+    // Also run on DOMContentLoaded just in case
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initTimers);
+    }
 </script>
 
 <script>

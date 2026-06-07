@@ -201,24 +201,33 @@ def user_dashboard():
         server_map = {}
         if True:
             for s_id, s_dict in get_all_servers().items():
-                server_map[s_id] = s_dict.get('name', 'Unknown')
+                server_map[s_id] = s_dict
                 
         for sub in (supabase_admin.table('subscriptions').select('*').eq('user_id', user_id).execute().data or []):
             if 'expires_at' in sub and sub['expires_at']:
                 sub['expires_at'] = parse_dt(sub['expires_at'])
             
             if sub.get('server_id'):
+                s_data = None
                 if sub['server_id'] in server_map:
-                    sub['allocated_server_name'] = server_map[sub['server_id']]
+                    s_data = server_map[sub['server_id']]
                 else:
                     s_resp = supabase_admin.table('servers').select('*').eq('id', sub['server_id']).execute()
                     s_doc = s_resp.data[0] if s_resp.data else None
                     if s_doc:
                         s_data = s_doc
-                        sub['allocated_server_name'] = s_data.get('name', 'Unknown')
-                        server_map[sub['server_id']] = sub['allocated_server_name']
-                    else:
-                        sub['allocated_server_name'] = 'Unknown'
+                        server_map[sub['server_id']] = s_data
+                        
+                if s_data:
+                    s_name = s_data.get('name', 'Unknown')
+                    c_code = s_data.get('country_code', '').upper()
+                    if c_code and len(c_code) == 2:
+                        flag_emoji = chr(ord(c_code[0]) + 127397) + chr(ord(c_code[1]) + 127397)
+                        if flag_emoji not in s_name:
+                            s_name = f"{flag_emoji} {s_name}"
+                    sub['allocated_server_name'] = s_name
+                else:
+                    sub['allocated_server_name'] = 'Unknown'
             else:
                 sub['allocated_server_name'] = 'Unknown'
                 
