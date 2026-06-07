@@ -681,19 +681,23 @@
     </div>
 </div>
 
-<div id="confirm-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:9999; align-items:center; justify-content:center;">
-    <div style="background:var(--card-bg, #1a1a2e); border:1px solid var(--border-color, #333); border-radius:16px; padding:2rem; max-width:380px; width:90%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.5); animation: modalIn 0.25s ease;">
-        <div style="font-size:2.5rem; margin-bottom:0.8rem;">⚠️</div>
-        <h3 style="margin-bottom:0.5rem; color:var(--text-primary, #fff);">هل أنت متأكد؟</h3>
-        <p id="confirm-msg" style="color:var(--text-muted, #999); margin-bottom:1.5rem; font-size:0.95rem;">سيتم حذف هذا السيرفر ونقل مستخدميه تلقائياً</p>
+<div id="confirm-modal" style="display:none; position:fixed; inset:0; width:100%; height:100%; background:rgba(3, 7, 18, 0.7); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center; padding:1rem;">
+    <div style="background:linear-gradient(160deg, #161b2e, #0f1320); border:1px solid rgba(255,255,255,0.08); border-radius:18px; padding:2.2rem 2rem; max-width:420px; width:100%; text-align:center; box-shadow:0 24px 70px rgba(0,0,0,0.6); animation: modalIn 0.25s ease;">
+        <div style="width:72px; height:72px; margin:0 auto 1.2rem; border-radius:50%; display:flex; align-items:center; justify-content:center; background:rgba(245, 158, 11, 0.12); border:1px solid rgba(245, 158, 11, 0.3);">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        </div>
+        <h3 style="margin:0 0 0.6rem; color:#fff; font-size:1.25rem; font-weight:700;">{{ _('ConfirmTitle') }}</h3>
+        <p id="confirm-msg" style="color:rgba(255,255,255,0.65); margin:0 0 1.8rem; font-size:0.95rem; line-height:1.6;">{{ _('ConfirmDeleteServer') }}</p>
         <div style="display:flex; gap:0.8rem; justify-content:center;">
-            <button id="confirm-yes" class="btn btn-danger" style="min-width:100px;">{{ _('Delete') }}</button>
-            <button id="confirm-no" class="btn btn-primary" style="min-width:100px; background:var(--border-color, #444); border:none;">{{ _('Cancel') if lang == 'en' else 'إلغاء' }}</button>
+            <button id="confirm-no" style="flex:1; max-width:150px; padding:0.7rem 1rem; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); color:#fff; font-weight:600; cursor:pointer; transition:all 0.2s ease;">{{ _('Cancel') }}</button>
+            <button id="confirm-yes" style="flex:1; max-width:170px; padding:0.7rem 1rem; border-radius:10px; border:none; background:linear-gradient(135deg, #ef4444, #dc2626); color:#fff; font-weight:700; cursor:pointer; transition:all 0.2s ease; box-shadow:0 6px 18px rgba(239,68,68,0.3);">{{ _('Delete') }}</button>
         </div>
     </div>
 </div>
 <style>
-    @keyframes modalIn { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:scale(1); } }
+    @keyframes modalIn { from { opacity:0; transform:scale(0.92) translateY(10px); } to { opacity:1; transform:scale(1) translateY(0); } }
+    #confirm-modal #confirm-no:hover { background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.25); }
+    #confirm-modal #confirm-yes:hover { transform:translateY(-1px); box-shadow:0 8px 22px rgba(239,68,68,0.45); }
 </style>
 
 <script>
@@ -1224,8 +1228,8 @@ function rescanServers() {
         isRescanning = true;
         isDeletingAll = false;
         pendingDeleteId = null;
-        confirmMsg.textContent = 'سيتم إعادة فحص جميع السيرفرات وتحديث الأسعار والوسوم تلقائياً. هل أنت متأكد؟';
-        document.getElementById('confirm-yes').textContent = '✅ نعم، ابدأ الفحص';
+        confirmMsg.textContent = '{{ _("ConfirmRescan") }}';
+        document.getElementById('confirm-yes').textContent = '{{ _("ConfirmRescanYes") }}';
         modal.style.display = 'flex';
     }
     const modal = document.getElementById('confirm-modal');
@@ -1236,14 +1240,14 @@ function rescanServers() {
     function deleteServer(serverId) {
         pendingDeleteId = serverId;
         isDeletingAll = false;
-        confirmMsg.textContent = 'سيتم حذف هذا السيرفر ونقل مستخدميه تلقائياً';
+        confirmMsg.textContent = '{{ _("ConfirmDeleteServer") }}';
         modal.style.display = 'flex';
     }
 
     function deleteAllServers() {
         isDeletingAll = true;
         pendingDeleteId = null;
-        confirmMsg.textContent = 'تحذير: سيتم حذف جميع السيرفرات بالكامل، وسيتم نقل جميع المستخدمين المعتمدين عليها إلى حالة الديون. هل أنت متأكد؟';
+        confirmMsg.textContent = '{{ _("ConfirmDeleteAll") }}';
         modal.style.display = 'flex';
     }
     
