@@ -215,6 +215,38 @@ def admin_transactions():
 
     return render_template('transactions.html', transactions=transactions, stats=stats)
 
+@admin_bp.route('/admin/delete_transaction/<txn_id>', methods=['POST'])
+@login_required
+def delete_transaction(txn_id):
+    if not getattr(request, 'is_admin', False):
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+    try:
+        supabase_admin.table('purchase_requests').delete().eq('id', txn_id).execute()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'status': 'success', 'message': 'تم حذف العملية بنجاح'})
+        flash('تم حذف العملية بنجاح', 'success')
+    except Exception as e:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'status': 'error', 'message': str(e)}), 400
+        flash(f'خطأ: {str(e)}', 'error')
+    return redirect(url_for('admin.admin_transactions'))
+
+@admin_bp.route('/admin/delete_all_transactions', methods=['POST'])
+@login_required
+def delete_all_transactions():
+    if not getattr(request, 'is_admin', False):
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+    try:
+        supabase_admin.table('purchase_requests').delete().neq('id', 'dummy_value_to_match_all').execute()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'status': 'success', 'message': 'تم حذف جميع العمليات بنجاح'})
+        flash('تم حذف جميع العمليات بنجاح', 'success')
+    except Exception as e:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'status': 'error', 'message': str(e)}), 400
+        flash(f'خطأ: {str(e)}', 'error')
+    return redirect(url_for('admin.admin_transactions'))
+
 @admin_bp.route('/admin/notifications/read/<notif_id>', methods=['POST'])
 @login_required
 def mark_read(notif_id):

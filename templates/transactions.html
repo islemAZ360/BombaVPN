@@ -26,7 +26,14 @@
 </div>
 
 <div class="card">
-    <h3 style="margin-bottom: 1rem;">{{ _('TransactionsTitle') }} <span style="color:#94a3b8; font-size:0.9rem;">({{ stats.count }})</span></h3>
+    <h3 style="margin-bottom: 1rem; display:flex; justify-content:space-between; align-items:center;">
+        <span>{{ _('TransactionsTitle') }} <span style="color:#94a3b8; font-size:0.9rem;">({{ stats.count }})</span></span>
+        {% if transactions|length > 0 %}
+        <form method="POST" action="/admin/delete_all_transactions" onsubmit="return confirm('Are you sure you want to delete ALL transactions? This will permanently affect analytics.');" style="margin:0;">
+            <button type="submit" class="btn btn-hollow-danger btn-small" style="padding: 4px 10px; font-size: 0.8rem;">🗑️ Delete All</button>
+        </form>
+        {% endif %}
+    </h3>
     <div class="table-responsive" style="max-height: 65vh; overflow-y: auto;">
         <table>
             <thead>
@@ -57,6 +64,11 @@
                             {% if txn.receipt_url and txn.id %}
                             <a href="{{ url_for('admin.view_receipt', request_id=txn.id) }}" target="_blank" class="btn btn-primary btn-small" style="padding:2px 8px; font-size:0.75rem; background:rgba(59,130,246,0.2); color:#3b82f6; border:1px solid rgba(59,130,246,0.3);">{{ _('Receipt') }}</a>
                             {% endif %}
+                            <form method="POST" action="/admin/delete_transaction/{{ txn.id }}" onsubmit="return confirm('Delete this transaction?');" style="margin:0;">
+                                <button type="submit" class="action-icon-btn delete-btn" title="Delete">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                </button>
+                            </form>
                         </div>
                     </td>
                 </tr>
