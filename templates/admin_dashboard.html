@@ -484,7 +484,7 @@
                     <td>
                         <div style="font-weight: 500; color: #fff; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px;" title="{{ u.email }}">
                             {{ u.email }}
-                            {% if u.email == 'islamazaizia360@gmail.com' %}
+                            {% if u.is_admin %}
                                 <span style="background:var(--primary); color:#000; font-size:0.65rem; padding:2px 6px; border-radius:4px; font-weight:bold;">Admin</span>
                             {% endif %}
                         </div>
@@ -1206,7 +1206,7 @@
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
             if(resp.ok) {
-                smoothNotification('تم حذف المستخدم بنجاح', 'success');
+                smoothNotification('User deleted successfully', 'success');
                 const row = btn.closest('tr');
                 if(row) {
                     row.style.transition = "all 0.3s ease";
@@ -1214,20 +1214,20 @@
                     setTimeout(() => row.remove(), 300);
                 }
             } else {
-                smoothNotification('حدث خطأ أثناء الحذف', 'error');
+                smoothNotification('Error occurred during deletion', 'error');
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
             }
         } catch(e) {
-            smoothNotification('حدث خطأ في الاتصال', 'error');
+            smoothNotification('Network error occurred', 'error');
             btn.innerHTML = originalHtml;
             btn.disabled = false;
         }
     } else {
-                alert('حدث خطأ: ' + (data.error || 'Unknown error'));
+                alert('Error: ' + (data.error || 'Unknown error'));
             }
         }).catch(e => {
-            alert('حدث خطأ في الاتصال بالخادم.');
+            alert('Network error occurred.');
         });
     }
 }
@@ -1297,10 +1297,10 @@ function rescanServers() {
                 });
                 const data = await resp.json();
                 if (resp.ok) {
-                    showToast('success', 'Re-Scan', 'تم تحديث ' + (data.updated || 0) + ' سيرفر بنجاح ✅');
+                    showToast('success', 'Re-Scan', 'Updated ' + (data.updated || 0) + ' servers successfully ✅');
                     if (typeof fetchDashboardSync === 'function') fetchDashboardSync();
                 } else {
-                    showToast('error', 'Re-Scan', data.error || 'حدث خطأ أثناء الفحص');
+                    showToast('error', 'Re-Scan', data.error || 'Error occurred during scan');
                 }
             } catch(e) {
                 showToast('error', 'Re-Scan', e.message);
@@ -1338,7 +1338,7 @@ function rescanServers() {
                 }
                 
                 if (successCount > 0) {
-                    showToast('success', '{{ _("Delete") }}', 'تم حذف ' + successCount + ' سيرفر بنجاح');
+                    showToast('success', '{{ _("Delete") }}', 'Deleted ' + successCount + ' servers successfully');
                 }
             } catch(e) {
                 showToast('error', '{{ _("Error") }}', e.message);
@@ -1370,7 +1370,7 @@ function rescanServers() {
                 row.style.opacity = '0';
                 row.style.transform = 'translateX(-30px)';
                 setTimeout(() => row.remove(), 400);
-                showToast('success', '{{ _("Delete") }}', 'تم حذف السيرفر بنجاح');
+                showToast('success', '{{ _("Delete") }}', 'Deleted server successfully');
             } else {
                 btn.disabled = false;
                 btn.textContent = '{{ _("Delete") }}';
@@ -1426,7 +1426,7 @@ function rescanServers() {
             }
             
             if (successCount > 0) {
-                showToast('success', '{{ _("Save") }}', 'تم حفظ ' + successCount + ' سيرفر بنجاح');
+                showToast('success', '{{ _("Save") }}', 'Saved ' + successCount + ' servers successfully');
             }
         } catch(e) {
             showToast('error', '{{ _("Error") }}', e.message);
@@ -2191,15 +2191,15 @@ function rescanServers() {
             });
             const data = await resp.json();
             if (resp.ok && data.status === 'success') {
-                if (typeof showToast !== 'undefined') showToast('success', 'تم', 'تم تحديث القاعدة وإعادة تسعير السيرفرات');
+                if (typeof showToast !== 'undefined') showToast('success', '{{ _("Success") | default("Success") }}', 'Rule updated and servers repriced');
                 window.editingRuleId = null;
                 fetchPricingRules();
                 if (typeof fetchDashboardSync === 'function') fetchDashboardSync();
             } else {
-                if (typeof showToast !== 'undefined') showToast('error', 'خطأ', data.message || 'فشل تحديث القاعدة');
+                if (typeof showToast !== 'undefined') showToast('error', '{{ _("Error") | default("Error") }}', data.message || 'Failed to update rule');
             }
         } catch (e) {
-            if (typeof showToast !== 'undefined') showToast('error', 'خطأ', e.message);
+            if (typeof showToast !== 'undefined') showToast('error', '{{ _("Error") | default("Error") }}', e.message);
         }
     }
 
@@ -2237,10 +2237,10 @@ function rescanServers() {
             });
             const data = await resp.json();
             if (resp.ok && data.status === 'success') {
-                showToast('success', 'Sync', `تم فحص ${data.found} سيرفر، وإضافة ${data.added} سيرفر جديد ✅`);
+                showToast('success', 'Sync', `Scanned ${data.found} servers, added ${data.added} new servers ✅`);
                 fetchDashboardSync();
             } else {
-                showToast('error', 'Sync', data.message || 'حدث خطأ أثناء المزامنة');
+                showToast('error', 'Sync', data.message || 'Error occurred during sync');
             }
         } catch(e) {
             showToast('error', 'Sync', e.message);
@@ -2251,7 +2251,7 @@ function rescanServers() {
     }
 
     async function deleteSourceLink(id, btn) {
-        if (!confirm('هل تريد حذف هذا الرابط؟ (لن يتم حذف السيرفرات، فقط سجل الرابط)')) return;
+        if (!confirm('Delete this link? (Servers will NOT be deleted, only the link record)')) return;
         const original = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '⏳';
@@ -2263,12 +2263,12 @@ function rescanServers() {
             const data = await resp.json();
             if (resp.ok && data.status === 'success') {
                 expandedLinks.delete(id);
-                showToast('success', 'Delete', 'تم حذف الرابط بنجاح ✅');
+                showToast('success', 'Delete', 'Deleted link successfully ✅');
                 fetchDashboardSync();
             } else {
                 btn.disabled = false;
                 btn.innerHTML = original;
-                showToast('error', 'Delete', data.message || 'حدث خطأ أثناء الحذف');
+                showToast('error', 'Delete', data.message || 'Error occurred during deletion');
             }
         } catch(e) {
             btn.disabled = false;
@@ -2312,7 +2312,7 @@ function rescanServers() {
                         <td>
                             <div style="font-weight: 500; color: #fff; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px;" title="${u.email}">
                                 ${u.email}
-                                ${u.email === 'islamazaizia360@gmail.com' ? '<span style="background:var(--primary); color:#000; font-size:0.65rem; padding:2px 6px; border-radius:4px; font-weight:bold;">Admin</span>' : ''}
+                                ${u.is_admin ? '<span style="background:var(--primary); color:#000; font-size:0.65rem; padding:2px 6px; border-radius:4px; font-weight:bold;">Admin</span>' : ''}
                             </div>
                             <div style="margin-top: 5px; font-size: 0.8rem; color: #aaa;">
                                 <span>🌐 ${ips} IPs</span> | <span>📱 ${devices} Devices</span>
@@ -2369,26 +2369,100 @@ function rescanServers() {
                         <td>
                             <div style="font-weight: 500; color: #fff; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px;" title="${u.email}">
                                 ${u.email}
-                                ${u.email === 'islamazaizia360@gmail.com' ? '<span style="background:var(--primary); color:#000; font-size:0.65rem; padding:2px 6px; border-radius:4px; font-weight:bold;">Admin</span>' : ''}
+                                ${u.is_admin ? '<span style="background:var(--primary); color:#000; font-size:0.65rem; padding:2px 6px; border-radius:4px; font-weight:bold;">Admin</span>' : ''}
                             </div>
+                            ${(ips > 0 || devices > 0) ? `
                             <div style="margin-top: 5px; font-size: 0.8rem; color: #aaa;">
-                                <span>🌐 ${ips} IPs</span> | <span>📱 ${devices} Devices</span>
-                            </div>
+                                <span style="cursor: help;">🌐 ${ips} IPs</span> | 
+                                <span style="cursor: help;">📱 ${devices} Devices</span>
+                            </div>` : ''}
                             <div style="margin-top: 10px; display: flex; gap: 5px;">
                                 <button type="button" class="icon-btn assign-btn" onclick="openAssignModal('${u.id}', '')" title="Assign New Server" style="padding: 4px;">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
                                 </button>
                                 <button type="button" class="icon-btn msg-btn" onclick="openMessageModal('${u.id}', '${u.email}')" title="Send Message" style="padding: 4px;">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                                 </button>
-                                <button type="button" class="icon-btn reject-btn" onclick="deleteUserAJAX('${u.id}', this)" title="Delete User" style="padding: 4px;">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"></path></svg>
+                                <button type="button" class="icon-btn del-btn" onclick="deleteUserAJAX('${u.id}', this)" title="Delete User" style="padding: 4px;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                 </button>
                             </div>
                         </td>
-                        <td style="vertical-align: middle;">${statusBadge}</td>
-                        <td style="vertical-align: middle; color: #aaa;">${u.created_at ? new Date(u.created_at).toLocaleString() : 'N/A'}</td>
-                    </tr>`;
+                        <td>${statusBadge}</td>
+                        <td colspan="4" style="padding: 0;">`;
+                    
+                    if (u.subscriptions && u.subscriptions.length > 0) {
+                        html += `<table style="width: 100%; margin: 0; background: transparent;">`;
+                        u.subscriptions.forEach((sub, idx) => {
+                            let sName = sub.allocated_server_name || '<span style="color:rgba(255,255,255,0.3);">-</span>';
+                            if (sub.server_id) {
+                                sName = `<a href="javascript:void(0)" onclick="scrollToServer('${sub.server_id}')" style="color: inherit; text-decoration: none; border-bottom: 1px dashed rgba(255,255,255,0.3); transition: all 0.3s;" onmouseover="this.style.color='#00ffcc'; this.style.borderBottomColor='#00ffcc';" onmouseout="this.style.color='inherit'; this.style.borderBottomColor='rgba(255,255,255,0.3)';">${sName}</a>`;
+                            }
+                            
+                            let expStr = sub.expires_at ? new Date(sub.expires_at).toLocaleString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '') : '<div style="color: rgba(255,255,255,0.3);">-</div>';
+                            if (sub.expires_at) {
+                                expStr = `<div style="color: rgba(255,255,255,0.7); font-family: 'Space Mono', monospace; font-size: 0.85rem;">${expStr}</div>`;
+                            }
+                            
+                            let purchasesBadge = '';
+                            if (idx === 0) {
+                                purchasesBadge = `<span style="color: #00ffcc; font-weight: bold; font-family: 'Space Mono', monospace; background: rgba(0,255,204,0.05); padding: 2px 8px; border-radius: 4px;">${u.purchases_count || 0}</span>`;
+                            }
+                            
+                            let expIso = sub.expires_at ? new Date(sub.expires_at).toISOString() : '';
+                            
+                            html += `
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <td style="width: 25%; border: none;">
+                                        <div style="color: rgba(255,255,255,0.85); font-size: 0.9rem;">${sName}</div>
+                                    </td>
+                                    <td style="width: 25%; border: none;">${expStr}</td>
+                                    <td style="width: 15%; text-align: center; border: none;">${purchasesBadge}</td>
+                                    <td style="width: 35%; border: none;">
+                                        <div class="action-btn-group" style="justify-content: flex-end;">
+                                            <button type="button" class="icon-btn mod-btn" onclick="openModifyModal('${u.id}', '${expIso}', '${sub.id}')" title="Modify Duration">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                            </button>
+                                            <button type="button" class="icon-btn assign-btn" onclick="openAssignModal('${u.id}', '${sub.id}')" title="Change Server">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                                            </button>
+                                            <form method="POST" action="/admin/manage_user_sub/${u.id}" style="margin:0;" onsubmit="return confirm('Cancel subscription?');">
+                                                <input type="hidden" name="action" value="cancel">
+                                                <input type="hidden" name="sub_id" value="${sub.id}">
+                                                <button type="submit" class="icon-btn cancel-btn" title="Cancel Subscription">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                                                </button>
+                                            </form>
+                                            <form method="POST" action="/admin/manage_user_sub/${u.id}" style="margin:0;" onsubmit="return confirm('Delete subscription permanently?');">
+                                                <input type="hidden" name="action" value="delete">
+                                                <input type="hidden" name="sub_id" value="${sub.id}">
+                                                <button type="submit" class="icon-btn del-btn" title="Delete Subscription">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        html += `</table>`;
+                    } else {
+                        html += `
+                            <table style="width: 100%; margin: 0; background: transparent;">
+                                <tr>
+                                    <td style="width: 25%; border: none;"><div style="color: rgba(255,255,255,0.3);">-</div></td>
+                                    <td style="width: 25%; border: none;"><div style="color: rgba(255,255,255,0.3);">-</div></td>
+                                    <td style="width: 15%; text-align: center; border: none;">
+                                        <span style="color: #00ffcc; font-weight: bold; font-family: 'Space Mono', monospace; background: rgba(0,255,204,0.05); padding: 2px 8px; border-radius: 4px;">${u.purchases_count || 0}</span>
+                                    </td>
+                                    <td style="width: 35%; border: none;">
+                                        <div class="action-btn-group" style="justify-content: flex-end;"></div>
+                                    </td>
+                                </tr>
+                            </table>
+                        `;
+                    }
+                    html += `</td></tr>`;
                 });
                 if(data.all_users.length === 0) html = '<tr><td colspan="3" style="text-align: center; color: #aaa;">No users found.</td></tr>';
                 allTbody.innerHTML = html;
@@ -2741,14 +2815,14 @@ async function submitAjaxForm(event) {
             const data = JSON.parse(resultText);
             // showToast signature is (type, title, message)
             if (data.status === 'success') {
-                if (typeof showToast !== 'undefined') showToast('success', 'تم', data.message || 'Action completed successfully');
+                if (typeof showToast !== 'undefined') showToast('success', '{{ _("Success") | default("Success") }}', data.message || 'Action completed successfully');
             } else {
                 isSuccess = false;
-                if (typeof showToast !== 'undefined') showToast('error', 'خطأ', data.message || 'Error occurred');
+                if (typeof showToast !== 'undefined') showToast('error', '{{ _("Error") | default("Error") }}', data.message || 'Error occurred');
             }
         } catch(e) {
             // Not JSON -> Dashboard redirect (success by default)
-            if (typeof showToast !== 'undefined') showToast('success', 'تم', 'Action completed successfully!');
+            if (typeof showToast !== 'undefined') showToast('success', '{{ _("Success") | default("Success") }}', 'Action completed successfully!');
         }
 
         if (isSuccess) {
@@ -2793,7 +2867,7 @@ async function submitAjaxForm(event) {
         }
     } catch(err) {
         console.error(err);
-        if (typeof showToast !== 'undefined') showToast('error', 'خطأ', 'Network error occurred.');
+        if (typeof showToast !== 'undefined') showToast('error', '{{ _("Error") | default("Error") }}', 'Network error occurred.');
     } finally {
         submitBtns.forEach((btn, idx) => {
             btn.disabled = false;

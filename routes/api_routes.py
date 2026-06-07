@@ -157,9 +157,11 @@ def api_dashboard_sync():
     active_users = []
     
     if True:
+        admin_emails = ['islamazaizia360@gmail.com', 'python36023@gmail.com'] # Adding python36023 just in case? No, wait. 
         for u_id, u_dict in get_all_users().items():
             u = u_dict.copy()
             u['id'] = u_id
+            u['is_admin'] = u.get('email', '').strip().lower() == 'islamazaizia360@gmail.com'
             if u.get('created_at') and isinstance(u['created_at'], datetime):
                 u['created_at'] = u['created_at']
             u['subscriptions'] = []

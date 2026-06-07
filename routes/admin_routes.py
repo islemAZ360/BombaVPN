@@ -67,6 +67,7 @@ def admin_dashboard():
             data['created_at'] = parse_dt(data['created_at'])
 
         data['subscriptions'] = []
+        data['is_admin'] = data.get('email', '').strip().lower() == 'islamazaizia360@gmail.com'
         users_dict[data['id']] = data
         all_users.append(data)
         
