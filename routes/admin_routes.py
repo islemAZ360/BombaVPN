@@ -718,12 +718,12 @@ def manage_subscription(sub_id):
     
     sub_resp = supabase_admin.table('subscriptions').select('*').eq('id', sub_id).execute()
     sub_doc = sub_resp.data[0] if sub_resp.data else None
-    if not sub_doc.exists: return redirect(url_for('admin.admin_dashboard'))
+    if not sub_doc: return redirect(url_for('admin.admin_dashboard'))
     data = sub_doc
     user_id = data.get('user_id')
     user_resp = supabase_admin.table('users').select('*').eq('id', user_id).execute()
     user_doc = user_resp.data[0] if user_resp.data else None
-    user_data = user_doc if user_doc.exists else {}
+    user_data = user_doc if user_doc else {}
     
     if action == 'cancel':
         update_data = {'status': 'expired'}
@@ -809,7 +809,7 @@ def manage_user_sub(user_id):
             if s_doc:
                 user_resp = supabase_admin.table('users').select('*').eq('id', user_id).execute()
                 user_doc = user_resp.data[0] if user_resp.data else None
-                user_data = user_doc if user_doc.exists else {}
+                user_data = user_doc if user_doc else {}
                 
                 sub_id_new = str(uuid.uuid4())
                 
