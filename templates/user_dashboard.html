@@ -178,9 +178,9 @@
                     <div style="margin-top: 20px; padding: 15px; background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 8px; color: #ffc107;">
                         <div style="font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                            ملاحظة هامة (Important Note):
+                            {{ _('ImportantNote') | default('Important Note:') }}
                         </div>
-                        <p style="margin: 0 0 15px 0; color: #fff;">إذا حصلت مشكلة في الاتصال، قم بالضغط على <strong>Update subscription</strong> كما هو موضح في الصورة.</p>
+                        <p style="margin: 0 0 15px 0; color: #fff;">{{ _('UpdateSubscriptionDesc') | default('If you face a connection issue, click on <strong>Update subscription</strong> as shown in the picture.') | safe }}</p>
                         <div style="text-align: center; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
                             <img src="{{ url_for('static', filename='images/update_subscription.png') }}" alt="Update Subscription" style="max-width: 100%; border-radius: 6px;">
                         </div>
