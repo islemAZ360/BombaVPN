@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="header-actions" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+<div class="header-actions pay-reveal" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
     <h2>{{ _('Welcome', user.email) }}</h2>
     <div style="display: flex; gap: 10px; align-items: center;">
         <a href="{{ url_for('main.user_dashboard') }}" class="btn btn-primary btn-small" style="text-decoration: none; display: flex; align-items: center; gap: 6px;">
@@ -12,10 +12,10 @@
 </div>
 
 <div class="card card-flush" style="max-width: 800px; margin: 0 auto;">
-    <h3 style="text-align: center; margin-bottom: 1.5rem;">{{ _('SelectPlan') }}</h3>
-    
+    <h3 class="pay-reveal" style="text-align: center; margin-bottom: 1.5rem;">{{ _('SelectPlan') }}</h3>
+
     <!-- Tags Explanation -->
-    <div class="tags-explanation-box" style="margin-bottom: 1.5rem; background: var(--bg-card); border: 1px solid var(--glass-border); border-radius: 16px; padding: 1.25rem; color: var(--text-primary); font-size: 0.9rem; line-height: 1.6; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+    <div class="tags-explanation-box pay-reveal" style="margin-bottom: 1.5rem; background: var(--bg-card); border: 1px solid var(--glass-border); border-radius: 16px; padding: 1.25rem; color: var(--text-primary); font-size: 0.9rem; line-height: 1.6; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
         <p style="margin-top: 0; margin-bottom: 1rem; font-weight: 500;">{{ _('ServersExplanation') }}</p>
         <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px;">
             <li style="display: flex; align-items: flex-start; gap: 10px;">
@@ -42,7 +42,7 @@
     </div>
     
     <!-- Filter Bar -->
-    <div id="filter-bar" style="margin-bottom: 1.5rem;">
+    <div id="filter-bar" class="pay-reveal" style="margin-bottom: 1.5rem;">
         <!-- Duration Filter -->
         <div style="margin-bottom: 12px;">
             <div style="font-size: 0.8rem; color: var(--text-muted, #888); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
@@ -149,7 +149,18 @@
     .plan-card.hidden-by-filter {
         display: none !important;
     }
-    @keyframes fadeInCard { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeInCard { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Professional polish (matches landing/dashboard) */
+    .pay-reveal { opacity: 0; transform: translateY(26px); transition: opacity .7s cubic-bezier(.16,.84,.3,1), transform .7s cubic-bezier(.16,.84,.3,1); will-change: opacity, transform; }
+    .pay-reveal.visible { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) { .pay-reveal { opacity: 1 !important; transform: none !important; transition: none; } .plan-card { animation: none !important; } }
+    .header-actions h2 { font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.01em; }
+    .card-flush h3 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.6rem, 4vw, 2.1rem); letter-spacing: -0.01em;
+        background: linear-gradient(180deg, #ffffff, #b9c4cf); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    /* Cards: gentle entrance (also replays when a filter reveals them) + refined hover */
+    .plan-card { animation: fadeInCard .5s ease both; }
+    .plan-card:hover { transform: translateY(-5px); box-shadow: 0 16px 42px rgba(0,0,0,0.45); border-color: rgba(0,255,204,0.45) !important; }
 </style>
 
 <!-- Payment Modal Overlay -->
@@ -594,5 +605,16 @@
     });
 
     // Polling removed: Users wait for approval on the dashboard, not the payment page.
+
+    // Scroll-reveal for the static sections (heading, guide, filters).
+    (function () {
+        const items = document.querySelectorAll('.pay-reveal');
+        if (!items.length) return;
+        if (!('IntersectionObserver' in window)) { items.forEach(el => el.classList.add('visible')); return; }
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+        }, { threshold: 0.08, rootMargin: '0px 0px -5% 0px' });
+        items.forEach(el => io.observe(el));
+    })();
 </script>
 {% endblock %}
