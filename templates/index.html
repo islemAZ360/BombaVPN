@@ -58,6 +58,17 @@
     .lp-card h3 { font-size: 1.25rem; color: #fff; margin: 0 0 10px; }
     .lp-card p { color: rgba(255,255,255,.55); margin: 0; line-height: 1.65; font-size: .95rem; }
 
+    /* Specialized server tag cards */
+    .tag-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; text-align: left; }
+    .tag-card { background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.07); border-left: 3px solid rgba(var(--tc),.75); border-radius: 16px; padding: 24px;
+        transition: transform .3s ease, border-color .3s ease, box-shadow .3s ease; }
+    .tag-card:hover { transform: translateY(-5px); box-shadow: 0 16px 42px rgba(0,0,0,.38); }
+    .tag-chip { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; font-size: .9rem; padding: 6px 14px; border-radius: 50px; margin-bottom: 14px;
+        background: rgba(var(--tc),.12); color: rgb(var(--tc)); border: 1px solid rgba(var(--tc),.3); }
+    .tag-card p { color: rgba(255,255,255,.6); margin: 0; line-height: 1.7; font-size: .94rem; }
+    [dir="rtl"] .tag-cards, [dir="rtl"] .tag-card { text-align: right; }
+    [dir="rtl"] .tag-card { border-left: 1px solid rgba(255,255,255,.07); border-right: 3px solid rgba(var(--tc),.75); }
+
     /* Marquee */
     .marquee-container { width: 100%; overflow: hidden; white-space: nowrap; position: relative; padding: 14px 0;
         mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
@@ -130,6 +141,28 @@
                 <h3>{{ _('Feature3Title') }}</h3>
                 <p>{{ _('Feature3Desc') }}</p>
             </div>
+        </div>
+    </section>
+
+    <!-- SPECIALIZED SERVERS -->
+    <section class="lp-section">
+        <span class="lp-label reveal">{{ _('SpecialServersLabel') }}</span>
+        <h2 class="reveal" style="transition-delay:.06s">{{ _('SpecialServersTitle') }}</h2>
+        <p class="lp-lead reveal" style="transition-delay:.12s">{{ _('SpecialServersSubtitle') }}</p>
+        <div class="tag-cards">
+            {% set tags = [
+                ['▶️','YouTube','TagYT_Desc','0,255,204'],
+                ['🌀','Gemini','TagGemini_Desc','59,130,246'],
+                ['📶','LTE','TagLTE_Desc','245,158,11'],
+                ['🇷🇺','Russia','TagRU_Desc','239,68,68'],
+                ['🔗','Torrent','TagTorrent_Desc','16,185,129']
+            ] %}
+            {% for t in tags %}
+            <div class="tag-card reveal" style="transition-delay:{{ loop.index0 * 0.08 }}s; --tc: {{ t[3] }};">
+                <span class="tag-chip">{{ t[0] }} {{ t[1] }}</span>
+                <p>{{ _(t[2]) }}</p>
+            </div>
+            {% endfor %}
         </div>
     </section>
 
