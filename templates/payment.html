@@ -235,7 +235,11 @@
 <style>
     @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
     @keyframes spin { 100% { transform: rotate(360deg); } }
-    #drop-zone.drag-over, #drop-zone:hover { border-color: var(--primary) !important; background: rgba(0,255,204,0.08) !important; }
+    .pay-modal-card h3 { font-family: 'Space Grotesk', sans-serif; }
+    #drop-zone { transition: all 0.2s ease; }
+    #drop-zone.drag-over, #drop-zone:hover { border-color: var(--primary) !important; background: rgba(0,255,204,0.08) !important; box-shadow: 0 0 0 4px rgba(0,255,204,0.06) inset; }
+    #drop-zone svg { transition: transform 0.25s ease; }
+    #drop-zone.drag-over svg, #drop-zone:hover svg { transform: translateY(-3px) scale(1.08); }
     .pay-modal-card::-webkit-scrollbar { width: 8px; }
     .pay-modal-card::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
 </style>
