@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <div id="dashboard-main-content">
-<div class="header-actions">
+<div class="header-actions reveal-up">
     <h2>{{ _('Welcome', user.email) }}</h2>
     <button id="logout-btn" class="btn btn-transparent-danger btn-small">{{ _('Logout') }}</button>
 </div>
@@ -24,9 +24,20 @@
     .support-textarea:focus {
         outline: none; background: rgba(0, 0, 0, 0.6); border-bottom-color: #00ffcc; box-shadow: 0 5px 15px rgba(0, 255, 204, 0.1);
     }
+
+    /* Professional polish: scroll-reveal entrance (matches landing page) */
+    #dashboard-main-content .reveal-up { opacity: 0; transform: translateY(26px); transition: opacity .7s cubic-bezier(.16,.84,.3,1), transform .7s cubic-bezier(.16,.84,.3,1); will-change: opacity, transform; }
+    #dashboard-main-content .reveal-up.visible { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) { #dashboard-main-content .reveal-up { opacity: 1 !important; transform: none !important; transition: none; } }
+    .header-actions h2 { font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.01em; }
+    /* Mobile: tighten the step indentation so content isn't cramped */
+    @media (max-width: 600px) {
+        #dashboard-main-content [style*="padding-left: 44px"] { padding-left: 0 !important; }
+        #dashboard-main-content .countdown-timer-widget > div { min-width: 52px !important; padding: 8px 10px !important; }
+    }
 </style>
 
-<div class="card" style="position: relative;">
+<div class="card reveal-up" style="position: relative; transition-delay: .08s;">
     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 15px;">
         <div>
             <h3 style="margin-bottom: 0.8rem; font-size: 1.4rem;">{{ _('YourSubscription') }}</h3>
@@ -202,7 +213,7 @@
         
         <!-- Referral Section -->
         {% if user.get('referral_code') and subscriptions %}
-        <div style="margin-top: 2rem; background: rgba(0,255,204,0.05); border: 1px solid rgba(0,255,204,0.2); border-radius: 12px; padding: 1.5rem;">
+        <div class="reveal-up" style="margin-top: 2rem; background: rgba(0,255,204,0.05); border: 1px solid rgba(0,255,204,0.2); border-radius: 12px; padding: 1.5rem;">
             <h3 style="margin-bottom: 0.5rem; color: #00ffcc; font-size: 1.2rem;">🎁 {{ _('WinFreeDays') }}</h3>
             <p style="color: #aaa; font-size: 0.95rem; margin-bottom: 1rem;">{{ _('ReferralDesc') | safe }}</p>
             <div style="display: flex; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; overflow: hidden;">
@@ -383,6 +394,19 @@
             console.error('Failed to mark read', e);
         }
     }
+</script>
+
+<script>
+    // Smooth scroll-reveal for dashboard cards (same feel as the landing page)
+    (function () {
+        const items = document.querySelectorAll('#dashboard-main-content .reveal-up');
+        if (!items.length) return;
+        if (!('IntersectionObserver' in window)) { items.forEach(el => el.classList.add('visible')); return; }
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+        }, { threshold: 0.08, rootMargin: '0px 0px -6% 0px' });
+        items.forEach(el => io.observe(el));
+    })();
 </script>
 </div>
 {% endblock %}
