@@ -1,261 +1,217 @@
 {% extends 'base.html' %}
-{% block title %}{{ _('Home') }} | GalaxyVPN{% endblock %}
 {% block content %}
 <style>
-    .hero-section {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        min-height: 70vh;
-        padding: 40px 20px;
-    }
-    .hero-title {
-        font-size: 3.5rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #fff, #00ffcc);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 20px;
-        filter: drop-shadow(0 0 10px rgba(0, 255, 204, 0.3));
-    }
-    .hero-subtitle {
-        font-size: 1.2rem;
-        color: var(--text-muted);
-        max-width: 600px;
-        margin-bottom: 40px;
-        line-height: 1.6;
-    }
-    .features-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 30px;
-        margin-top: 50px;
-        width: 100%;
-        max-width: 1000px;
-    }
-    .feature-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 16px;
-        padding: 30px;
-        text-align: center;
-        backdrop-filter: blur(10px);
-        transition: transform 0.3s ease, border-color 0.3s ease;
-    }
-    .feature-card:hover {
-        transform: translateY(-5px);
-        border-color: var(--primary);
-    }
-    .feature-icon {
-        width: 60px;
-        height: 60px;
-        margin: 0 auto 20px auto;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0, 255, 204, 0.1);
-        border-radius: 50%;
-        color: var(--primary);
-    }
-    .pricing-table {
-        margin-top: 80px;
-        text-align: center;
-        width: 100%;
-        max-width: 800px;
-    }
-    .pricing-table h2 {
-        font-size: 2.5rem;
-        margin-bottom: 40px;
-        color: #fff;
-    }
-    .price-card {
-        background: linear-gradient(180deg, rgba(0,255,204,0.1) 0%, rgba(255,255,255,0.02) 100%);
-        border: 1px solid rgba(0,255,204,0.3);
-        border-radius: 20px;
-        padding: 40px;
-        text-align: center;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-    .price-card h3 {
-        font-size: 1.8rem;
-        color: #fff;
-        margin-bottom: 15px;
-    }
-    .price-card .price {
-        font-size: 3rem;
-        font-weight: 800;
-        color: var(--primary);
-        margin-bottom: 30px;
-    }
-    .price-card ul {
-        list-style: none;
-        padding: 0;
-        margin: 0 0 40px 0;
-        text-align: left;
-    }
-    .price-card ul li {
-        margin-bottom: 15px;
-        color: #ddd;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .price-card ul li svg {
-        color: var(--primary);
-    }
-    .cta-buttons {
-        display: flex;
-        gap: 20px;
-        justify-content: center;
-        margin-top: 20px;
-    }
-    
-    /* Marquee Styles */
-    .marquee-container {
-        width: 100%;
-        overflow: hidden;
-        white-space: nowrap;
-        position: relative;
-        padding: 20px 0;
-        mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-        -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-    }
-    .marquee-content {
-        display: inline-block;
-        animation: marquee 25s linear infinite;
-    }
-    .marquee-content.reverse {
-        animation-direction: reverse;
-        animation-duration: 30s;
-    }
-    @keyframes marquee {
-        0% { transform: translateX(0); }
-        100% { transform: translateX(-50%); }
-    }
-    .marquee-item {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 12px 25px;
-        border-radius: 50px;
-        margin-right: 20px;
-        color: #fff;
-        font-weight: bold;
-        font-size: 1.1rem;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        transition: transform 0.3s ease, border-color 0.3s ease;
-    }
-    .marquee-item img {
-        width: 32px;
-        height: 32px;
-        object-fit: contain;
-        border-radius: 50%;
-    }
-    .marquee-item:hover {
-        transform: translateY(-5px) scale(1.05);
-        border-color: #00ffcc;
-        box-shadow: 0 8px 25px rgba(0,255,204,0.2);
-    }
+    /* ===== Landing page (background is provided by base.html, untouched) ===== */
+    .lp { --accent: #00ffcc; max-width: 1100px; margin: 0 auto; padding: 0 20px; font-family: 'Inter', 'Space Grotesk', sans-serif; }
+    .lp h1, .lp h2, .lp h3, .lp .lp-display { font-family: 'Space Grotesk', 'Inter', sans-serif; }
+
+    /* Scroll reveal */
+    .reveal { opacity: 0; transform: translateY(30px); transition: opacity .8s cubic-bezier(.16,.84,.3,1), transform .8s cubic-bezier(.16,.84,.3,1); will-change: opacity, transform; }
+    .reveal.visible { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1 !important; transform: none !important; transition: none; } }
+
+    /* Section label */
+    .lp-label { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .28em; text-transform: uppercase;
+        color: var(--accent); margin-bottom: 14px; opacity: .9; }
+
+    /* ===== Hero ===== */
+    .lp-hero { min-height: 88vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 90px 0 60px; }
+    .lp-hero .logo-wrap { width: 110px; height: 110px; border-radius: 28px; margin-bottom: 28px;
+        display: flex; align-items: center; justify-content: center;
+        background: radial-gradient(circle at 50% 30%, rgba(0,255,204,.18), rgba(0,255,204,0) 70%);
+        filter: drop-shadow(0 0 34px rgba(0,255,204,.35)); animation: float 6s ease-in-out infinite; }
+    .lp-hero .logo-wrap img { width: 100px; height: 100px; border-radius: 24px; }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+    .lp-title { font-size: clamp(3rem, 9vw, 6rem); font-weight: 700; line-height: .98; letter-spacing: -.02em; margin: 0 0 22px;
+        background: linear-gradient(180deg, #ffffff 35%, #8fe9da 75%, #00ffcc 110%);
+        -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 4px 30px rgba(0,255,204,.18)); }
+    .lp-subtitle { font-size: clamp(1rem, 2.2vw, 1.3rem); color: rgba(255,255,255,.62); max-width: 620px; margin: 0 auto 40px; line-height: 1.7; }
+
+    .lp-cta { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .lp-btn { display: inline-flex; align-items: center; gap: 10px; padding: 15px 32px; border-radius: 12px; font-size: 1.02rem;
+        font-weight: 600; text-decoration: none; cursor: pointer; transition: transform .25s ease, box-shadow .25s ease, background .25s ease, border-color .25s ease; border: 1px solid transparent; }
+    .lp-btn-primary { background: linear-gradient(135deg, #00ffcc, #00bfa0); color: #02120e; box-shadow: 0 10px 30px rgba(0,255,204,.28); }
+    .lp-btn-primary:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(0,255,204,.42); }
+    .lp-btn-ghost { background: rgba(255,255,255,.04); color: #fff; border-color: rgba(255,255,255,.14); }
+    .lp-btn-ghost:hover { transform: translateY(-3px); border-color: var(--accent); background: rgba(0,255,204,.08); }
+
+    /* ===== Sections ===== */
+    .lp-section { padding: 70px 0; text-align: center; }
+    .lp-section h2 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; letter-spacing: -.02em; margin: 0 0 14px;
+        background: linear-gradient(180deg, #fff, #b9c4cf); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .lp-section .lp-lead { color: rgba(255,255,255,.55); max-width: 600px; margin: 0 auto 48px; font-size: 1.05rem; line-height: 1.7; }
+
+    /* Feature cards */
+    .lp-features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 22px; text-align: left; }
+    .lp-card { position: relative; background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.07); border-radius: 18px;
+        padding: 30px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); overflow: hidden;
+        transition: transform .35s ease, border-color .35s ease, box-shadow .35s ease; }
+    .lp-card::after { content: ''; position: absolute; inset: 0; border-radius: 18px; padding: 1px; pointer-events: none; opacity: 0;
+        background: linear-gradient(135deg, rgba(0,255,204,.5), transparent 60%);
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; transition: opacity .35s ease; }
+    .lp-card:hover { transform: translateY(-6px); border-color: rgba(0,255,204,.35); box-shadow: 0 18px 50px rgba(0,0,0,.4); }
+    .lp-card:hover::after { opacity: 1; }
+    .lp-card .ic { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+        background: rgba(0,255,204,.12); color: var(--accent); margin-bottom: 20px; }
+    .lp-card h3 { font-size: 1.25rem; color: #fff; margin: 0 0 10px; }
+    .lp-card p { color: rgba(255,255,255,.55); margin: 0; line-height: 1.65; font-size: .95rem; }
+
+    /* Marquee */
+    .marquee-container { width: 100%; overflow: hidden; white-space: nowrap; position: relative; padding: 14px 0;
+        mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+        -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent); }
+    .marquee-content { display: inline-block; animation: marquee 35s linear infinite; }
+    .marquee-content.reverse { animation-direction: reverse; animation-duration: 40s; }
+    @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+    .marquee-item { display: inline-flex; align-items: center; gap: 10px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+        padding: 11px 22px; border-radius: 50px; margin-right: 16px; color: #fff; font-weight: 600; font-size: 1rem; transition: transform .3s ease, border-color .3s ease; }
+    .marquee-item img { width: 28px; height: 28px; object-fit: contain; border-radius: 50%; }
+    .marquee-item:hover { transform: translateY(-4px) scale(1.04); border-color: var(--accent); }
+
+    /* FAQ accordion */
+    .faq-list { max-width: 760px; margin: 0 auto; text-align: left; display: flex; flex-direction: column; gap: 14px; }
+    .faq-item { background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; overflow: hidden; transition: border-color .3s ease; }
+    .faq-item.open { border-color: rgba(0,255,204,.3); }
+    .faq-q { width: 100%; background: none; border: none; color: #fff; font-size: 1.05rem; font-weight: 600; cursor: pointer;
+        padding: 20px 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: inherit; font-family: inherit; }
+    .faq-ic { flex-shrink: 0; width: 26px; height: 26px; border-radius: 8px; background: rgba(0,255,204,.12); color: var(--accent);
+        display: flex; align-items: center; justify-content: center; font-size: 1.2rem; line-height: 1; transition: transform .3s ease; }
+    .faq-item.open .faq-ic { transform: rotate(45deg); }
+    .faq-a { max-height: 0; overflow: hidden; transition: max-height .35s ease; }
+    .faq-a p { padding: 0 22px 20px; margin: 0; color: rgba(255,255,255,.6); line-height: 1.7; }
+
+    /* Footer */
+    .lp-footer { border-top: 1px solid rgba(255,255,255,.07); margin-top: 40px; padding: 30px 0 50px;
+        display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; color: rgba(255,255,255,.4); font-size: .9rem; }
+    .lp-footer .brand { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,.6); font-weight: 600; }
+    .lp-footer .brand img { width: 26px; height: 26px; border-radius: 7px; }
+    [dir="rtl"] .lp-features, [dir="rtl"] .faq-list, [dir="rtl"] .lp-card { text-align: right; }
 </style>
 
-<div class="hero-section">
-    <div style="margin-bottom: 2rem;">
-        <img src="{{ url_for('static', filename='icon-512.png') }}" alt="GalaxyVPN Logo" style="width: 120px; height: 120px; border-radius: 24px; filter: drop-shadow(0 0 30px rgba(0,255,204,0.4));">
-    </div>
-    
-    <h1 class="hero-title">GalaxyVPN</h1>
-    <p class="hero-subtitle">{{ _('HeroSubtitle') }}</p>
-    
-    <div class="cta-buttons">
-        <a href="{{ url_for('auth.login') }}" class="btn btn-primary" style="padding: 15px 40px; font-size: 1.2rem; font-weight: 600;">{{ _('StartNowBtn') }}</a>
-    </div>
+<div class="lp">
 
-    <!-- Features Section -->
-    <div class="features-grid">
-        <div class="feature-card">
-            <div class="feature-icon">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
-            </div>
-            <h3>{{ _('Feature1Title') }}</h3>
-            <p style="color: #aaa; margin-top: 10px;">{{ _('Feature1Desc') }}</p>
+    <!-- HERO -->
+    <section class="lp-hero">
+        <div class="logo-wrap reveal">
+            <img src="{{ url_for('static', filename='icon-512.png') }}" alt="GalaxyVPN">
         </div>
-        <div class="feature-card">
-            <div class="feature-icon">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-            </div>
-            <h3>{{ _('Feature2Title') }}</h3>
-            <p style="color: #aaa; margin-top: 10px;">{{ _('Feature2Desc') }}</p>
+        <span class="lp-label reveal" style="transition-delay:.05s">SECURE · FAST · UNRESTRICTED</span>
+        <h1 class="lp-title reveal" style="transition-delay:.1s">GalaxyVPN</h1>
+        <p class="lp-subtitle reveal" style="transition-delay:.18s">{{ _('HeroSubtitle') }}</p>
+        <div class="lp-cta reveal" style="transition-delay:.26s">
+            <a href="{{ url_for('auth.login') }}" class="lp-btn lp-btn-primary">
+                {{ _('StartNowBtn') }}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </a>
+            <a href="#features" class="lp-btn lp-btn-ghost">{{ _('LearnMoreBtn') }}</a>
         </div>
-        <div class="feature-card">
-            <div class="feature-icon">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path><path d="M2 12h20"></path></svg>
-            </div>
-            <h3>{{ _('Feature3Title') }}</h3>
-            <p style="color: #aaa; margin-top: 10px;">{{ _('Feature3Desc') }}</p>
-        </div>
-    </div>
+    </section>
 
-    <!-- Unblocked Apps Section -->
-    <div style="margin-top: 80px; width: 100%;">
-        <h2 style="font-size: 2rem; margin-bottom: 20px; color: #fff;">{{ _('UnblockedAppsTitle') }}</h2>
-        <div class="marquee-container">
-            <div class="marquee-content" style="animation-duration: 35s;">
-                <div class="marquee-item"><img src="https://img.icons8.com/fluency/48/chatgpt.png" alt="ChatGPT"> ChatGPT</div>
-                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg" alt="Gemini"> Gemini</div>
-                <div class="marquee-item"><img src="{{ url_for('static', filename='claude.svg') }}" alt="Claude"> Claude</div>
-                <div class="marquee-item"><img src="https://img.icons8.com/color/48/discord-logo.png" alt="Discord"> Discord</div>
-                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg" alt="Instagram"> Instagram</div>
-                <div class="marquee-item"><img src="https://img.icons8.com/color/48/tiktok--v1.png" alt="TikTok"> TikTok</div>
-                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png" alt="Facebook"> Facebook</div>
-                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" alt="Netflix"> Netflix</div>
-                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" alt="YouTube"> YouTube</div>
-                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/c/ce/X_logo_2023.svg" style="background:white; padding:2px;" alt="X"> Twitter (X)</div>
-                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp"> WhatsApp</div>
-                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg" alt="Telegram"> Telegram</div>
-                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/1/19/Spotify_logo_without_text.svg" alt="Spotify"> Spotify</div>
-                
-                <!-- Duplicate -->
-                <div class="marquee-item"><img src="https://img.icons8.com/fluency/48/chatgpt.png" alt="ChatGPT"> ChatGPT</div>
-                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg" alt="Gemini"> Gemini</div>
-                <div class="marquee-item"><img src="{{ url_for('static', filename='claude.svg') }}" alt="Claude"> Claude</div>
-                <div class="marquee-item"><img src="https://img.icons8.com/color/48/discord-logo.png" alt="Discord"> Discord</div>
-                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg" alt="Instagram"> Instagram</div>
-                <div class="marquee-item"><img src="https://img.icons8.com/color/48/tiktok--v1.png" alt="TikTok"> TikTok</div>
-                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png" alt="Facebook"> Facebook</div>
-                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" alt="Netflix"> Netflix</div>
-                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" alt="YouTube"> YouTube</div>
-                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/c/ce/X_logo_2023.svg" style="background:white; padding:2px;" alt="X"> Twitter (X)</div>
-                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp"> WhatsApp</div>
-                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg" alt="Telegram"> Telegram</div>
-                <div class="marquee-item"><img src="https://upload.wikimedia.org/wikipedia/commons/1/19/Spotify_logo_without_text.svg" alt="Spotify"> Spotify</div>
+    <!-- FEATURES -->
+    <section id="features" class="lp-section">
+        <span class="lp-label reveal">{{ _('WhyLabel') }}</span>
+        <h2 class="reveal" style="transition-delay:.06s">{{ _('WhyTitle') }}</h2>
+        <p class="lp-lead reveal" style="transition-delay:.12s">{{ _('WhySubtitle') }}</p>
+        <div class="lp-features">
+            <div class="lp-card reveal">
+                <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg></div>
+                <h3>{{ _('Feature1Title') }}</h3>
+                <p>{{ _('Feature1Desc') }}</p>
+            </div>
+            <div class="lp-card reveal" style="transition-delay:.1s">
+                <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>
+                <h3>{{ _('Feature2Title') }}</h3>
+                <p>{{ _('Feature2Desc') }}</p>
+            </div>
+            <div class="lp-card reveal" style="transition-delay:.2s">
+                <div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path><path d="M2 12h20"></path></svg></div>
+                <h3>{{ _('Feature3Title') }}</h3>
+                <p>{{ _('Feature3Desc') }}</p>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Servers Section -->
-    <div style="margin-top: 40px; width: 100%;">
-        <h2 style="font-size: 2rem; margin-bottom: 20px; color: #fff;">{{ _('ServersWorldwideTitle') }}</h2>
-        <div class="marquee-container">
+    <!-- UNBLOCKED APPS -->
+    <section class="lp-section" style="padding-bottom:30px;">
+        <span class="lp-label reveal">{{ _('AppsLabel') }}</span>
+        <h2 class="reveal" style="transition-delay:.06s">{{ _('UnblockedAppsTitle') }}</h2>
+        <div class="marquee-container reveal" style="transition-delay:.12s; margin-top:18px;">
+            <div class="marquee-content">
+                {% set apps = [
+                    ['https://img.icons8.com/fluency/48/chatgpt.png','ChatGPT'],
+                    ['https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg','Gemini'],
+                    [url_for('static', filename='claude.svg'),'Claude'],
+                    ['https://img.icons8.com/color/48/discord-logo.png','Discord'],
+                    ['https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg','Instagram'],
+                    ['https://img.icons8.com/color/48/tiktok--v1.png','TikTok'],
+                    ['https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg','Netflix'],
+                    ['https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg','YouTube'],
+                    ['https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg','WhatsApp'],
+                    ['https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg','Telegram'],
+                    ['https://upload.wikimedia.org/wikipedia/commons/1/19/Spotify_logo_without_text.svg','Spotify']
+                ] %}
+                {% for a in apps + apps %}<div class="marquee-item"><img src="{{ a[0] }}" alt="{{ a[1] }}"> {{ a[1] }}</div>{% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- SERVERS -->
+    <section class="lp-section" style="padding-top:30px;">
+        <span class="lp-label reveal">{{ _('ServersLabel') }}</span>
+        <h2 class="reveal" style="transition-delay:.06s">{{ _('ServersWorldwideTitle') }}</h2>
+        <div class="marquee-container reveal" style="transition-delay:.12s; margin-top:18px;">
             <div class="marquee-content reverse">
-                <div class="marquee-item"><img src="https://flagcdn.com/w40/de.png" alt="DE"> Germany</div>
-                <div class="marquee-item"><img src="https://flagcdn.com/w40/fr.png" alt="FR"> France</div>
-                <div class="marquee-item"><img src="https://flagcdn.com/w40/us.png" alt="US"> USA</div>
-                <div class="marquee-item"><img src="https://flagcdn.com/w40/gb.png" alt="UK"> UK</div>
-                <div class="marquee-item"><img src="https://flagcdn.com/w40/nl.png" alt="NL"> Netherlands</div>
-                <div class="marquee-item"><img src="https://flagcdn.com/w40/tr.png" alt="TR"> Turkey</div>
-                <!-- Duplicate -->
-                <div class="marquee-item"><img src="https://flagcdn.com/w40/de.png" alt="DE"> Germany</div>
-                <div class="marquee-item"><img src="https://flagcdn.com/w40/fr.png" alt="FR"> France</div>
-                <div class="marquee-item"><img src="https://flagcdn.com/w40/us.png" alt="US"> USA</div>
-                <div class="marquee-item"><img src="https://flagcdn.com/w40/gb.png" alt="UK"> UK</div>
-                <div class="marquee-item"><img src="https://flagcdn.com/w40/nl.png" alt="NL"> Netherlands</div>
-                <div class="marquee-item"><img src="https://flagcdn.com/w40/tr.png" alt="TR"> Turkey</div>
+                {% set countries = [['de','Germany'],['fr','France'],['us','USA'],['gb','UK'],['nl','Netherlands'],['tr','Turkey'],['ru','Russia'],['fi','Finland']] %}
+                {% for c in countries + countries %}<div class="marquee-item"><img src="https://flagcdn.com/w40/{{ c[0] }}.png" alt="{{ c[1] }}"> {{ c[1] }}</div>{% endfor %}
             </div>
         </div>
-    </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="lp-section">
+        <span class="lp-label reveal">{{ _('FaqLabel') }}</span>
+        <h2 class="reveal" style="transition-delay:.06s">{{ _('FaqTitle') }}</h2>
+        <p class="lp-lead reveal" style="transition-delay:.12s">{{ _('FaqSubtitle') }}</p>
+        <div class="faq-list">
+            {% for i in range(1, 5) %}
+            <div class="faq-item reveal" style="transition-delay:{{ i * 0.05 }}s">
+                <button type="button" class="faq-q" onclick="toggleFaq(this)">
+                    <span>{{ _('FaqQ' ~ i) }}</span><span class="faq-ic">+</span>
+                </button>
+                <div class="faq-a"><p>{{ _('FaqA' ~ i) }}</p></div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="lp-footer reveal">
+        <div class="brand"><img src="{{ url_for('static', filename='icon-192.png') }}" alt="GalaxyVPN"> GalaxyVPN</div>
+        <div>{{ _('FooterRights') }}</div>
+    </footer>
 </div>
+
+<script>
+    // Smooth scroll-reveal: elements fade/slide in as they enter the viewport.
+    (function () {
+        const items = document.querySelectorAll('.lp .reveal');
+        if (!('IntersectionObserver' in window)) { items.forEach(el => el.classList.add('visible')); return; }
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+        }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+        items.forEach(el => io.observe(el));
+    })();
+
+    // FAQ accordion
+    function toggleFaq(btn) {
+        const item = btn.closest('.faq-item');
+        const ans = item.querySelector('.faq-a');
+        const isOpen = item.classList.contains('open');
+        // close siblings for a clean single-open accordion
+        document.querySelectorAll('.faq-item.open').forEach(o => { o.classList.remove('open'); o.querySelector('.faq-a').style.maxHeight = null; });
+        if (!isOpen) { item.classList.add('open'); ans.style.maxHeight = ans.scrollHeight + 'px'; }
+    }
+</script>
 {% endblock %}
