@@ -38,7 +38,18 @@
     .lp-btn-ghost:hover { transform: translateY(-3px); border-color: var(--accent); background: rgba(0,255,204,.08); }
 
     /* ===== Sections ===== */
-    .lp-section { padding: 70px 0; text-align: center; }
+    .lp-section { padding: 70px 0; text-align: center; scroll-margin-top: 90px; }
+
+    /* How it works steps */
+    .how-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 22px; text-align: left; }
+    .how-step { background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.07); border-radius: 18px; padding: 30px 26px; transition: transform .3s ease, border-color .3s ease; }
+    .how-step:hover { transform: translateY(-5px); border-color: rgba(0,255,204,.3); }
+    .how-step .num { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700; font-size: 1.2rem; color: var(--accent); margin-bottom: 18px;
+        background: linear-gradient(135deg, rgba(0,255,204,.18), rgba(0,255,204,.04)); border: 1px solid rgba(0,255,204,.25); }
+    .how-step h3 { font-size: 1.15rem; color: #fff; margin: 0 0 8px; }
+    .how-step p { color: rgba(255,255,255,.55); margin: 0; line-height: 1.65; font-size: .94rem; }
+    [dir="rtl"] .how-steps, [dir="rtl"] .how-step { text-align: right; }
     .lp-section h2 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; letter-spacing: -.02em; margin: 0 0 14px;
         background: linear-gradient(180deg, #fff, #b9c4cf); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
     .lp-section .lp-lead { color: rgba(255,255,255,.55); max-width: 600px; margin: 0 auto 48px; font-size: 1.05rem; line-height: 1.7; }
@@ -99,6 +110,20 @@
     .lp-footer .brand { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,.6); font-weight: 600; }
     .lp-footer .brand img { width: 26px; height: 26px; border-radius: 7px; }
     [dir="rtl"] .lp-features, [dir="rtl"] .faq-list, [dir="rtl"] .lp-card { text-align: right; }
+
+    /* ===== Mobile ===== */
+    @media (max-width: 600px) {
+        .lp { padding: 0 16px; }
+        .lp-hero { min-height: 80vh; padding: 70px 0 40px; }
+        .lp-hero .logo-wrap { width: 92px; height: 92px; }
+        .lp-hero .logo-wrap img { width: 84px; height: 84px; }
+        .lp-section { padding: 48px 0; }
+        .lp-cta { flex-direction: column; width: 100%; max-width: 320px; margin: 0 auto; }
+        .lp-btn { justify-content: center; width: 100%; }
+        .lp-card, .tag-card, .how-step { padding: 22px; }
+        .faq-q { font-size: .98rem; padding: 16px 18px; }
+        .lp-footer { flex-direction: column; text-align: center; justify-content: center; }
+    }
 </style>
 
 <div class="lp">
@@ -144,8 +169,20 @@
         </div>
     </section>
 
-    <!-- SPECIALIZED SERVERS -->
+    <!-- HOW IT WORKS -->
     <section class="lp-section">
+        <span class="lp-label reveal">{{ _('HowLabel') }}</span>
+        <h2 class="reveal" style="transition-delay:.06s">{{ _('HowTitle') }}</h2>
+        <p class="lp-lead reveal" style="transition-delay:.12s">{{ _('HowSubtitle') }}</p>
+        <div class="how-steps">
+            <div class="how-step reveal"><div class="num">1</div><h3>{{ _('Step1Title') }}</h3><p>{{ _('Step1Desc') }}</p></div>
+            <div class="how-step reveal" style="transition-delay:.1s"><div class="num">2</div><h3>{{ _('Step2Title') }}</h3><p>{{ _('Step2Desc') }}</p></div>
+            <div class="how-step reveal" style="transition-delay:.2s"><div class="num">3</div><h3>{{ _('Step3Title') }}</h3><p>{{ _('Step3Desc') }}</p></div>
+        </div>
+    </section>
+
+    <!-- SPECIALIZED SERVERS -->
+    <section id="special-servers" class="lp-section">
         <span class="lp-label reveal">{{ _('SpecialServersLabel') }}</span>
         <h2 class="reveal" style="transition-delay:.06s">{{ _('SpecialServersTitle') }}</h2>
         <p class="lp-lead reveal" style="transition-delay:.12s">{{ _('SpecialServersSubtitle') }}</p>
@@ -167,7 +204,7 @@
     </section>
 
     <!-- UNBLOCKED APPS -->
-    <section class="lp-section" style="padding-bottom:30px;">
+    <section id="apps" class="lp-section" style="padding-bottom:30px;">
         <span class="lp-label reveal">{{ _('AppsLabel') }}</span>
         <h2 class="reveal" style="transition-delay:.06s">{{ _('UnblockedAppsTitle') }}</h2>
         <div class="marquee-container reveal" style="transition-delay:.12s; margin-top:18px;">
@@ -203,7 +240,7 @@
     </section>
 
     <!-- FAQ -->
-    <section class="lp-section">
+    <section id="faq" class="lp-section">
         <span class="lp-label reveal">{{ _('FaqLabel') }}</span>
         <h2 class="reveal" style="transition-delay:.06s">{{ _('FaqTitle') }}</h2>
         <p class="lp-lead reveal" style="transition-delay:.12s">{{ _('FaqSubtitle') }}</p>
