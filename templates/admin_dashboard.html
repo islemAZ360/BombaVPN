@@ -721,6 +721,53 @@
 </style>
 
 <script>
+    // The .container has a backdrop-filter, which makes it the containing block
+    // for position:fixed descendants — so modals were anchored to the (tall)
+    // container and appeared at the top of the page (requiring scroll-up).
+    // Re-parent every modal to <body> so position:fixed anchors to the viewport
+    // and they open centered wherever the admin currently is.
+    document.addEventListener('DOMContentLoaded', () => {
+        ['modify-modal', 'assign-modal', 'message-modal', 'confirm-modal'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el && el.parentElement !== document.body) document.body.appendChild(el);
+        });
+
+        // Dedicated handler for the "Assign Server" form. The generic AJAX form
+        // handler would treat it as a row action (and strip the modal), so opt it
+        // out and submit it cleanly: assign -> toast -> close modal -> refresh.
+        const assignForm = document.getElementById('assign-form');
+        if (assignForm) {
+            assignForm.setAttribute('data-no-ajax', '1');
+            assignForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = assignForm.querySelector('button[type="submit"]');
+                const orig = btn ? btn.innerHTML : '';
+                if (btn) { btn.disabled = true; btn.innerHTML = '...'; }
+                try {
+                    const resp = await fetch(assignForm.action, {
+                        method: 'POST',
+                        body: new FormData(assignForm),
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    const data = await resp.json();
+                    if (resp.ok && data.status === 'success') {
+                        if (typeof showToast !== 'undefined') showToast('success', 'تم', data.message || 'Server assigned');
+                        if (typeof closeModal === 'function') closeModal('assign-modal');
+                        if (typeof fetchDashboardSync === 'function') fetchDashboardSync();
+                    } else {
+                        if (typeof showToast !== 'undefined') showToast('error', 'خطأ', data.message || 'Assign failed');
+                    }
+                } catch (err) {
+                    if (typeof showToast !== 'undefined') showToast('error', 'خطأ', err.message);
+                } finally {
+                    if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+                }
+            });
+        }
+    });
+</script>
+
+<script>
 
     // Smart Duration Formatter
     function formatDurationSmart(totalSecs) {

@@ -841,42 +841,62 @@ def manage_user_sub(user_id):
     if sub_id:
         return manage_subscription(sub_id)
         
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
     if action == 'assign':
         server_id = request.form.get('server_id')
-        if server_id:
-            s_resp = supabase_admin.table('servers').select('*').eq('id', server_id).execute()
-            s_doc = s_resp.data[0] if s_resp.data else None
-            if s_doc:
-                user_resp = supabase_admin.table('users').select('*').eq('id', user_id).execute()
-                user_doc = user_resp.data[0] if user_resp.data else None
-                user_data = user_doc if user_doc else {}
-                
-                sub_id_new = str(uuid.uuid4())
-                
-                
-                s_data = s_doc
-                email_val = user_data.get('email', f'user-{user_id}')
-                
-                
-                plan_days = int(s_data.get('plan_days') or '0')
-                plan_hours = int(s_data.get('plan_hours') or '0')
-                plan_minutes = int(s_data.get('plan_minutes') or '0')
-                if not plan_days and not plan_hours and not plan_minutes:
-                    plan_days = 30
-                duration = timedelta(days=plan_days, hours=plan_hours, minutes=plan_minutes)
-                
-                supabase_admin.table('subscriptions').insert({
-                    'id': sub_id_new,
-                    'user_id': user_id,
-                    'server_id': server_id,
-                    'allocated_subdomain': None,
-                    'status': 'active',
-                    'created_at': datetime.now(timezone.utc),
-                    'expires_at': (datetime.now(timezone.utc) + duration).isoformat()
-                }).execute()
-                invalidate_subscriptions()
-                flash('تم تعيين السيرفر كمشترك جديد بنجاح / New subscription assigned', 'success')
-                
+        if not server_id:
+            if is_ajax:
+                return jsonify({'status': 'error', 'message': 'لم يتم اختيار سيرفر / No server selected'}), 400
+            flash('لم يتم اختيار سيرفر / No server selected', 'error')
+            return redirect(url_for('admin.admin_dashboard'))
+
+        s_resp = supabase_admin.table('servers').select('*').eq('id', server_id).execute()
+        s_doc = s_resp.data[0] if s_resp.data else None
+        if not s_doc:
+            if is_ajax:
+                return jsonify({'status': 'error', 'message': 'السيرفر غير موجود / Server not found'}), 400
+            flash('السيرفر غير موجود / Server not found', 'error')
+            return redirect(url_for('admin.admin_dashboard'))
+
+        s_data = s_doc
+        plan_days = int(s_data.get('plan_days') or '0')
+        plan_hours = int(s_data.get('plan_hours') or '0')
+        plan_minutes = int(s_data.get('plan_minutes') or '0')
+        # total_plan_seconds (set by the VLESS importer) takes priority if present
+        total_plan_seconds = s_data.get('total_plan_seconds')
+        if total_plan_seconds:
+            duration = timedelta(seconds=int(total_plan_seconds))
+        else:
+            if not plan_days and not plan_hours and not plan_minutes:
+                plan_days = 30
+            duration = timedelta(days=plan_days, hours=plan_hours, minutes=plan_minutes)
+
+        try:
+            now_utc = datetime.now(timezone.utc)
+            supabase_admin.table('subscriptions').insert({
+                'id': str(uuid.uuid4()),
+                'user_id': user_id,
+                'server_id': server_id,
+                'allocated_subdomain': None,
+                'status': 'active',
+                'created_at': now_utc.isoformat(),
+                'expires_at': (now_utc + duration).isoformat()
+            }).execute()
+            supabase_admin.table('users').update({'status': 'active'}).eq('id', user_id).execute()
+            invalidate_subscriptions()
+            invalidate_users()
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            if is_ajax:
+                return jsonify({'status': 'error', 'message': f'فشل تعيين السيرفر / Assign failed: {e}'}), 400
+            flash(f'فشل تعيين السيرفر / Assign failed: {e}', 'error')
+            return redirect(url_for('admin.admin_dashboard'))
+
+        if is_ajax:
+            return jsonify({'status': 'success', 'message': 'تم تعيين السيرفر بنجاح / Server assigned successfully'})
+        flash('تم تعيين السيرفر كمشترك جديد بنجاح / New subscription assigned', 'success')
+
     return redirect(url_for('admin.admin_dashboard'))
 
 @admin_bp.route('/admin/send_message/<user_id>', methods=['POST'])
