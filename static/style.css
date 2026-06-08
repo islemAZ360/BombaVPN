@@ -83,6 +83,10 @@
 
 html {
     scroll-behavior: smooth;
+    /* Dark backstop so mobile overscroll / collapsing address bar never
+       reveals the default white page background behind the fixed star canvas. */
+    background: #02040a;
+    overscroll-behavior: none;
 }
 
 body {
