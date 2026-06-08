@@ -31,6 +31,15 @@
     
     .logout-nav-btn { color: #94a3b8; border-color: transparent; background: transparent; }
     .logout-nav-btn:hover { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+
+    /* --- Subtle professional polish (no layout shifts, no scroll animation) --- */
+    #dashboard-main-content h3, #dashboard-main-content h4 { font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.015em; }
+    /* Analytics KPI cards: gentle interactive lift + accent on hover */
+    #dashboard-main-content [style*="rgba(30, 41, 59"] { transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
+    #dashboard-main-content [style*="rgba(30, 41, 59"]:hover { transform: translateY(-4px); border-color: rgba(0,255,204,0.3) !important; box-shadow: 0 14px 34px rgba(0,0,0,0.35) !important; }
+    /* Server Statistics boxes: same gentle lift */
+    .hud-stat-box { transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
+    .hud-stat-box:hover { transform: translateY(-4px); border-color: rgba(0,255,204,0.35); box-shadow: 0 12px 30px rgba(0,0,0,0.3); }
 </style>
 
 <div class="admin-header-nav" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 25px; padding: 15px 25px; background: rgba(20, 20, 30, 0.6); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(12px); box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
