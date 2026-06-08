@@ -74,8 +74,10 @@
     .tag-card { background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.07); border-left: 3px solid rgba(var(--tc),.75); border-radius: 16px; padding: 24px;
         transition: transform .3s ease, border-color .3s ease, box-shadow .3s ease; }
     .tag-card:hover { transform: translateY(-5px); box-shadow: 0 16px 42px rgba(0,0,0,.38); }
-    .tag-chip { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; font-size: .9rem; padding: 6px 14px; border-radius: 50px; margin-bottom: 14px;
+    .tag-chip { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: .9rem; padding: 7px 15px; border-radius: 50px; margin-bottom: 14px;
         background: rgba(var(--tc),.12); color: rgb(var(--tc)); border: 1px solid rgba(var(--tc),.3); }
+    .tag-chip svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .tag-chip img { width: 20px; height: 14px; border-radius: 3px; flex-shrink: 0; object-fit: cover; }
     .tag-card p { color: rgba(255,255,255,.6); margin: 0; line-height: 1.7; font-size: .94rem; }
     [dir="rtl"] .tag-cards, [dir="rtl"] .tag-card { text-align: right; }
     [dir="rtl"] .tag-card { border-left: 1px solid rgba(255,255,255,.07); border-right: 3px solid rgba(var(--tc),.75); }
@@ -187,19 +189,41 @@
         <h2 class="reveal" style="transition-delay:.06s">{{ _('SpecialServersTitle') }}</h2>
         <p class="lp-lead reveal" style="transition-delay:.12s">{{ _('SpecialServersSubtitle') }}</p>
         <div class="tag-cards">
-            {% set tags = [
-                ['▶️','YouTube','TagYT_Desc','0,255,204'],
-                ['🌀','Gemini','TagGemini_Desc','59,130,246'],
-                ['📶','LTE','TagLTE_Desc','245,158,11'],
-                ['🇷🇺','Russia','TagRU_Desc','239,68,68'],
-                ['🔗','Torrent','TagTorrent_Desc','16,185,129']
-            ] %}
-            {% for t in tags %}
-            <div class="tag-card reveal" style="transition-delay:{{ loop.index0 * 0.08 }}s; --tc: {{ t[3] }};">
-                <span class="tag-chip">{{ t[0] }} {{ t[1] }}</span>
-                <p>{{ _(t[2]) }}</p>
+            <div class="tag-card reveal" style="--tc: 0,255,204;">
+                <span class="tag-chip">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="4"></rect><path d="M10 9l5 3-5 3V9z" fill="currentColor" stroke="none"></path></svg>
+                    YouTube
+                </span>
+                <p>{{ _('TagYT_Desc') }}</p>
             </div>
-            {% endfor %}
+            <div class="tag-card reveal" style="transition-delay:.08s; --tc: 59,130,246;">
+                <span class="tag-chip">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.55 4.7 3.8 7.95 8.5 8.5-4.7.55-7.95 3.8-8.5 8.5-.55-4.7-3.8-7.95-8.5-8.5C8.2 9.95 11.45 6.7 12 2z"></path></svg>
+                    Gemini
+                </span>
+                <p>{{ _('TagGemini_Desc') }}</p>
+            </div>
+            <div class="tag-card reveal" style="transition-delay:.16s; --tc: 245,158,11;">
+                <span class="tag-chip">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="13" width="3.5" height="7" rx="1"></rect><rect x="10.25" y="9" width="3.5" height="11" rx="1"></rect><rect x="17.5" y="4" width="3.5" height="16" rx="1"></rect></svg>
+                    LTE
+                </span>
+                <p>{{ _('TagLTE_Desc') }}</p>
+            </div>
+            <div class="tag-card reveal" style="transition-delay:.24s; --tc: 239,68,68;">
+                <span class="tag-chip">
+                    <img src="https://flagcdn.com/w40/ru.png" alt="RU">
+                    Russia
+                </span>
+                <p>{{ _('TagRU_Desc') }}</p>
+            </div>
+            <div class="tag-card reveal" style="transition-delay:.32s; --tc: 16,185,129;">
+                <span class="tag-chip">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 11l5 5 5-5"></path><path d="M5 21h14"></path></svg>
+                    Torrent
+                </span>
+                <p>{{ _('TagTorrent_Desc') }}</p>
+            </div>
         </div>
     </section>
 
