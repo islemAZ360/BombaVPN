@@ -23,11 +23,24 @@
     .lp-hero .logo-wrap img { width: 100px; height: 100px; border-radius: 24px; }
     @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
-    .lp-title { font-size: clamp(3rem, 9vw, 6rem); font-weight: 700; line-height: .98; letter-spacing: -.02em; margin: 0 0 22px;
-        background: linear-gradient(180deg, #ffffff 35%, #8fe9da 75%, #00ffcc 110%);
+    .lp-title { font-size: clamp(3.4rem, 11vw, 7rem); font-weight: 700; line-height: .92; letter-spacing: -.035em; margin: 0 0 24px;
+        background: linear-gradient(180deg, #ffffff 0%, #e9fffb 48%, #67ecd6 100%);
         -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
-        filter: drop-shadow(0 4px 30px rgba(0,255,204,.18)); }
-    .lp-subtitle { font-size: clamp(1rem, 2.2vw, 1.3rem); color: rgba(255,255,255,.62); max-width: 620px; margin: 0 auto 40px; line-height: 1.7; }
+        filter: drop-shadow(0 8px 50px rgba(0,255,204,.30)); }
+    .lp-subtitle { font-size: clamp(1rem, 2.2vw, 1.25rem); color: rgba(255,255,255,.6); max-width: 600px; margin: 0 auto 38px; line-height: 1.75; }
+
+    /* Hero badge pill */
+    .hero-badge { display: inline-flex; align-items: center; gap: 9px; padding: 8px 18px; border-radius: 50px; margin-bottom: 26px;
+        background: rgba(0,255,204,.06); border: 1px solid rgba(0,255,204,.22); color: #b9fff0;
+        font-size: .74rem; font-weight: 600; letter-spacing: .2em; text-transform: uppercase;
+        backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+    .hero-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); animation: pulseDot 2s ease-in-out infinite; }
+    @keyframes pulseDot { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.65); } }
+
+    /* Hero trust strip */
+    .hero-trust { display: flex; gap: 28px; justify-content: center; flex-wrap: wrap; margin-top: 36px; color: rgba(255,255,255,.46); font-size: .88rem; }
+    .hero-trust span { display: inline-flex; align-items: center; gap: 8px; }
+    .hero-trust svg { width: 16px; height: 16px; color: var(--accent); flex-shrink: 0; }
 
     .lp-cta { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
     .lp-btn { display: inline-flex; align-items: center; gap: 10px; padding: 15px 32px; border-radius: 12px; font-size: 1.02rem;
@@ -135,7 +148,7 @@
         <div class="logo-wrap reveal">
             <img src="{{ url_for('static', filename='icon-512.png') }}" alt="GalaxyVPN">
         </div>
-        <span class="lp-label reveal" style="transition-delay:.05s">SECURE · FAST · UNRESTRICTED</span>
+        <span class="hero-badge reveal" style="transition-delay:.05s"><span class="dot"></span> SECURE · FAST · UNRESTRICTED</span>
         <h1 class="lp-title reveal" style="transition-delay:.1s">GalaxyVPN</h1>
         <p class="lp-subtitle reveal" style="transition-delay:.18s">{{ _('HeroSubtitle') }}</p>
         <div class="lp-cta reveal" style="transition-delay:.26s">
@@ -144,6 +157,11 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
             </a>
             <a href="#features" class="lp-btn lp-btn-ghost">{{ _('LearnMoreBtn') }}</a>
+        </div>
+        <div class="hero-trust reveal" style="transition-delay:.34s">
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> {{ _('HeroTrust1') }}</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polyline></svg> {{ _('HeroTrust2') }}</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> {{ _('HeroTrust3') }}</span>
         </div>
     </section>
 
